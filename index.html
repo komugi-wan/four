@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>OTK-Room Storage Designer v2.5</title>
+    <title>OTK-Room Designer Pro</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <style>
@@ -13,93 +13,106 @@
             --panel: #1e293b; --text: #f8fafc; 
             --danger: #ef4444; --card: rgba(255,255,255,0.07);
         }
-        body { margin: 0; overflow: hidden; font-family: 'Hiragino Kaku Gothic ProN', sans-serif; background: var(--bg); color: var(--text); touch-action: none; }
+        body { margin: 0; overflow: hidden; font-family: 'Hiragino Kaku Gothic ProN', sans-serif; background: var(--bg); color: var(--text); touch-action: none; -webkit-user-select: none; }
         
-        #view-container { height: 100vh; width: 100%; position: absolute; }
+        #view-container { height: 100vh; width: 100%; position: absolute; top:0; left:0; }
         
         /* UI Layout */
         #ui-panel {
-            position: fixed; bottom: 0; left: 0; width: 100%; height: 60vh;
-            background: var(--panel); border-top: 3px solid var(--accent);
+            position: fixed; bottom: 0; left: 0; width: 100%; height: 65vh;
+            background: var(--panel); border-top: 2px solid rgba(255,255,255,0.1);
             border-radius: 24px 24px 0 0; z-index: 100; 
             transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
             box-shadow: 0 -15px 40px rgba(0,0,0,0.6);
             display: flex; flex-direction: column;
         }
-        #ui-panel.collapsed { transform: translateY(calc(60vh - 50px)); }
+        #ui-panel.collapsed { transform: translateY(calc(65vh - 55px)); }
         
         .panel-toggle {
-            width: 100%; height: 50px; display: flex; justify-content: center; align-items: center; 
-            background: rgba(255,255,255,0.03); cursor: pointer;
+            width: 100%; height: 55px; display: flex; flex-direction: column; justify-content: center; align-items: center; 
+            background: rgba(255,255,255,0.02); cursor: pointer;
         }
-        .handle-bar { width: 40px; height: 4px; background: #475569; border-radius: 2px; }
+        .handle-bar { width: 40px; height: 5px; background: #475569; border-radius: 10px; margin-bottom: 5px; }
+        .toggle-label { font-size: 10px; color: #94a3b8; font-weight: bold; }
 
+        /* View Controls */
         .view-controls {
-            position: fixed; top: 15px; left: 15px; display: flex; flex-direction: column; gap: 10px; z-index: 50;
+            position: fixed; top: 20px; right: 15px; display: flex; flex-direction: column; gap: 12px; z-index: 50;
         }
         .v-btn { 
-            background: rgba(15, 23, 42, 0.85); color: white; border: 1px solid rgba(255,255,255,0.2); 
-            padding: 10px; border-radius: 12px; font-size: 14px; backdrop-filter: blur(10px);
-            width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
+            background: rgba(15, 23, 42, 0.7); color: white; border: 1px solid rgba(255,255,255,0.1); 
+            width: 48px; height: 48px; border-radius: 14px; backdrop-filter: blur(15px);
+            display: flex; align-items: center; justify-content: center; font-size: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
 
-        .tabs { display: flex; padding: 0 10px; gap: 5px; background: rgba(0,0,0,0.2); }
+        /* Tabs */
+        .tabs { display: flex; padding: 5px 15px; gap: 10px; background: rgba(0,0,0,0.3); }
         .tab { 
-            flex: 1; padding: 12px; text-align: center; font-size: 13px; 
-            background: transparent; border-bottom: 3px solid transparent; opacity: 0.5;
+            flex: 1; padding: 12px 5px; text-align: center; font-size: 12px; 
+            background: transparent; border-bottom: 3px solid transparent; opacity: 0.4; transition: 0.3s;
         }
         .tab.active { border-bottom: 3px solid var(--accent); opacity: 1; color: var(--accent); font-weight: bold; }
 
-        .content-scroll { flex: 1; overflow-y: auto; padding: 20px; padding-bottom: 40px; }
-        .card { background: var(--card); padding: 16px; border-radius: 16px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.05); }
+        .content-scroll { flex: 1; overflow-y: auto; padding: 20px; padding-bottom: 80px; -webkit-overflow-scrolling: touch; }
+        .card { background: var(--card); padding: 18px; border-radius: 20px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.05); }
         .section { display: none; }
-        .section.active { display: block; animation: fadeIn 0.3s ease; }
+        .section.active { display: block; animation: fadeIn 0.4s ease; }
         
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        .grid-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px; }
-        label { display: block; font-size: 11px; color: #94a3b8; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+        /* Form elements */
+        .grid-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
+        label { display: block; font-size: 11px; color: #94a3b8; margin-bottom: 6px; font-weight: bold; }
         input, select { 
             width: 100%; background: #0f172a; border: 1px solid #334155; color: white; 
-            padding: 12px; border-radius: 10px; font-size: 14px; box-sizing: border-box; outline: none;
+            padding: 14px; border-radius: 12px; font-size: 15px; box-sizing: border-box; outline: none; appearance: none;
         }
-        input:focus { border-color: var(--accent); }
+        input:focus { border-color: var(--accent); background: #1e293b; }
 
-        .btn-main { background: var(--accent); color: #064e3b; border: none; width: 100%; padding: 16px; border-radius: 12px; font-weight: 800; font-size: 15px; transition: 0.2s; }
-        .btn-main:active { transform: scale(0.98); opacity: 0.9; }
-        .btn-sub { background: #334155; color: white; border: none; padding: 12px; border-radius: 10px; width: 100%; font-weight: bold; }
-        .btn-danger { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid #ef4444; padding: 8px; border-radius: 8px; font-size: 12px; }
+        .btn-main { background: var(--accent); color: #064e3b; border: none; width: 100%; padding: 16px; border-radius: 14px; font-weight: 800; font-size: 16px; transition: 0.2s; box-shadow: 0 4px 0 var(--accent-dark); }
+        .btn-main:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--accent-dark); }
+        .btn-sub { background: #334155; color: white; border: none; padding: 12px; border-radius: 12px; width: 100%; font-weight: bold; }
+        .btn-danger { background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid #ef4444; padding: 10px; border-radius: 10px; font-size: 12px; }
         
         .action-bar { display: flex; gap: 10px; margin-top: 15px; }
         .item-row { 
-            background: rgba(255,255,255,0.03); padding: 12px; border-radius: 10px; 
-            margin-top: 8px; display: flex; justify-content: space-between; align-items: center;
-            border-left: 4px solid var(--sub);
+            background: rgba(255,255,255,0.05); padding: 15px; border-radius: 14px; 
+            margin-top: 10px; display: flex; justify-content: space-between; align-items: center;
+            border-left: 5px solid var(--sub);
         }
         
         #guide-msg { 
-            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-            background: var(--accent); color: #064e3b; padding: 8px 20px; 
-            border-radius: 30px; font-size: 13px; font-weight: bold; 
-            display: none; z-index: 200; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            position: fixed; top: 25px; left: 50%; transform: translateX(-50%);
+            background: rgba(74, 222, 128, 0.9); color: #064e3b; padding: 10px 25px; 
+            border-radius: 50px; font-size: 14px; font-weight: 800; 
+            display: none; z-index: 200; box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+            pointer-events: none;
         }
 
-        .helper-text { font-size: 12px; color: #64748b; margin-top: 10px; text-align: center; }
+        .helper-text { font-size: 12px; color: #64748b; margin-top: 15px; text-align: center; line-height: 1.6; }
+
+        /* Scrollbar hide */
+        .content-scroll::-webkit-scrollbar { width: 0; }
     </style>
 </head>
 <body>
 
 <div id="view-container"></div>
-<div id="guide-msg">配置モード: 指を離すと決定</div>
+<div id="guide-msg">移動中... 指を離して配置</div>
 
 <div class="view-controls">
-    <button class="v-btn" onclick="setView('3d')" title="3D">🧊</button>
-    <button class="v-btn" onclick="setView('2d')" title="平面">📋</button>
-    <button class="v-btn" onclick="resetCamera()" title="リセット">🔄</button>
+    <button class="v-btn" onclick="setView('3d')" title="3D表示">🧊</button>
+    <button class="v-btn" onclick="setView('2d')" title="上から">俯瞰</button>
+    <button class="v-btn" onclick="saveData()" title="保存">💾</button>
+    <button class="btn-danger" style="width:48px; height:48px; border-radius:14px; font-size:10px;" onclick="clearAll()">リセット</button>
 </div>
 
 <div id="ui-panel">
-    <div class="panel-toggle" onclick="togglePanel()"><div class="handle-bar"></div></div>
+    <div class="panel-toggle" onclick="togglePanel()">
+        <div class="handle-bar"></div>
+        <div class="toggle-label">MENU / SETTINGS</div>
+    </div>
     <div class="tabs">
         <div class="tab active" onclick="tab(0)">🏠 部屋</div>
         <div class="tab" onclick="tab(1)">🛋️ 家具追加</div>
@@ -111,29 +124,30 @@
             <div class="card">
                 <label>部屋のサイズ (幅 x 奥行 cm)</label>
                 <div class="grid-row">
-                    <input type="number" id="room-w" value="300" placeholder="幅">
-                    <input type="number" id="room-d" value="300" placeholder="奥行">
+                    <input type="number" id="room-w" value="300" step="10">
+                    <input type="number" id="room-d" value="300" step="10">
                     <button class="btn-sub" onclick="updateRoom()">適用</button>
                 </div>
-                <label>床の材質</label>
+                <label>床のデザイン</label>
                 <select id="floor-mat" onchange="updateRoom()">
-                    <option value="0x334155">モダン(グレー)</option>
-                    <option value="0x78350f">フローリング(木目)</option>
-                    <option value="0xecfdf5">大理石風タイル</option>
-                    <option value="0x1e293b">ダーク(カーペット)</option>
+                    <option value="0x334155">アーバン・グレー</option>
+                    <option value="0x78350f">ナチュラル・ウッド</option>
+                    <option value="0x1e293b">ミッドナイト・カーペット</option>
+                    <option value="0xf8fafc">ホワイト・スタジオ</option>
                 </select>
             </div>
-            <p class="helper-text">※ 1マスは 50cm x 50cm です</p>
+            <p class="helper-text">家具を配置するには「家具追加」タブへ<br>配置した家具をタップすると移動・編集できます</p>
         </div>
 
         <div id="sec-1" class="section">
             <div class="card">
-                <label>プリセット</label>
-                <select id="f-preset" onchange="applyFPreset()" style="margin-bottom:15px;">
+                <label>家具の種類を選択</label>
+                <select id="f-preset" onchange="applyFPreset()" style="margin-bottom:15px; font-weight: bold; border-color: var(--accent);">
                     <option value="box">カラーボックス(3段)</option>
                     <option value="shelf">大容量コミック棚</option>
                     <option value="case">アクリルフィギュアケース</option>
-                    <option value="desk">ゲーミングデスク</option>
+                    <option value="desk">シンプルデスク</option>
+                    <option value="wide_shelf">横長ディスプレイ台</option>
                 </select>
                 <div class="grid-row">
                     <div><label>幅</label><input type="number" id="f-w" value="40"></div>
@@ -141,8 +155,8 @@
                     <div><label>奥行</label><input type="number" id="f-d" value="30"></div>
                 </div>
                 <div class="grid-row">
-                    <div><label>段数</label><input type="number" id="f-step" value="3"></div>
-                    <div><label>色</label><input type="color" id="f-c" value="#e2e8f0"></div>
+                    <div><label>仕切り数</label><input type="number" id="f-step" value="3"></div>
+                    <div><label>カラー</label><input type="color" id="f-c" value="#e2e8f0"></div>
                     <div style="display:flex; align-items:flex-end;"><button class="btn-main" onclick="spawnFurniture()">追加</button></div>
                 </div>
             </div>
@@ -150,11 +164,11 @@
 
         <div id="sec-2" class="section">
             <div id="storage-editor" style="display:none;">
-                <div class="card" style="border: 1px solid var(--accent);">
-                    <div id="target-name" style="font-weight:bold; color:var(--accent); font-size:16px; margin-bottom:12px;">家具を選択中</div>
+                <div class="card" style="border: 2px solid var(--accent); background: rgba(74, 222, 128, 0.05);">
+                    <div id="target-name" style="font-weight:bold; color:var(--accent); font-size:18px; margin-bottom:12px;">編集中の家具</div>
                     <div class="action-bar">
-                        <button class="btn-sub" style="flex:1" onclick="rotateFurniture()">↻ 90度回転</button>
-                        <button class="btn-danger" onclick="deleteFurniture()">ゴミ箱へ</button>
+                        <button class="btn-sub" style="flex:1" onclick="rotateFurniture()">↻ 90°回転</button>
+                        <button class="btn-danger" onclick="deleteFurniture()">削除する</button>
                     </div>
                 </div>
 
@@ -162,26 +176,28 @@
                     <label>グッズを収納する</label>
                     <select id="item-preset" onchange="applyItemPreset()" style="margin-bottom:12px;">
                         <option value="manga">📚 単行本/ラノベ</option>
-                        <option value="file">📄 クリアファイル</option>
-                        <option value="clearbox">📦 収納ボックス</option>
+                        <option value="file">📄 A4クリアファイル</option>
+                        <option value="clearbox">📦 汎用収納ボックス</option>
+                        <option value="figure">🧸 フィギュア(中)</option>
                         <option value="custom">✨ カスタムサイズ</option>
                     </select>
-                    <input type="text" id="i-label" placeholder="名前 (例: 推しのアクスタ)" style="margin-bottom:12px;">
+                    <input type="text" id="i-label" placeholder="アイテム名（例：推しの本）" style="margin-bottom:12px;">
                     <div class="grid-row">
                         <div><label>幅</label><input type="number" id="i-w" value="11"></div>
                         <div><label>高さ</label><input type="number" id="i-h" value="17"></div>
                         <div><label>奥行</label><input type="number" id="i-d" value="2"></div>
                     </div>
                     <div style="margin-bottom:12px;">
-                        <label>収納する段 (1 = 最下段)</label>
+                        <label id="i-step-label">収納する段 (1段目 = 最下段)</label>
                         <input type="number" id="i-step-idx" value="1" min="1">
                     </div>
-                    <button class="btn-main" style="background:var(--sub); color:white;" onclick="addItemToFurniture()">この段に収納</button>
+                    <button class="btn-main" style="background:var(--sub); color:white; box-shadow: 0 4px 0 #be185d;" onclick="addItemToFurniture()">この段に収納</button>
                 </div>
                 <div id="item-list"></div>
             </div>
-            <div id="storage-msg" style="text-align:center; opacity:0.5; padding:60px 20px; border:2px dashed #334155; border-radius:20px;">
-                配置した家具をタップすると<br>中身の管理ができます
+            <div id="storage-msg" style="text-align:center; opacity:0.6; padding:60px 20px; border:2px dashed #334155; border-radius:24px;">
+                <p style="font-size: 24px; margin-bottom: 10px;">👈</p>
+                配置した家具をタップすると<br>中身の管理・移動ができます
             </div>
         </div>
     </div>
@@ -206,21 +222,24 @@ function init() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     document.getElementById('view-container').appendChild(renderer.domElement);
 
     controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
-    controls.dampingFactor = 0.08;
+    controls.dampingFactor = 0.1;
     controls.maxPolarAngle = Math.PI / 2.1;
-    controls.minDistance = 100;
-    controls.maxDistance = 2000;
+    controls.minDistance = 50;
+    controls.maxDistance = 1500;
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
     scene.add(ambientLight);
     
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.4);
-    dirLight.position.set(200, 500, 200);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+    dirLight.position.set(200, 500, 100);
     dirLight.castShadow = true;
+    dirLight.shadow.mapSize.width = 1024;
+    dirLight.shadow.mapSize.height = 1024;
     scene.add(dirLight);
 
     roomGroup = new THREE.Group();
@@ -230,6 +249,8 @@ function init() {
     mouse = new THREE.Vector2();
 
     updateRoom();
+    loadData(); // 保存データの読み込み
+
     window.addEventListener('resize', onResize);
     renderer.domElement.addEventListener('pointerdown', onPointerDown);
 }
@@ -248,17 +269,11 @@ function setView(mode) {
     if(mode === '2d') {
         camera.position.set(0, 800, 0);
         controls.enableRotate = false;
+        controls.target.set(0,0,0);
     } else {
         camera.position.set(400, 450, 400);
         controls.enableRotate = true;
     }
-    controls.target.set(0,0,0);
-}
-
-function resetCamera() {
-    controls.reset();
-    camera.position.set(400, 450, 400);
-    controls.target.set(0,0,0);
 }
 
 function updateRoom() {
@@ -276,37 +291,45 @@ function updateRoom() {
     roomGroup.add(floor);
 
     const grid = new THREE.GridHelper(Math.max(w,d), Math.max(w,d)/50, 0x475569, 0x334155);
-    grid.position.y = 0.5;
+    grid.position.y = 0.2;
     roomGroup.add(grid);
 
-    // 半透明の壁（奥側2枚のみ）
-    const wallMat = new THREE.MeshPhongMaterial({ color: 0x1e293b, transparent: true, opacity: 0.15 });
-    const wall1 = new THREE.Mesh(new THREE.BoxGeometry(w, 240, 2), wallMat);
-    wall1.position.set(0, 120, -d/2);
-    roomGroup.add(wall1);
-    const wall2 = new THREE.Mesh(new THREE.BoxGeometry(2, 240, d), wallMat);
-    wall2.position.set(-w/2, 120, 0);
-    roomGroup.add(wall2);
+    // 壁（視認性のため半透明）
+    const wallMat = new THREE.MeshPhongMaterial({ color: 0x1e293b, transparent: true, opacity: 0.1 });
+    const walls = [
+        { s: [w, 240, 2], p: [0, 120, -d/2] },
+        { s: [2, 240, d], p: [-w/2, 120, 0] }
+    ];
+    walls.forEach(config => {
+        const wall = new THREE.Mesh(new THREE.BoxGeometry(...config.s), wallMat);
+        wall.position.set(...config.p);
+        roomGroup.add(wall);
+    });
 }
 
-function spawnFurniture() {
-    const w = parseFloat(document.getElementById('f-w').value);
-    const h = parseFloat(document.getElementById('f-h').value);
-    const d = parseFloat(document.getElementById('f-d').value);
-    const steps = parseInt(document.getElementById('f-step').value);
-    const col = document.getElementById('f-c').value;
+function spawnFurniture(data = null) {
+    const config = data || {
+        w: parseFloat(document.getElementById('f-w').value),
+        h: parseFloat(document.getElementById('f-h').value),
+        d: parseFloat(document.getElementById('f-d').value),
+        steps: parseInt(document.getElementById('f-step').value),
+        color: document.getElementById('f-c').value,
+        pos: [0, 0, 0],
+        rot: 0,
+        items: []
+    };
 
     const group = new THREE.Group();
-    const mat = new THREE.MeshPhongMaterial({ color: col });
+    const mat = new THREE.MeshPhongMaterial({ color: config.color });
     const thick = 2;
     
-    // 外枠（底・天・左右・背）
+    // パーツ作成
     const parts = [
-        { s: [w, thick, d], p: [0, -h/2+thick/2, 0] }, // 底
-        { s: [w, thick, d], p: [0, h/2-thick/2, 0] }, // 天
-        { s: [thick, h, d], p: [-w/2+thick/2, 0, 0] }, // 左
-        { s: [thick, h, d], p: [w/2-thick/2, 0, 0] }, // 右
-        { s: [w, h, 1], p: [0, 0, -d/2+0.5] } // 背
+        { s: [config.w, thick, config.d], p: [0, -config.h/2+thick/2, 0] },
+        { s: [config.w, thick, config.d], p: [0, config.h/2-thick/2, 0] },
+        { s: [thick, config.h, config.d], p: [-config.w/2+thick/2, 0, 0] },
+        { s: [thick, config.h, config.d], p: [config.w/2-thick/2, 0, 0] },
+        { s: [config.w, config.h, 1], p: [0, 0, -config.d/2+0.5] }
     ];
 
     parts.forEach(p => {
@@ -316,22 +339,30 @@ function spawnFurniture() {
         group.add(m);
     });
 
-    const stepH = (h - (thick * (steps + 1))) / steps;
-    for(let i=1; i < steps; i++) {
-        const shelf = new THREE.Mesh(new THREE.BoxGeometry(w-thick*2, thick, d-thick), mat);
-        shelf.position.y = -h/2 + thick + (stepH + thick) * i;
+    const stepH = (config.h - (thick * (config.steps + 1))) / config.steps;
+    for(let i=1; i < config.steps; i++) {
+        const shelf = new THREE.Mesh(new THREE.BoxGeometry(config.w-thick*2, thick, config.d-thick), mat);
+        shelf.position.y = -config.h/2 + thick + (stepH + thick) * i;
+        shelf.receiveShadow = true;
         group.add(shelf);
     }
 
-    group.position.set(0, h/2 + 1, 0);
-    group.userData = { type: 'furniture', items: [], h, w, d, steps, stepH, thick };
+    group.userData = { type: 'furniture', items: [], ...config, stepH, thick };
+    group.position.set(config.pos[0], config.h/2 + 0.5, config.pos[2]);
+    group.rotation.y = config.rot;
+    
     scene.add(group);
     furnitureList.push(group);
     
-    selectFurniture(group);
-    tab(2);
-    togglePanel(); // 配置しやすくするために一瞬閉じる
-    setTimeout(() => document.getElementById('ui-panel').classList.remove('collapsed'), 1000);
+    if(!data) {
+        selectFurniture(group);
+        tab(2);
+        if(window.innerWidth < 768) togglePanel(); 
+    } else {
+        // 保存データからの復元時にアイテムを再生成
+        config.items.forEach(item => addItemToFurniture(group, item));
+    }
+    return group;
 }
 
 function onPointerDown(e) {
@@ -358,7 +389,6 @@ function onPointerDown(e) {
             const hit = new THREE.Vector3();
             raycaster.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0,1,0), 0), hit);
             
-            // 5cm間隔でスナップ
             obj.position.x = Math.round(hit.x / 5) * 5;
             obj.position.z = Math.round(hit.z / 5) * 5;
         };
@@ -367,11 +397,15 @@ function onPointerDown(e) {
             window.removeEventListener('pointermove', move);
             document.getElementById('guide-msg').style.display = 'none';
             controls.enabled = true;
+            saveData();
         };
 
         controls.enabled = false;
         window.addEventListener('pointermove', move);
         window.addEventListener('pointerup', up, {once:true});
+    } else if (e.detail === 1) {
+        // 何もないところをタップ
+        // deselectFurniture();
     }
 }
 
@@ -379,14 +413,12 @@ function selectFurniture(obj) {
     deselectFurniture();
     selectedFurniture = obj;
     selectedFurniture.traverse(n => {
-        if(n.isMesh) {
-            n.material.emissive = new THREE.Color(0x222222);
-        }
+        if(n.isMesh) n.material.emissive = new THREE.Color(0x333333);
     });
     
     document.getElementById('storage-editor').style.display = 'block';
     document.getElementById('storage-msg').style.display = 'none';
-    document.getElementById('target-name').innerText = `編集中の家具 (${obj.userData.w}x${obj.userData.h})`;
+    document.getElementById('target-name').innerText = `選択中: 家具 (${obj.userData.w}x${obj.userData.h})`;
     document.getElementById('i-step-idx').max = obj.userData.steps;
     updateItemList();
 }
@@ -398,66 +430,78 @@ function deselectFurniture() {
         });
     }
     selectedFurniture = null;
-}
-
-function rotateFurniture() {
-    if(selectedFurniture) selectedFurniture.rotation.y += Math.PI / 2;
-}
-
-function deleteFurniture() {
-    if(!selectedFurniture) return;
-    if(!confirm("この家具を削除しますか？")) return;
-    scene.remove(selectedFurniture);
-    furnitureList = furnitureList.filter(f => f !== selectedFurniture);
-    selectedFurniture = null;
     document.getElementById('storage-editor').style.display = 'none';
     document.getElementById('storage-msg').style.display = 'block';
 }
 
-function addItemToFurniture() {
+function rotateFurniture() {
+    if(selectedFurniture) {
+        selectedFurniture.rotation.y += Math.PI / 2;
+        saveData();
+    }
+}
+
+function deleteFurniture() {
     if(!selectedFurniture) return;
-    const label = document.getElementById('i-label').value || "グッズ";
-    const iw = parseFloat(document.getElementById('i-w').value);
-    const ih = parseFloat(document.getElementById('i-h').value);
-    const id = parseFloat(document.getElementById('i-d').value);
-    const stepIdx = parseInt(document.getElementById('i-step-idx').value) - 1;
+    if(!confirm("この家具と中身をすべて削除しますか？")) return;
+    scene.remove(selectedFurniture);
+    furnitureList = furnitureList.filter(f => f !== selectedFurniture);
+    deselectFurniture();
+    saveData();
+}
+
+function addItemToFurniture(target = null, savedItem = null) {
+    const f = target || selectedFurniture;
+    if(!f) return;
+
+    const itemData = savedItem || {
+        name: document.getElementById('i-label').value || "グッズ",
+        w: parseFloat(document.getElementById('i-w').value),
+        h: parseFloat(document.getElementById('i-h').value),
+        d: parseFloat(document.getElementById('i-d').value),
+        step: parseInt(document.getElementById('i-step-idx').value) - 1
+    };
 
     const itemMesh = new THREE.Mesh(
-        new THREE.BoxGeometry(iw, ih, id),
+        new THREE.BoxGeometry(itemData.w, itemData.h, itemData.d),
         new THREE.MeshPhongMaterial({ color: 0xf472b6 })
     );
 
-    // 配置計算: 指定した段の床からの高さ
-    const { stepH, thick, h, w, d } = selectedFurniture.userData;
-    const posY = -h/2 + thick + (stepH + thick) * stepIdx + ih/2;
+    const { stepH, thick, h, w, d } = f.userData;
+    const posY = -h/2 + thick + (stepH + thick) * itemData.step + itemData.h/2;
     
-    // 横並びロジック（簡易版: 追加されるごとに少しずつ横にずらす）
-    const offset = (selectedFurniture.userData.items.filter(i => i.step === stepIdx).length * (iw + 1));
-    const posX = -w/2 + thick + iw/2 + (offset % (w - thick*2));
+    const countInStep = f.userData.items.filter(i => i.step === itemData.step).length;
+    const posX = -w/2 + thick + itemData.w/2 + (countInStep * (itemData.w + 1)) % (w - thick*2);
     
     itemMesh.position.set(posX, posY, 0);
-    selectedFurniture.add(itemMesh);
+    itemMesh.castShadow = true;
+    f.add(itemMesh);
     
-    selectedFurniture.userData.items.push({ name: label, mesh: itemMesh, step: stepIdx });
-    updateItemList();
+    f.userData.items.push({ ...itemData, mesh: itemMesh });
+    if(!savedItem) {
+        updateItemList();
+        saveData();
+    }
 }
 
 function updateItemList() {
     const container = document.getElementById('item-list');
-    container.innerHTML = '<div style="margin:15px 0 5px; font-size:12px; font-weight:bold; color:#94a3b8;">収納済みアイテム</div>';
-    if(selectedFurniture.userData.items.length === 0) {
-        container.innerHTML += '<div style="font-size:12px; opacity:0.5;">アイテムがありません</div>';
+    container.innerHTML = '<div style="margin:20px 0 10px; font-size:12px; font-weight:bold; color:#94a3b8; text-transform:uppercase;">In Storage / 収納済み</div>';
+    
+    if(!selectedFurniture || selectedFurniture.userData.items.length === 0) {
+        container.innerHTML += '<div style="font-size:12px; opacity:0.5; text-align:center; padding:20px;">アイテムがありません</div>';
         return;
     }
+
     selectedFurniture.userData.items.forEach((item, idx) => {
         const div = document.createElement('div');
         div.className = 'item-row';
         div.innerHTML = `
             <div>
-                <div style="font-size:14px;">${item.name}</div>
-                <div style="font-size:10px; opacity:0.6;">${item.step + 1}段目</div>
+                <div style="font-size:14px; font-weight:bold;">${item.name}</div>
+                <div style="font-size:11px; opacity:0.6; margin-top:2px;">${item.step + 1}段目 / ${item.w}x${item.h}cm</div>
             </div>
-            <button class="btn-danger" style="padding:4px 8px;" onclick="removeItem(${idx})">削除</button>
+            <button class="btn-danger" style="padding:6px 12px;" onclick="removeItem(${idx})">削除</button>
         `;
         container.appendChild(div);
     });
@@ -468,14 +512,16 @@ function removeItem(idx) {
     selectedFurniture.remove(item.mesh);
     selectedFurniture.userData.items.splice(idx, 1);
     updateItemList();
+    saveData();
 }
 
 function applyFPreset() {
     const sets = {
         box: [40, 90, 30, 3],
-        shelf: [80, 180, 18, 6],
+        shelf: [80, 180, 20, 6],
         case: [60, 150, 40, 4],
-        desk: [120, 72, 60, 1]
+        desk: [120, 72, 60, 1],
+        wide_shelf: [120, 45, 40, 1]
     };
     const s = sets[document.getElementById('f-preset').value];
     ['f-w','f-h','f-d','f-step'].forEach((id, i) => document.getElementById(id).value = s[i]);
@@ -486,11 +532,50 @@ function applyItemPreset() {
         manga: ["単行本", 11, 17, 2],
         file: ["A4クリアファイル", 22, 31, 1],
         clearbox: ["収納BOX", 25, 15, 30],
-        custom: ["グッズ", 15, 10, 10]
+        figure: ["フィギュア(中)", 15, 20, 15],
+        custom: ["グッズ", 10, 10, 10]
     };
     const s = sets[document.getElementById('item-preset').value];
     document.getElementById('i-label').value = s[0];
     ['i-w','i-h','i-d'].forEach((id, i) => document.getElementById(id).value = s[i+1]);
+}
+
+// データの永続化
+function saveData() {
+    const data = {
+        room: {
+            w: document.getElementById('room-w').value,
+            d: document.getElementById('room-d').value,
+            mat: document.getElementById('floor-mat').value
+        },
+        furniture: furnitureList.map(f => ({
+            w: f.userData.w, h: f.userData.h, d: f.userData.d,
+            steps: f.userData.steps, color: f.userData.color,
+            pos: [f.position.x, f.position.y, f.position.z],
+            rot: f.rotation.y,
+            items: f.userData.items.map(i => ({ name: i.name, w: i.w, h: i.h, d: i.d, step: i.step }))
+        }))
+    };
+    localStorage.setItem('otk_room_data', JSON.stringify(data));
+}
+
+function loadData() {
+    const raw = localStorage.getItem('otk_room_data');
+    if(!raw) return;
+    const data = JSON.parse(raw);
+    
+    document.getElementById('room-w').value = data.room.w;
+    document.getElementById('room-d').value = data.room.d;
+    document.getElementById('floor-mat').value = data.room.mat;
+    updateRoom();
+
+    data.furniture.forEach(fData => spawnFurniture(fData));
+}
+
+function clearAll() {
+    if(!confirm("すべての配置をリセットしますか？")) return;
+    localStorage.removeItem('otk_room_data');
+    location.reload();
 }
 
 function onResize() {
