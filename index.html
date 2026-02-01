@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>OTK-Room Designer v6.0 Pro</title>
+    <title>OTK-Room Designer v6.5 Pro</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <style>
@@ -115,7 +115,7 @@
 <div id="ui-panel" class="collapsed">
     <div class="panel-toggle" onclick="cyclePanel()">
         <div class="handle-bar"></div>
-        <div style="font-size: 10px; font-weight: 900; color: #4ade80; letter-spacing: 0.1em;">OTK-ROOM DESIGNER v6.0</div>
+        <div style="font-size: 10px; font-weight: 900; color: #4ade80; letter-spacing: 0.1em;">OTK-ROOM DESIGNER v6.5</div>
     </div>
     
     <div class="tabs">
@@ -168,6 +168,20 @@
 
         <div id="sec-2" class="section">
             <div id="storage-editor" style="display:none;">
+                <div class="card">
+                    <label>家具のプロパティ変更</label>
+                    <div class="grid-row">
+                        <div><label>幅</label><input type="number" id="edit-f-w" onchange="updateSelectedFurniture()"></div>
+                        <div><label>高</label><input type="number" id="edit-f-h" onchange="updateSelectedFurniture()"></div>
+                        <div><label>奥</label><input type="number" id="edit-f-d" onchange="updateSelectedFurniture()"></div>
+                    </div>
+                    <div class="grid-row">
+                        <div><label>段数</label><input type="number" id="edit-f-step" onchange="updateSelectedFurniture()"></div>
+                        <div><label>色</label><input type="color" id="edit-f-c" onchange="updateSelectedFurniture()"></div>
+                        <div><label>透明</label><input type="range" id="edit-f-op" min="0.2" max="1" step="0.1" onchange="updateSelectedFurniture()"></div>
+                    </div>
+                </div>
+
                 <div class="card" style="border-color: var(--accent);">
                     <div id="target-name" style="font-weight:900; color:var(--accent); margin-bottom:12px; font-size:12px;">選択中</div>
                     <div style="display:flex; gap:10px;">
@@ -267,20 +281,16 @@ function changeView(mode) {
     document.querySelectorAll('.v-btn').forEach(b => b.classList.remove('active'));
     document.getElementById(`btn-${mode}`).classList.add('active');
 
-    const duration = 15; 
-    let count = 0;
-
     if(mode === '2d') {
         controls.enabled = true;
         camera.position.set(0, 700, 0);
         controls.target.set(0,0,0);
     } else if (mode === 'elev' && selectedFurniture) {
-        // 立面表示: 選択中の家具の正面にカメラを回す
         const fPos = selectedFurniture.position;
         const offset = new THREE.Vector3(0, 0, 300).applyAxisAngle(new THREE.Vector3(0,1,0), selectedFurniture.rotation.y);
         camera.position.set(fPos.x + offset.x, fPos.y, fPos.z + offset.z);
         controls.target.set(fPos.x, fPos.y, fPos.z);
-        controls.enabled = false; // 立面時は固定
+        controls.enabled = false;
     } else {
         controls.enabled = true;
         camera.position.set(400, 400, 400);
@@ -311,6 +321,32 @@ function updateRoom() {
 
     roomFloor = group;
     scene.add(roomFloor);
+    
+    // 部屋サイズ変更時に既存の家具を押し戻す
+    furnitureList.forEach(f => {
+        const clamped = clampPosition(f.position.x, f.position.z, f.userData.w, f.userData.d, f.rotation.y);
+        f.position.x = clamped.x;
+        f.position.z = clamped.z;
+    });
+}
+
+// 家具が床からはみ出さないように座標を制限する関数
+function clampPosition(x, z, fw, fd, rot) {
+    const rw = parseFloat(document.getElementById('room-w').value) || 300;
+    const rd = parseFloat(document.getElementById('room-d').value) || 300;
+    
+    // 回転を考慮したサイズ（簡易計算）
+    const isRotated = (Math.round(rot / (Math.PI/2)) % 2 !== 0);
+    const actualW = isRotated ? fd : fw;
+    const actualD = isRotated ? fw : fd;
+
+    const limitX = (rw - actualW) / 2;
+    const limitZ = (rd - actualD) / 2;
+
+    return {
+        x: Math.max(-limitX, Math.min(limitX, x)),
+        z: Math.max(-limitZ, Math.min(limitZ, z))
+    };
 }
 
 function spawnFurniture(data = null) {
@@ -344,7 +380,7 @@ function spawnFurniture(data = null) {
         group.add(m);
     });
 
-    const stepH = (config.h - t*2) / config.steps;
+    const stepH = (config.h - t*2) / Math.max(1, config.steps);
     for(let i=0; i<=config.steps; i++) {
         const p = new THREE.Mesh(new THREE.BoxGeometry(config.w - t*2, t, config.d - 1), mat);
         p.position.y = -config.h/2 + (stepH * i) + (i === 0 ? t/2 : 0);
@@ -352,15 +388,49 @@ function spawnFurniture(data = null) {
     }
 
     group.userData = { type: 'furniture', items: [], ...config, stepH };
-    group.position.set(config.pos[0], config.h/2, config.pos[2]);
+    
+    // 初期配置の境界チェック
+    const clamped = clampPosition(config.pos[0], config.pos[2], config.w, config.d, config.rot);
+    group.position.set(clamped.x, config.h/2, clamped.z);
     group.rotation.y = config.rot;
     
     scene.add(group);
     furnitureList.push(group);
     
+    // アイテム（グッズ）の復元
+    config.items.forEach(item => addItemToFurniture(group, item));
+
     if(!data) { selectFurniture(group); tab(2); } 
-    else { config.items.forEach(item => addItemToFurniture(group, item)); }
     return group;
+}
+
+// 選択中の家具のサイズ・色を更新する
+function updateSelectedFurniture() {
+    if (!selectedFurniture) return;
+
+    const oldData = selectedFurniture.userData;
+    const newData = {
+        ...oldData,
+        w: parseFloat(document.getElementById('edit-f-w').value),
+        h: parseFloat(document.getElementById('edit-f-h').value),
+        d: parseFloat(document.getElementById('edit-f-d').value),
+        steps: parseInt(document.getElementById('edit-f-step').value),
+        color: document.getElementById('edit-f-c').value,
+        opacity: parseFloat(document.getElementById('edit-f-op').value),
+        pos: [selectedFurniture.position.x, 0, selectedFurniture.position.z],
+        rot: selectedFurniture.rotation.y,
+        // アイテムデータはそのまま引き継ぐ
+        items: oldData.items.map(i => ({...i, mesh: null})) 
+    };
+
+    // 一旦削除して再生成（簡易的な形状更新方法）
+    const idx = furnitureList.indexOf(selectedFurniture);
+    scene.remove(selectedFurniture);
+    furnitureList.splice(idx, 1);
+    
+    const newObj = spawnFurniture(newData);
+    selectFurniture(newObj);
+    saveData();
 }
 
 function onPointerDown(e) {
@@ -377,7 +447,7 @@ function onPointerDown(e) {
         while(obj.parent && obj.userData.type !== 'furniture') obj = obj.parent;
         
         selectFurniture(obj);
-        if(currentViewMode === 'elev') return; // 立面モード中は移動不可
+        if(currentViewMode === 'elev') return;
 
         const overlay = document.getElementById('mode-overlay');
         overlay.style.display = 'block';
@@ -389,8 +459,11 @@ function onPointerDown(e) {
             raycaster.setFromCamera({x:mx, y:my}, camera);
             const hit = new THREE.Vector3();
             raycaster.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0,1,0), 0), hit);
-            obj.position.x = Math.round(hit.x / 5) * 5;
-            obj.position.z = Math.round(hit.z / 5) * 5;
+            
+            // 境界制限を適用しながら移動
+            const clamped = clampPosition(hit.x, hit.z, obj.userData.w, obj.userData.d, obj.rotation.y);
+            obj.position.x = Math.round(clamped.x / 5) * 5;
+            obj.position.z = Math.round(clamped.z / 5) * 5;
         };
 
         const up = () => {
@@ -415,13 +488,27 @@ function selectFurniture(obj) {
     document.getElementById('storage-editor').style.display = 'block';
     document.getElementById('storage-msg').style.display = 'none';
     document.getElementById('target-name').innerText = `選択中: ${obj.userData.w}x${obj.userData.h}cm`;
+    
+    // 編集用入力欄に現在の値をセット
+    document.getElementById('edit-f-w').value = obj.userData.w;
+    document.getElementById('edit-f-h').value = obj.userData.h;
+    document.getElementById('edit-f-d').value = obj.userData.d;
+    document.getElementById('edit-f-step').value = obj.userData.steps;
+    document.getElementById('edit-f-c').value = obj.userData.color;
+    document.getElementById('edit-f-op').value = obj.userData.opacity;
+    
     document.getElementById('i-step-idx').max = obj.userData.steps;
     updateItemList();
 }
 
 function rotateFurniture() {
     if(selectedFurniture) {
-        selectedFurniture.rotation.y += Math.PI / 2;
+        const newRot = selectedFurniture.rotation.y + Math.PI / 2;
+        // 回転後も床からはみ出さないかチェックして位置調整
+        const clamped = clampPosition(selectedFurniture.position.x, selectedFurniture.position.z, selectedFurniture.userData.w, selectedFurniture.userData.d, newRot);
+        selectedFurniture.rotation.y = newRot;
+        selectedFurniture.position.x = clamped.x;
+        selectedFurniture.position.z = clamped.z;
         saveData();
     }
 }
@@ -464,12 +551,20 @@ function addItemToFurniture(target = null, savedItem = null) {
     const posX = -w/2 + 3 + offsetX + itemData.w/2;
     const posZ = (-d/2 + 3) + (d - 6) * itemData.zOff;
     
-    if (posX > w/2 - 3) { if(!savedItem) alert("この段にはもう入りません"); return; }
+    // 配置可能かチェック（再生成時は無視）
+    if (!savedItem && posX > w/2 - 3) { alert("この段にはもう入りません"); return; }
 
     itemMesh.position.set(posX, posY, posZ);
     f.add(itemMesh);
-    f.userData.items.push({ ...itemData, mesh: itemMesh });
-    if(!savedItem) { updateItemList(); saveData(); }
+    
+    // 参照を保持（savedItemがある場合は既存配列を更新せず、meshだけ入れる）
+    if(savedItem) {
+        savedItem.mesh = itemMesh;
+    } else {
+        f.userData.items.push({ ...itemData, mesh: itemMesh });
+        updateItemList(); 
+        saveData();
+    }
 }
 
 function updateItemList() {
