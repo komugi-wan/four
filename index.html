@@ -3,46 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>OTK-Goods Storage Sim</title>
+    <title>OTK-Storage Sim Pro</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <style>
-        :root { --accent: #00d2ff; --sub-accent: #ff007a; --bg: #0a0a12; --panel: #161625; --text: #e0e0e0; }
-        body { margin: 0; overflow: hidden; font-family: sans-serif; background: var(--bg); color: var(--text); touch-action: none; }
-        canvas { display: block; height: 45vh !important; }
+        :root { --accent: #00d2ff; --sub-accent: #ff007a; --bg: #0f0f1a; --panel: #1a1a2e; --text: #e0e0e0; }
+        body { margin: 0; overflow: hidden; font-family: 'Helvetica Neue', Arial, sans-serif; background: var(--bg); color: var(--text); touch-action: none; }
+        canvas { display: block; height: 40vh !important; background: radial-gradient(#222, #000); }
         
         #ui-panel {
-            position: absolute; bottom: 0; width: 100%; height: 55%;
-            background: var(--panel); border-top: 2px solid var(--accent);
+            position: absolute; bottom: 0; width: 100%; height: 60%;
+            background: var(--panel); border-top: 3px solid var(--accent);
             overflow-y: auto; box-sizing: border-box; z-index: 100;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.5);
         }
 
-        .tabs { display: flex; position: sticky; top: 0; background: #1a1a2e; z-index: 10; }
-        .tab { flex: 1; padding: 12px; text-align: center; font-size: 13px; cursor: pointer; color: #777; border-bottom: 2px solid transparent; }
-        .tab.active { color: var(--accent); border-bottom: 2px solid var(--accent); background: rgba(0, 210, 255, 0.05); }
+        .tabs { display: flex; position: sticky; top: 0; background: #1a1a2e; z-index: 10; border-bottom: 1px solid #333; }
+        .tab { flex: 1; padding: 15px; text-align: center; font-size: 14px; cursor: pointer; color: #888; transition: 0.3s; }
+        .tab.active { color: var(--accent); border-bottom: 3px solid var(--accent); background: rgba(0, 210, 255, 0.1); font-weight: bold; }
 
-        .content { padding: 15px; padding-bottom: 40px; }
+        .content { padding: 20px; padding-bottom: 60px; }
         .menu-section { display: none; }
-        .menu-section.active { display: block; }
+        .menu-section.active { display: block; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         
-        .control-group { background: rgba(255,255,255,0.05); padding: 12px; border-radius: 8px; margin-bottom: 12px; }
-        .group-title { font-size: 12px; font-weight: bold; margin-bottom: 8px; color: var(--accent); }
+        .control-group { background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.05); }
+        .group-title { font-size: 13px; font-weight: bold; margin-bottom: 10px; color: var(--accent); display: flex; align-items: center; }
+        .group-title::before { content: '●'; margin-right: 8px; font-size: 8px; }
         
-        .input-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 8px; }
-        label { font-size: 10px; color: #aaa; display: block; margin-bottom: 2px; }
+        .input-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 10px; }
+        label { font-size: 11px; color: #aaa; display: block; margin-bottom: 4px; }
         input, select { 
-            background: #000; color: #fff; border: 1px solid #444;
-            padding: 8px; border-radius: 4px; font-size: 14px; width: 100%; box-sizing: border-box;
+            background: #0a0a12; color: #fff; border: 1px solid #444;
+            padding: 10px; border-radius: 6px; font-size: 14px; width: 100%; box-sizing: border-box;
+            -webkit-appearance: none;
         }
         
-        .btn-main { background: var(--accent); color: #000; width: 100%; font-weight: bold; border: none; padding: 12px; border-radius: 6px; margin-top: 5px; }
-        .btn-sub { background: #444; color: #fff; border: none; padding: 6px 12px; border-radius: 4px; font-size: 12px; }
+        .btn-main { background: var(--accent); color: #000; width: 100%; font-weight: bold; border: none; padding: 14px; border-radius: 8px; margin-top: 5px; font-size: 15px; cursor: pointer; }
+        .btn-sub { background: #333; color: #fff; border: none; padding: 8px 15px; border-radius: 6px; font-size: 12px; }
         
         .storage-item { 
-            display: flex; align-items: center; padding: 8px; background: rgba(0,0,0,0.3); 
-            margin-bottom: 4px; border-radius: 4px; font-size: 12px;
+            display: flex; align-items: center; padding: 10px; background: rgba(0,0,0,0.4); 
+            margin-bottom: 6px; border-radius: 6px; font-size: 13px; border-left: 4px solid var(--accent);
         }
-        .help-text { font-size: 11px; color: #888; margin-top: 5px; line-height: 1.4; }
+        .help-text { font-size: 11px; color: #777; margin-top: 8px; line-height: 1.5; }
     </style>
 </head>
 <body>
@@ -51,73 +55,75 @@
     <div class="tabs">
         <div class="tab active" onclick="showTab('sec-room')">📐 間取り</div>
         <div class="tab" onclick="showTab('sec-furniture')">＋ 家具</div>
-        <div class="tab" onclick="showTab('sec-storage')">📦 収納管理</div>
+        <div class="tab" onclick="showTab('sec-storage')">📦 中身管理</div>
     </div>
 
     <div class="content">
         <div id="sec-room" class="menu-section active">
             <div class="control-group">
-                <div class="group-title">床の頂点座標 (X, Z)</div>
-                <input type="text" id="room-points" value="0,0, 300,0, 300,200, 400,200, 400,400, 0,400">
-                <p class="help-text">カンマ区切りで角の座標を入力。L字型の部屋も作れます。</p>
+                <div class="group-title">部屋の形状 (X, Z座標)</div>
+                <input type="text" id="room-points" value="0,0, 400,0, 400,300, 200,300, 200,500, 0,500">
+                <p class="help-text">角の座標(cm)を順に入力。例のように繋げるとL字型になります。</p>
             </div>
             <div class="input-grid">
-                <div><label>床の色</label><input type="color" id="floor-color" value="#2a2a2a"></div>
-                <div><label>壁の色</label><input type="color" id="wall-color" value="#eeeeee"></div>
-                <div><label>天井高</label><input type="number" id="wall-h" value="240"></div>
+                <div><label>床色</label><input type="color" id="floor-color" value="#333344"></div>
+                <div><label>壁色</label><input type="color" id="wall-color" value="#ffffff"></div>
+                <div><label>天井(cm)</label><input type="number" id="wall-h" value="240"></div>
             </div>
-            <button class="btn-main" onclick="buildRoom()">間取りを反映</button>
+            <button class="btn-main" onclick="buildRoom()">間取りを生成・更新</button>
         </div>
 
         <div id="sec-furniture" class="menu-section">
             <div class="control-group">
-                <div class="group-title">プリセット</div>
+                <div class="group-title">家具プリセット</div>
                 <select id="f-preset" onchange="applyPreset()">
                     <option value="cb3">カラーボックス3段</option>
-                    <option value="bookshelf">薄型本棚 (大)</option>
-                    <option value="display">ガラスケース</option>
-                    <option value="box">衣装ケース</option>
+                    <option value="bookshelf">大型本棚</option>
+                    <option value="display">コレクションケース</option>
+                    <option value="desk">作業机</option>
                 </select>
             </div>
             <div class="input-grid">
                 <div><label>幅(W)</label><input type="number" id="f-w" value="42"></div>
                 <div><label>高さ(H)</label><input type="number" id="f-h" value="88"></div>
-                <div><label>奥行(D)</label><input type="number" id="f-d" value="29"></div>
+                <div><label>奥(D)</label><input type="number" id="f-d" value="29"></div>
                 <div><label>段数</label><input type="number" id="f-shelves" value="3"></div>
                 <div><label>板厚</label><input type="number" id="f-thick" value="1.5"></div>
+                <div><label>家具の色</label><input type="color" id="f-color" value="#8d6e63"></div>
             </div>
-            <button class="btn-main" onclick="addFurniture()">家具を設置</button>
-            <p class="help-text">※設置した家具はドラッグで移動、タップで詳細設定ができます。</p>
+            <button class="btn-main" onclick="addFurniture()">家具を部屋に置く</button>
         </div>
 
         <div id="sec-storage" class="menu-section">
             <div id="storage-active-ui" style="display:none;">
-                <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-                    <b id="edit-target-name" style="color:var(--accent)">家具を編集中</b>
-                    <button class="btn-sub" onclick="deleteSelected()" style="background:#622;">削除</button>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                    <b id="edit-target-name" style="color:var(--accent); font-size:16px;">家具編集中</b>
+                    <button class="btn-sub" onclick="deleteSelected()" style="background:#822;">家具を削除</button>
                 </div>
                 
                 <div class="control-group">
-                    <div class="group-title">収納ケース / グッズ追加</div>
-                    <input type="text" id="c-label" placeholder="例：ラバスト・アクスタ" style="margin-bottom:8px;">
+                    <div class="group-title">収納ボックス/グッズを追加</div>
+                    <label>ラベル（中身の名前）</label>
+                    <input type="text" id="c-label" placeholder="例：アクスタ・画集" style="margin-bottom:10px;">
                     <div class="input-grid">
                         <div><label>幅</label><input type="number" id="c-w" value="20"></div>
                         <div><label>高さ</label><input type="number" id="c-h" value="15"></div>
                         <div><label>奥行</label><input type="number" id="c-d" value="25"></div>
                         <div><label>左から</label><input type="number" id="c-px" value="2"></div>
                         <div><label>下から</label><input type="number" id="c-py" value="2"></div>
-                        <div><label>色</label><input type="color" id="c-color" value="#ffeb3b"></div>
+                        <div><label>ラベル色</label><input type="color" id="c-color" value="#ffeb3b"></div>
                     </div>
-                    <button class="btn-main" onclick="addCase()" style="background:#28a745; color:white;">ケースを中に配置</button>
+                    <button class="btn-main" onclick="addCase()" style="background:#28a745; color:white;">この家具の中に配置</button>
                 </div>
                 
                 <div id="case-list-container">
-                    <div class="group-title">中身リスト</div>
+                    <div class="group-title">現在の中身一覧</div>
                     <div id="case-list"></div>
                 </div>
             </div>
-            <div id="storage-idle-msg" style="text-align:center; padding:40px; color:#555;">
-                3D画面上の家具をタップして<br>管理を開始してください
+            <div id="storage-idle-msg" style="text-align:center; padding:60px 20px; color:#555; border:2px dashed #333; border-radius:15px;">
+                <span style="font-size:40px;">👆</span><br><br>
+                3D画面上の家具をタップすると<br>中身の管理ができます
             </div>
         </div>
     </div>
@@ -135,21 +141,22 @@
         scene = new THREE.Scene();
         scene.background = new THREE.Color(0x0a0a12);
 
-        camera = new THREE.PerspectiveCamera(50, window.innerWidth / (window.innerHeight * 0.45), 1, 5000);
-        camera.position.set(400, 400, 400);
+        // カメラ設定
+        camera = new THREE.PerspectiveCamera(50, window.innerWidth / (window.innerHeight * 0.4), 1, 5000);
+        camera.position.set(500, 500, 500);
 
         renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight * 0.45);
+        renderer.setSize(window.innerWidth, window.innerHeight * 0.4);
         renderer.setPixelRatio(window.devicePixelRatio);
         document.body.insertBefore(renderer.domElement, document.getElementById('ui-panel'));
 
         controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
-        controls.maxPolarAngle = Math.PI / 2.05; // 地面以下への潜り込み防止
+        controls.maxPolarAngle = Math.PI / 2.1; 
 
-        const ambLight = new THREE.AmbientLight(0xffffff, 0.7);
+        const ambLight = new THREE.AmbientLight(0xffffff, 0.8);
         scene.add(ambLight);
-        const dirLight = new THREE.DirectionalLight(0xffffff, 0.5);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.4);
         dirLight.position.set(200, 500, 300);
         scene.add(dirLight);
 
@@ -171,7 +178,7 @@
         document.getElementById(id).classList.add('active');
     }
 
-    // --- 間取り構築 ---
+    // --- 間取り生成 ---
     function buildRoom() {
         if (floorMesh) scene.remove(floorMesh);
         wallGroup.clear();
@@ -193,13 +200,13 @@
         floorMesh.rotation.x = -Math.PI / 2;
         scene.add(floorMesh);
 
-        // 壁の生成（各辺に対してBoxを配置）
+        // 壁の生成
         for (let i = 0; i < pts.length; i++) {
             const p1 = pts[i];
             const p2 = pts[(i + 1) % pts.length];
             const dist = p1.distanceTo(p2);
             const wallGeo = new THREE.BoxGeometry(dist, wallH, 4);
-            const wallMat = new THREE.MeshPhongMaterial({ color: wallCol, transparent: true, opacity: 0.6 });
+            const wallMat = new THREE.MeshPhongMaterial({ color: wallCol, transparent: true, opacity: 0.5 });
             const wall = new THREE.Mesh(wallGeo, wallMat);
 
             const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
@@ -212,11 +219,11 @@
     // --- 家具生成 ---
     function applyPreset() {
         const p = document.getElementById('f-preset').value;
-        const w = document.getElementById('f-w'), h = document.getElementById('f-h'), d = document.getElementById('f-d'), s = document.getElementById('f-shelves');
-        if(p === 'cb3') { w.value = 42; h.value = 88; d.value = 29; s.value = 3; }
-        else if(p === 'bookshelf') { w.value = 90; h.value = 180; d.value = 17; s.value = 6; }
-        else if(p === 'display') { w.value = 60; h.value = 120; d.value = 40; s.value = 4; }
-        else if(p === 'box') { w.value = 40; h.value = 30; d.value = 70; s.value = 1; }
+        const w = document.getElementById('f-w'), h = document.getElementById('f-h'), d = document.getElementById('f-d'), s = document.getElementById('f-shelves'), c = document.getElementById('f-color');
+        if(p === 'cb3') { w.value = 42; h.value = 88; d.value = 29; s.value = 3; c.value = "#8d6e63"; }
+        else if(p === 'bookshelf') { w.value = 90; h.value = 180; d.value = 17; s.value = 6; c.value = "#5d4037"; }
+        else if(p === 'display') { w.value = 60; h.value = 120; d.value = 40; s.value = 4; c.value = "#eeeeee"; }
+        else if(p === 'desk') { w.value = 120; h.value = 72; d.value = 60; s.value = 1; c.value = "#444444"; }
     }
 
     function addFurniture() {
@@ -225,13 +232,14 @@
         const d = parseFloat(document.getElementById('f-d').value);
         const shelves = parseInt(document.getElementById('f-shelves').value);
         const thick = parseFloat(document.getElementById('f-thick').value);
+        const fCol = document.getElementById('f-color').value;
 
         const group = new THREE.Group();
-        const mat = new THREE.MeshPhongMaterial({ color: 0x8d6e63 });
+        const mat = new THREE.MeshPhongMaterial({ color: fCol });
         
-        // 外枠（背板、側板、天板、底板）
+        // 構造作成
         const parts = [
-            {size: [w, h, 1], pos: [0, 0, -d/2]}, // 背面
+            {size: [w, h, 1], pos: [0, 0, -d/2]}, // 背板
             {size: [thick, h, d], pos: [-w/2+thick/2, 0, 0]}, // 左
             {size: [thick, h, d], pos: [w/2-thick/2, 0, 0]}, // 右
             {size: [w, thick, d], pos: [0, h/2-thick/2, 0]}, // 天
@@ -244,7 +252,7 @@
             group.add(mesh);
         });
 
-        // 棚板の自動生成
+        // 棚板
         if (shelves > 1) {
             const shelfSpacing = (h - thick * (shelves + 1)) / shelves;
             for (let i = 1; i < shelves; i++) {
@@ -254,7 +262,7 @@
             }
         }
 
-        group.position.set(w/2 + 50, h/2, d/2 + 50);
+        group.position.set(50, h/2, 50);
         group.userData = { type: 'furniture', size: {w, h, d, thick}, cases: [] };
         
         scene.add(group);
@@ -263,7 +271,7 @@
         showTab('sec-storage');
     }
 
-    // --- 収納ケース追加 ---
+    // --- 収納ケース（グッズ）追加 ---
     function addCase() {
         if (!selectedObj) return;
         const label = document.getElementById('c-label').value || "グッズ";
@@ -279,24 +287,24 @@
         const boxMat = new THREE.MeshPhongMaterial({ color: col });
         const box = new THREE.Mesh(boxGeo, boxMat);
         
-        // 家具内での相対位置（家具の原点は中心）
         const rx = -f.w/2 + f.thick + cw/2 + px;
         const ry = -f.h/2 + f.thick + ch/2 + py;
         const rz = -f.d/2 + cd/2 + 2; 
 
         box.position.set(rx, ry, rz);
 
-        // テキストラベル
+        // ラベル作成
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
-        canvas.width = 256; canvas.height = 128;
-        ctx.fillStyle = col; ctx.fillRect(0,0,256,128);
-        ctx.fillStyle = '#000'; ctx.font = 'bold 40px sans-serif'; ctx.textAlign='center';
-        ctx.fillText(label, 128, 75);
+        canvas.width = 256; canvas.height = 64;
+        ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,256,64);
+        ctx.fillStyle = '#000000'; ctx.font = 'bold 32px sans-serif'; ctx.textAlign='center';
+        ctx.fillText(label, 128, 45);
         const tex = new THREE.CanvasTexture(canvas);
-        const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex }));
-        sprite.scale.set(cw * 0.8, cw * 0.4, 1);
-        sprite.position.z = cd/2 + 0.5;
+        const labelMat = new THREE.SpriteMaterial({ map: tex });
+        const sprite = new THREE.Sprite(labelMat);
+        sprite.scale.set(cw * 0.9, cw * 0.22, 1);
+        sprite.position.z = cd/2 + 0.1;
         box.add(sprite);
 
         selectedObj.add(box);
@@ -304,7 +312,7 @@
         updateCaseListUI();
     }
 
-    // --- インタラクション ---
+    // --- 操作ロジック ---
     function onPointerDown(event) {
         const rect = renderer.domElement.getBoundingClientRect();
         mouse.x = (event.clientX / rect.width) * 2 - 1;
@@ -318,7 +326,6 @@
             while(obj.parent && obj.userData.type !== 'furniture') obj = obj.parent;
             selectObject(obj);
 
-            // ドラッグ移動
             const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
             const onMove = (e) => {
                 const p = e.touches ? e.touches[0] : e;
@@ -327,7 +334,7 @@
                 raycaster.setFromCamera(mouse, camera);
                 const hit = new THREE.Vector3();
                 if (raycaster.ray.intersectPlane(plane, hit)) {
-                    obj.position.x = Math.round(hit.x / 5) * 5; // 5cmスナップ
+                    obj.position.x = Math.round(hit.x / 5) * 5; 
                     obj.position.z = Math.round(hit.z / 5) * 5;
                 }
             };
@@ -343,11 +350,10 @@
 
     function selectObject(obj) {
         if (selectedObj) {
-            // 前の選択解除
             selectedObj.children.forEach(c => { if(c.material) c.material.emissive?.setHex(0x000000); });
         }
         selectedObj = obj;
-        selectedObj.children.forEach(c => { if(c.material) c.material.emissive?.setHex(0x222222); });
+        selectedObj.children.forEach(c => { if(c.material) c.material.emissive?.setHex(0x333333); });
 
         document.getElementById('storage-active-ui').style.display = 'block';
         document.getElementById('storage-idle-msg').style.display = 'none';
@@ -361,7 +367,7 @@
         selectedObj.userData.cases.forEach(c => {
             const div = document.createElement('div');
             div.className = 'storage-item';
-            div.innerHTML = `<span style="flex:1">📦 ${c.label}</span><div style="width:16px;height:16px;background:${c.color};border-radius:2px;"></div>`;
+            div.innerHTML = `<span style="flex:1">📦 ${c.label}</span><div style="width:20px;height:20px;background:${c.color};border:1px solid #fff;border-radius:3px;"></div>`;
             container.appendChild(div);
         });
     }
@@ -376,22 +382,22 @@
     }
 
     function onResize() {
-        camera.aspect = window.innerWidth / (window.innerHeight * 0.45);
+        camera.aspect = window.innerWidth / (window.innerHeight * 0.4);
         camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight * 0.45);
+        renderer.setSize(window.innerWidth, window.innerHeight * 0.4);
     }
 
     function animate() {
         requestAnimationFrame(animate);
         controls.update();
         
-        // 背面壁の透過処理（カメラの向きに合わせて壁を隠す）
+        // 壁の透過処理（カメラ背面の壁を消して見やすくする）
         wallGroup.children.forEach(wall => {
             const vector = new THREE.Vector3();
             wall.getWorldDirection(vector);
             const camDir = new THREE.Vector3();
             camera.getWorldDirection(camDir);
-            wall.material.opacity = vector.dot(camDir) > 0.2 ? 0.1 : 0.7;
+            wall.material.opacity = vector.dot(camDir) > 0.1 ? 0.05 : 0.6;
         });
 
         renderer.render(scene, camera);
