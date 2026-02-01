@@ -103,7 +103,7 @@
 
 <div id="view-container"></div>
 <div id="status-bar"><div class="dot"></div><span id="status-text">SYSTEM ACTIVE</span></div>
-<div id="mode-overlay">MOVING...</div>
+<div id="mode-overlay">HOLD TO MOVE</div>
 
 <div class="v-controls">
     <button class="v-btn" id="btn-3d" onclick="changeView('3d')"><span>3D</span></button>
@@ -224,6 +224,7 @@ let furnitureList = [];
 let selectedFurniture = null;
 let roomFloor;
 let currentViewMode = '3d';
+let longPressTimer = null;
 
 init();
 animate();
@@ -281,21 +282,35 @@ function changeView(mode) {
     document.querySelectorAll('.v-btn').forEach(b => b.classList.remove('active'));
     document.getElementById(`btn-${mode}`).classList.add('active');
 
+    // コントロールの基本設定をリセット
+    controls.enabled = true;
+    controls.enableRotate = true;
+    controls.screenSpacePanning = true;
+
     if(mode === '2d') {
-        controls.enabled = true;
+        controls.enableRotate = false; // 3D回転を禁止
         camera.position.set(0, 700, 0);
-        controls.target.set(0,0,0);
-    } else if (mode === 'elev' && selectedFurniture) {
-        const fPos = selectedFurniture.position;
-        const offset = new THREE.Vector3(0, 0, 300).applyAxisAngle(new THREE.Vector3(0,1,0), selectedFurniture.rotation.y);
-        camera.position.set(fPos.x + offset.x, fPos.y, fPos.z + offset.z);
-        controls.target.set(fPos.x, fPos.y, fPos.z);
-        controls.enabled = false;
+        controls.target.set(0, 0, 0);
+    } else if (mode === 'elev') {
+        if (selectedFurniture) {
+            focusOnFurniture(selectedFurniture);
+        } else {
+            camera.position.set(0, 100, 400);
+            controls.target.set(0, 100, 0);
+        }
+        controls.enableRotate = false; // 平面移動のみ許可
     } else {
-        controls.enabled = true;
         camera.position.set(400, 400, 400);
-        controls.target.set(0,0,0);
+        controls.target.set(0, 0, 0);
     }
+}
+
+function focusOnFurniture(obj) {
+    const fPos = obj.position;
+    // 家具の回転方向を考慮して正面に配置
+    const offset = new THREE.Vector3(0, 0, 300).applyAxisAngle(new THREE.Vector3(0,1,0), obj.rotation.y);
+    camera.position.set(fPos.x + offset.x, fPos.y, fPos.z + offset.z);
+    controls.target.set(fPos.x, fPos.y, fPos.z);
 }
 
 function updateRoom() {
@@ -322,7 +337,6 @@ function updateRoom() {
     roomFloor = group;
     scene.add(roomFloor);
     
-    // 部屋サイズ変更時に既存の家具を押し戻す
     furnitureList.forEach(f => {
         const clamped = clampPosition(f.position.x, f.position.z, f.userData.w, f.userData.d, f.rotation.y);
         f.position.x = clamped.x;
@@ -330,19 +344,14 @@ function updateRoom() {
     });
 }
 
-// 家具が床からはみ出さないように座標を制限する関数
 function clampPosition(x, z, fw, fd, rot) {
     const rw = parseFloat(document.getElementById('room-w').value) || 300;
     const rd = parseFloat(document.getElementById('room-d').value) || 300;
-    
-    // 回転を考慮したサイズ（簡易計算）
     const isRotated = (Math.round(rot / (Math.PI/2)) % 2 !== 0);
     const actualW = isRotated ? fd : fw;
     const actualD = isRotated ? fw : fd;
-
     const limitX = (rw - actualW) / 2;
     const limitZ = (rd - actualD) / 2;
-
     return {
         x: Math.max(-limitX, Math.min(limitX, x)),
         z: Math.max(-limitZ, Math.min(limitZ, z))
@@ -388,26 +397,20 @@ function spawnFurniture(data = null) {
     }
 
     group.userData = { type: 'furniture', items: [], ...config, stepH };
-    
-    // 初期配置の境界チェック
     const clamped = clampPosition(config.pos[0], config.pos[2], config.w, config.d, config.rot);
     group.position.set(clamped.x, config.h/2, clamped.z);
     group.rotation.y = config.rot;
     
     scene.add(group);
     furnitureList.push(group);
-    
-    // アイテム（グッズ）の復元
     config.items.forEach(item => addItemToFurniture(group, item));
 
     if(!data) { selectFurniture(group); tab(2); } 
     return group;
 }
 
-// 選択中の家具のサイズ・色を更新する
 function updateSelectedFurniture() {
     if (!selectedFurniture) return;
-
     const oldData = selectedFurniture.userData;
     const newData = {
         ...oldData,
@@ -419,15 +422,11 @@ function updateSelectedFurniture() {
         opacity: parseFloat(document.getElementById('edit-f-op').value),
         pos: [selectedFurniture.position.x, 0, selectedFurniture.position.z],
         rot: selectedFurniture.rotation.y,
-        // アイテムデータはそのまま引き継ぐ
         items: oldData.items.map(i => ({...i, mesh: null})) 
     };
-
-    // 一旦削除して再生成（簡易的な形状更新方法）
     const idx = furnitureList.indexOf(selectedFurniture);
     scene.remove(selectedFurniture);
     furnitureList.splice(idx, 1);
-    
     const newObj = spawnFurniture(newData);
     selectFurniture(newObj);
     saveData();
@@ -446,36 +445,62 @@ function onPointerDown(e) {
         let obj = intersects[0].object;
         while(obj.parent && obj.userData.type !== 'furniture') obj = obj.parent;
         
+        // 選択処理
         selectFurniture(obj);
-        if(currentViewMode === 'elev') return;
 
-        const overlay = document.getElementById('mode-overlay');
-        overlay.style.display = 'block';
-        controls.enabled = false;
+        // 立面ビューの場合は、面の切り替えを行う
+        if(currentViewMode === 'elev') {
+            focusOnFurniture(obj);
+            return;
+        }
 
-        const move = (me) => {
-            const mx = (me.clientX / rect.width) * 2 - 1;
-            const my = -(me.clientY / rect.height) * 2 + 1;
-            raycaster.setFromCamera({x:mx, y:my}, camera);
-            const hit = new THREE.Vector3();
-            raycaster.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0,1,0), 0), hit);
-            
-            // 境界制限を適用しながら移動
-            const clamped = clampPosition(hit.x, hit.z, obj.userData.w, obj.userData.d, obj.rotation.y);
-            obj.position.x = Math.round(clamped.x / 5) * 5;
-            obj.position.z = Math.round(clamped.z / 5) * 5;
+        // 3D/2Dビューの場合：長押しによる移動制御
+        clearTimeout(longPressTimer);
+        longPressTimer = setTimeout(() => {
+            startDragging(obj, rect);
+        }, 500); // 500ms長押しで移動開始
+
+        const cancelLongPress = () => {
+            clearTimeout(longPressTimer);
+            window.removeEventListener('pointerup', cancelLongPress);
+            window.removeEventListener('pointermove', cancelLongPress);
         };
-
-        const up = () => {
-            window.removeEventListener('pointermove', move);
-            overlay.style.display = 'none';
-            controls.enabled = true;
-            saveData();
-        };
-
-        window.addEventListener('pointermove', move);
-        window.addEventListener('pointerup', up, {once:true});
+        window.addEventListener('pointerup', cancelLongPress);
+        window.addEventListener('pointermove', (me) => {
+            // 指が大きく動いたらキャンセル
+            if(Math.abs(me.clientX - e.clientX) > 10 || Math.abs(me.clientY - e.clientY) > 10) cancelLongPress();
+        });
     }
+}
+
+function startDragging(obj, rect) {
+    const overlay = document.getElementById('mode-overlay');
+    overlay.innerText = "MOVING...";
+    overlay.style.display = 'block';
+    controls.enabled = false;
+
+    const move = (me) => {
+        const mx = (me.clientX / rect.width) * 2 - 1;
+        const my = -(me.clientY / rect.height) * 2 + 1;
+        raycaster.setFromCamera({x:mx, y:my}, camera);
+        const hit = new THREE.Vector3();
+        raycaster.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0,1,0), 0), hit);
+        
+        const clamped = clampPosition(hit.x, hit.z, obj.userData.w, obj.userData.d, obj.rotation.y);
+        obj.position.x = Math.round(clamped.x / 5) * 5;
+        obj.position.z = Math.round(clamped.z / 5) * 5;
+    };
+
+    const up = () => {
+        window.removeEventListener('pointermove', move);
+        overlay.style.display = 'none';
+        overlay.innerText = "HOLD TO MOVE";
+        controls.enabled = true;
+        saveData();
+    };
+
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up, {once:true});
 }
 
 function selectFurniture(obj) {
@@ -489,7 +514,6 @@ function selectFurniture(obj) {
     document.getElementById('storage-msg').style.display = 'none';
     document.getElementById('target-name').innerText = `選択中: ${obj.userData.w}x${obj.userData.h}cm`;
     
-    // 編集用入力欄に現在の値をセット
     document.getElementById('edit-f-w').value = obj.userData.w;
     document.getElementById('edit-f-h').value = obj.userData.h;
     document.getElementById('edit-f-d').value = obj.userData.d;
@@ -504,11 +528,11 @@ function selectFurniture(obj) {
 function rotateFurniture() {
     if(selectedFurniture) {
         const newRot = selectedFurniture.rotation.y + Math.PI / 2;
-        // 回転後も床からはみ出さないかチェックして位置調整
         const clamped = clampPosition(selectedFurniture.position.x, selectedFurniture.position.z, selectedFurniture.userData.w, selectedFurniture.userData.d, newRot);
         selectedFurniture.rotation.y = newRot;
         selectedFurniture.position.x = clamped.x;
         selectedFurniture.position.z = clamped.z;
+        if(currentViewMode === 'elev') focusOnFurniture(selectedFurniture);
         saveData();
     }
 }
@@ -526,7 +550,6 @@ function deleteFurniture() {
 function addItemToFurniture(target = null, savedItem = null) {
     const f = target || selectedFurniture;
     if(!f) return;
-
     const preset = document.getElementById('item-preset').value;
     const itemData = savedItem || {
         name: document.getElementById('i-label').value || "Goods",
@@ -551,13 +574,10 @@ function addItemToFurniture(target = null, savedItem = null) {
     const posX = -w/2 + 3 + offsetX + itemData.w/2;
     const posZ = (-d/2 + 3) + (d - 6) * itemData.zOff;
     
-    // 配置可能かチェック（再生成時は無視）
     if (!savedItem && posX > w/2 - 3) { alert("この段にはもう入りません"); return; }
-
     itemMesh.position.set(posX, posY, posZ);
     f.add(itemMesh);
     
-    // 参照を保持（savedItemがある場合は既存配列を更新せず、meshだけ入れる）
     if(savedItem) {
         savedItem.mesh = itemMesh;
     } else {
