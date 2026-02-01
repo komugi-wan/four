@@ -2,189 +2,212 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OTAKU-ROOM Manager Pro</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>OTAKU-ROOM Manager Pro v2</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/DragControls.js"></script>
     <style>
-        :root { --accent: #ff4757; --bg: #1e1e2e; }
-        body { margin: 0; overflow: hidden; font-family: 'Helvetica Neue', Arial, sans-serif; background: var(--bg); color: white; }
+        :root { --accent: #ff4757; --bg: #1a1a2e; --panel: rgba(26, 26, 46, 0.98); }
+        body { margin: 0; overflow: hidden; font-family: sans-serif; background: var(--bg); color: white; touch-action: none; }
         canvas { display: block; }
         
+        /* UI Layout */
         #ui-panel {
-            position: absolute; bottom: 0; left: 0; width: 100%; max-height: 45%;
-            background: rgba(30, 30, 46, 0.95); border-top: 3px solid var(--accent);
-            overflow-y: auto; padding: 15px; box-sizing: border-box; z-index: 100;
-            box-shadow: 0 -5px 15px rgba(0,0,0,0.5);
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 40%;
+            background: var(--panel); border-top: 2px solid var(--accent);
+            overflow-y: auto; padding: 12px; box-sizing: border-box; z-index: 100;
+            display: flex; flex-direction: column; transition: 0.3s;
         }
+        #ui-panel.minimized { height: 40px; overflow: hidden; }
 
-        .tabs { display: flex; gap: 10px; margin-bottom: 10px; border-bottom: 1px solid #444; }
-        .tab { padding: 8px 15px; cursor: pointer; font-size: 13px; opacity: 0.6; }
-        .tab.active { opacity: 1; border-bottom: 2px solid var(--accent); font-weight: bold; }
+        .tabs { display: flex; gap: 5px; margin-bottom: 10px; flex-shrink: 0; overflow-x: auto; }
+        .tab { padding: 8px 12px; cursor: pointer; font-size: 12px; white-space: nowrap; background: #16213e; border-radius: 4px; opacity: 0.6; }
+        .tab.active { opacity: 1; background: var(--accent); font-weight: bold; }
 
         .menu-section { display: none; }
         .menu-section.active { display: block; }
         
-        h3 { margin: 0 0 10px 0; color: var(--accent); font-size: 14px; text-transform: uppercase; letter-spacing: 1px; }
-        .input-group { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
-        
-        input, button, select {
-            background: #313244; color: white; border: 1px solid #45475a;
-            padding: 10px; border-radius: 6px; font-size: 12px; outline: none;
+        .input-row { display: flex; align-items: center; gap: 5px; margin-bottom: 8px; flex-wrap: wrap; }
+        label { font-size: 11px; color: #aaa; min-width: 50px; }
+        input, select, button { 
+            background: #0f3460; color: white; border: 1px solid #16213e;
+            padding: 8px; border-radius: 4px; font-size: 12px;
         }
-        input[type="number"] { width: 60px; }
-        button { cursor: pointer; transition: 0.2s; background: #45475a; }
-        button:hover { background: #585b70; }
-        .btn-primary { background: var(--accent); border: none; font-weight: bold; padding: 10px 20px; }
-        .btn-primary:hover { background: #ff6b81; }
+        input[type="number"] { width: 50px; }
+        button { cursor: pointer; background: #533483; border: none; flex-grow: 1; }
+        .btn-add { background: var(--accent); font-weight: bold; }
 
-        #instructions {
-            position: absolute; top: 10px; left: 10px; font-size: 11px;
-            background: rgba(0,0,0,0.6); padding: 10px; border-radius: 8px; pointer-events: none;
-        }
-        .status-bar { position: absolute; top: 10px; right: 10px; font-size: 12px; background: rgba(0,0,0,0.6); padding: 5px 10px; border-radius: 4px; }
+        #overlay { position: absolute; top: 10px; left: 10px; pointer-events: none; font-size: 10px; background: rgba(0,0,0,0.5); padding: 8px; border-radius: 4px; }
+        .shelf-item { border: 1px solid #444; padding: 5px; margin-top: 5px; border-radius: 4px; font-size: 11px; display: flex; justify-content: space-between; }
     </style>
 </head>
 <body>
 
-<div id="instructions">
-    🖱️ 回転: 左ドラッグ | ↕️ ズーム: スクロール<br>
-    🖐️ 移動: 家具を直接ドラッグ（床に沿って動きます）<br>
-    📦 選択: 家具をクリックして中身を編集
+<div id="overlay">
+    📍 部屋: 頂点をカンマ区切りで入力<br>
+    🖱️ 家具をタップで選択 / ドラッグで移動<br>
+    📱 二本指でズーム・回転
 </div>
-
-<div class="status-bar" id="status">部屋モード</div>
 
 <div id="ui-panel">
     <div class="tabs">
-        <div class="tab active" onclick="showTab('room')">1. 部屋作成</div>
-        <div class="tab" onclick="showTab('furniture')">2. 家具配置</div>
-        <div class="tab" onclick="showTab('storage')">3. 中身の管理</div>
+        <div class="tab active" data-target="sec-room">1. 部屋・壁</div>
+        <div class="tab" data-target="sec-furniture">2. 家具追加</div>
+        <div class="tab" data-target="sec-storage">3. 収納管理</div>
     </div>
 
     <div id="sec-room" class="menu-section active">
-        <h3>部屋の形状と色</h3>
-        <div class="input-group">
-            <label>頂点座標 (x,y):</label>
-            <input type="text" id="room-points" value="0,0, 400,0, 400,300, 200,300, 200,500, 0,500" style="width: 250px;">
-            <input type="color" id="floor-color" value="#45475a">
-            <button onclick="updateFloor()" class="btn-primary">床を更新</button>
+        <div class="input-row">
+            <label>床頂点:</label>
+            <input type="text" id="room-points" value="0,0, 400,0, 400,300, 200,300, 200,500, 0,500" style="flex-grow: 1;">
+        </div>
+        <div class="input-row">
+            <label>壁の高さ:</label> <input type="number" id="wall-h" value="240">
+            <label>色:</label> <input type="color" id="floor-color" value="#2d3436">
+            <button onclick="buildRoom()">部屋を再構築</button>
         </div>
     </div>
 
     <div id="sec-furniture" class="menu-section">
-        <h3>新規家具を追加</h3>
-        <div class="input-group">
-            幅:<input type="number" id="f-w" value="60"> 
-            高:<input type="number" id="f-h" value="90"> 
-            奥:<input type="number" id="f-d" value="30">
-            色:<input type="color" id="f-color" value="#89b4fa">
-            <button onclick="addFurniture()" class="btn-primary">配置する</button>
+        <div class="input-row">
+            <label>タイプ:</label>
+            <select id="f-preset" onchange="applyPreset()">
+                <option value="custom">カスタムサイズ</option>
+                <option value="cb3">カラーボックス3段</option>
+                <option value="bookshelf">大型本棚</option>
+            </select>
+        </div>
+        <div class="input-row">
+            W:<input type="number" id="f-w" value="60"> 
+            H:<input type="number" id="f-h" value="90"> 
+            D:<input type="number" id="f-d" value="30">
+            <input type="color" id="f-color" value="#e17055">
+            <button onclick="addFurniture()" class="btn-add">配置</button>
         </div>
     </div>
 
     <div id="sec-storage" class="menu-section">
-        <h3 id="selected-title">家具を選択してください</h3>
-        <div id="storage-controls" style="display:none;">
-            <div class="input-group">
-                ラベル:<input type="text" id="c-label" placeholder="例：フィギュア" value="BOX A">
-                幅:<input type="number" id="c-w" value="20">
-                高:<input type="number" id="c-h" value="15">
-                奥:<input type="number" id="c-d" value="20">
-                <input type="color" id="c-color" value="#fab387">
-                <button onclick="addStorageCase()" class="btn-primary">ケースを中に配置</button>
+        <div id="storage-active-ui" style="display:none;">
+            <p id="edit-target-name" style="margin:0 0 10px; font-size:12px; color:var(--accent);">家具を選択してください</p>
+            <div class="input-row">
+                <input type="text" id="c-label" placeholder="ラベル(例: 推し缶バッジ)" style="flex-grow:1;">
             </div>
-            <button onclick="deleteSelected()" style="background:#f38ba8">選択中の家具を削除</button>
+            <div class="input-row">
+                W:<input type="number" id="c-w" value="20"> 
+                H:<input type="number" id="c-h" value="15"> 
+                D:<input type="number" id="c-d" value="20">
+                <input type="color" id="c-color" value="#00b894">
+                <button onclick="addCase()" class="btn-add">ケース投入</button>
+            </div>
+            <button onclick="deleteSelected()" style="background:#d63031; margin-top:5px;">この家具を削除</button>
+            <div id="case-list"></div>
         </div>
+        <p id="storage-idle-msg">3D画面上の家具をタップして編集開始</p>
     </div>
 </div>
 
 <script>
-    let scene, camera, renderer, controls, dragControls;
-    let floorMesh, selectedFurniture = null;
-    let furnitureList = [];
-    let selectableObjects = [];
+    let scene, camera, renderer, controls, raycaster, mouse;
+    let floorMesh, wallGroup, selectedObj = null;
+    const furnitureList = [];
 
     init();
     animate();
 
     function init() {
         scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x181825);
+        scene.background = new THREE.Color(0x0f0f1a);
 
-        camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 10000);
-        camera.position.set(400, 500, 600);
+        camera = new THREE.PerspectiveCamera(60, window.innerWidth / (window.innerHeight * 0.6), 1, 5000);
+        camera.position.set(500, 600, 500);
 
         renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.shadowMap.enabled = true;
+        renderer.setPixelRatio(window.devicePixelRatio);
         document.body.appendChild(renderer.domElement);
 
         controls = new THREE.OrbitControls(camera, renderer.domElement);
-        
-        // 照明
-        const ambLight = new THREE.AmbientLight(0xffffff, 0.6);
+        controls.enableDamping = true;
+
+        const ambLight = new THREE.AmbientLight(0xffffff, 0.7);
         scene.add(ambLight);
-        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        dirLight.position.set(200, 800, 400);
-        dirLight.castShadow = true;
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.5);
+        dirLight.position.set(200, 1000, 500);
         scene.add(dirLight);
 
-        // 床の初期生成
-        updateFloor();
-        
-        // ドラッグ機能の初期化
-        initDragControls();
+        raycaster = new THREE.Raycaster();
+        mouse = new THREE.Vector2();
+        wallGroup = new THREE.Group();
+        scene.add(wallGroup);
 
-        // クリックによる選択
-        window.addEventListener('mousedown', onSelect, false);
-        window.addEventListener('resize', onWindowResize, false);
-    }
+        buildRoom();
 
-    function initDragControls() {
-        if(dragControls) dragControls.dispose();
-        dragControls = new THREE.DragControls(furnitureList, camera, renderer.domElement);
-        
-        dragControls.addEventListener('dragstart', function (event) {
-            controls.enabled = false;
-            selectFurniture(event.object);
-        });
-        
-        dragControls.addEventListener('drag', function (event) {
-            // Y軸（高さ）を固定して床の上を滑らせる
-            if (event.object.userData.type === 'furniture') {
-                event.object.position.y = event.object.geometry.parameters.height / 2;
-            }
-        });
+        // Events
+        window.addEventListener('mousedown', onPointerDown);
+        window.addEventListener('touchstart', (e) => onPointerDown(e.touches[0]));
+        window.addEventListener('resize', onResize);
 
-        dragControls.addEventListener('dragend', function (event) {
-            controls.enabled = true;
+        // Tab System
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.onclick = () => {
+                document.querySelectorAll('.tab, .menu-section').forEach(el => el.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.target).classList.add('active');
+            };
         });
     }
 
-    function updateFloor() {
+    // --- 部屋・壁の生成 ---
+    function buildRoom() {
         if (floorMesh) scene.remove(floorMesh);
-        
-        const color = document.getElementById('floor-color').value;
-        const rawPoints = document.getElementById('room-points').value.split(',');
-        const shape = new THREE.Shape();
-        
-        const pts = [];
-        for (let i = 0; i < rawPoints.length; i += 2) {
-            const x = parseFloat(rawPoints[i]);
-            const z = parseFloat(rawPoints[i+1]);
-            pts.push(new THREE.Vector2(x, z));
-            if (i === 0) shape.moveTo(x, z);
-            else shape.lineTo(x, z);
-        }
+        wallGroup.clear();
 
-        const geometry = new THREE.ShapeGeometry(shape);
-        const material = new THREE.MeshPhongMaterial({ color: color, side: THREE.DoubleSide });
-        floorMesh = new THREE.Mesh(geometry, material);
+        const pointsRaw = document.getElementById('room-points').value.split(',');
+        const wallH = parseFloat(document.getElementById('wall-h').value);
+        const color = document.getElementById('floor-color').value;
+
+        const shape = new THREE.Shape();
+        const pts = [];
+        for (let i = 0; i < pointsRaw.length; i += 2) {
+            const x = parseFloat(pointsRaw[i]);
+            const y = parseFloat(pointsRaw[i + 1]);
+            pts.push(new THREE.Vector2(x, y));
+            if (i === 0) shape.moveTo(x, y); else shape.lineTo(x, y);
+        }
+        shape.lineTo(pts[0].x, pts[0].y);
+
+        // 床
+        const floorGeo = new THREE.ShapeGeometry(shape);
+        const floorMat = new THREE.MeshPhongMaterial({ color: color, side: THREE.DoubleSide });
+        floorMesh = new THREE.Mesh(floorGeo, floorMat);
         floorMesh.rotation.x = -Math.PI / 2;
-        floorMesh.receiveShadow = true;
         scene.add(floorMesh);
+
+        // 壁の生成
+        for (let i = 0; i < pts.length; i++) {
+            const p1 = pts[i];
+            const p2 = pts[(i + 1) % pts.length];
+            const dist = p1.distanceTo(p2);
+            const wallGeo = new THREE.PlaneGeometry(dist, wallH);
+            const wallMat = new THREE.MeshPhongMaterial({ color: 0x34495e, side: THREE.DoubleSide, transparent: true, opacity: 0.5 });
+            const wall = new THREE.Mesh(wallGeo, wallMat);
+
+            const midX = (p1.x + p2.x) / 2;
+            const midY = (p1.y + p2.y) / 2;
+            const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+
+            wall.position.set(midX, wallH / 2, midY);
+            wall.rotation.y = -angle;
+            wallGroup.add(wall);
+        }
+    }
+
+    // --- 家具追加 ---
+    function applyPreset() {
+        const p = document.getElementById('f-preset').value;
+        const w = document.getElementById('f-w'), h = document.getElementById('f-h'), d = document.getElementById('f-d');
+        if(p === 'cb3') { w.value = 42; h.value = 88; d.value = 29; }
+        else if(p === 'bookshelf') { w.value = 90; h.value = 180; d.value = 30; }
     }
 
     function addFurniture() {
@@ -194,42 +217,24 @@
         const col = document.getElementById('f-color').value;
 
         const geo = new THREE.BoxGeometry(w, h, d);
-        // 少し透過させて中身を見やすくする
-        const mat = new THREE.MeshPhongMaterial({ color: col, transparent: true, opacity: 0.7 });
+        const mat = new THREE.MeshPhongMaterial({ color: col, transparent: true, opacity: 0.8 });
         const mesh = new THREE.Mesh(geo, mat);
         
-        mesh.position.set(100, h/2, 100);
+        mesh.position.set(w/2, h/2, d/2);
         mesh.userData = { type: 'furniture', cases: [] };
-        mesh.castShadow = true;
 
-        // 枠線を追加
-        const edges = new THREE.EdgesGeometry(geo);
-        const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xffffff }));
-        mesh.add(line);
+        const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: 0xffffff }));
+        mesh.add(edges);
 
         scene.add(mesh);
         furnitureList.push(mesh);
-        initDragControls(); // ドラッグ対象を更新
-        selectFurniture(mesh);
-        showTab('storage');
+        selectObject(mesh);
     }
 
-    function selectFurniture(obj) {
-        if (selectedFurniture) {
-            selectedFurniture.material.emissive.setHex(0x000000);
-        }
-        selectedFurniture = obj;
-        selectedFurniture.material.emissive.setHex(0x222222);
-
-        document.getElementById('selected-title').innerText = "家具を編集中";
-        document.getElementById('storage-controls').style.display = 'block';
-        document.getElementById('status').innerText = "家具選択中: " + obj.uuid.slice(0,5);
-    }
-
-    function addStorageCase() {
-        if (!selectedFurniture) return;
-
-        const label = document.getElementById('c-label').value;
+    // --- 収納ケース管理 ---
+    function addCase() {
+        if (!selectedObj) return;
+        const labelText = document.getElementById('c-label').value || "NO NAME";
         const cw = parseFloat(document.getElementById('c-w').value);
         const ch = parseFloat(document.getElementById('c-h').value);
         const cd = parseFloat(document.getElementById('c-d').value);
@@ -237,70 +242,102 @@
 
         const geo = new THREE.BoxGeometry(cw, ch, cd);
         const mat = new THREE.MeshPhongMaterial({ color: col });
-        const storage = new THREE.Mesh(geo, mat);
+        const box = new THREE.Mesh(geo, mat);
 
-        // 親家具の中での初期位置（底に置く）
-        const parentH = selectedFurniture.geometry.parameters.height;
-        storage.position.set(0, -parentH/2 + ch/2, 0);
+        // 自動スタッキング計算（簡易版：底から順に積み上げ）
+        const offset = selectedObj.userData.cases.length * 2; // 重なり防止の微増分
+        const parentH = selectedObj.geometry.parameters.height;
+        box.position.set(0, -parentH/2 + ch/2 + offset, 0);
         
-        // ラベル（スプライト）作成
-        storage.add(createLabelSprite(label));
-
-        selectedFurniture.add(storage);
+        // ラベル
+        box.add(createLabel(labelText));
+        selectedObj.add(box);
+        selectedObj.userData.cases.push({ label: labelText });
+        updateCaseList();
     }
 
-    function createLabelSprite(text) {
+    function createLabel(text) {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         canvas.width = 256; canvas.height = 64;
-        ctx.fillStyle = 'rgba(0,0,0,0.8)';
-        ctx.fillRect(0, 0, 256, 64);
-        ctx.fillStyle = 'white';
-        ctx.font = 'bold 32px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(text, 128, 45);
-
+        ctx.fillStyle = 'white'; ctx.font = 'bold 30px sans-serif';
+        ctx.textAlign = 'center'; ctx.fillText(text, 128, 45);
         const tex = new THREE.CanvasTexture(canvas);
-        const mat = new THREE.SpriteMaterial({ map: tex });
-        const sprite = new THREE.Sprite(mat);
-        sprite.scale.set(40, 10, 1);
-        sprite.position.y = 10; // 箱の少し上に表示
+        const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex }));
+        sprite.scale.set(30, 8, 1);
+        sprite.position.y = 0; sprite.position.z = 11; // 手前に表示
         return sprite;
     }
 
-    function onSelect(event) {
-        const mouse = new THREE.Vector2();
+    // --- インタラクション ---
+    function onPointerDown(event) {
         mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
         mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
-        const raycaster = new THREE.Raycaster();
         raycaster.setFromCamera(mouse, camera);
         const intersects = raycaster.intersectObjects(furnitureList);
 
         if (intersects.length > 0) {
-            selectFurniture(intersects[0].object);
+            selectObject(intersects[0].object);
+            // シンプルなドラッグ移動（床平面との交差を利用）
+            const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+            const dragOffset = new THREE.Vector3();
+            const moveHandler = (e) => {
+                const pointer = e.touches ? e.touches[0] : e;
+                mouse.x = (pointer.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(pointer.clientY / window.innerHeight) * 2 + 1;
+                raycaster.setFromCamera(mouse, camera);
+                const intersectPoint = new THREE.Vector3();
+                if (raycaster.ray.intersectPlane(plane, intersectPoint)) {
+                    selectedObj.position.x = intersectPoint.x;
+                    selectedObj.position.z = intersectPoint.z;
+                }
+            };
+            const upHandler = () => {
+                window.removeEventListener('mousemove', moveHandler);
+                window.removeEventListener('touchmove', moveHandler);
+                controls.enabled = true;
+            };
+            controls.enabled = false;
+            window.addEventListener('mousemove', moveHandler);
+            window.addEventListener('touchmove', moveHandler);
+            window.addEventListener('mouseup', upHandler, {once:true});
+            window.addEventListener('touchend', upHandler, {once:true});
         }
     }
 
-    function deleteSelected() {
-        if (!selectedFurniture) return;
-        scene.remove(selectedFurniture);
-        furnitureList = furnitureList.filter(f => f !== selectedFurniture);
-        selectedFurniture = null;
-        document.getElementById('storage-controls').style.display = 'none';
-        document.getElementById('selected-title').innerText = "家具を選択してください";
-        initDragControls();
-    }
-
-    function showTab(tabName) {
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.menu-section').forEach(s => s.classList.remove('active'));
+    function selectObject(obj) {
+        if (selectedObj) selectedObj.material.emissive.setHex(0x000000);
+        selectedObj = obj;
+        selectedObj.material.emissive.setHex(0x333333);
         
-        event.target.classList.add('active');
-        document.getElementById('sec-' + tabName).classList.add('active');
+        document.getElementById('storage-active-ui').style.display = 'block';
+        document.getElementById('storage-idle-msg').style.display = 'none';
+        document.getElementById('edit-target-name').innerText = `編集中の家具 ID: ${obj.uuid.slice(0,5)}`;
+        updateCaseList();
     }
 
-    function onWindowResize() {
+    function updateCaseList() {
+        const container = document.getElementById('case-list');
+        container.innerHTML = '<strong>中身リスト:</strong>';
+        selectedObj.userData.cases.forEach(c => {
+            const div = document.createElement('div');
+            div.className = 'shelf-item';
+            div.innerHTML = `<span>🏷️ ${c.label}</span>`;
+            container.appendChild(div);
+        });
+    }
+
+    function deleteSelected() {
+        if (!selectedObj) return;
+        scene.remove(selectedObj);
+        furnitureList.splice(furnitureList.indexOf(selectedObj), 1);
+        selectedObj = null;
+        document.getElementById('storage-active-ui').style.display = 'none';
+        document.getElementById('storage-idle-msg').style.display = 'block';
+    }
+
+    function onResize() {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -312,6 +349,5 @@
         renderer.render(scene, camera);
     }
 </script>
-
 </body>
 </html>
