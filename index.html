@@ -116,10 +116,10 @@
                       placeholder="今の気持ちをメモ..." autofocus></textarea>
             <div class="flex gap-3 mb-8 overflow-x-auto">
                 <div v-for="c in noteColors" :key="c" 
-                     @click="editingNote.color = c"
-                     :style="{ backgroundColor: c }"
-                     class="w-8 h-8 rounded-full border-2 transition-all"
-                     :class="editingNote.color === c ? 'border-[#d4a3a3] scale-110' : 'border-transparent'"></div>
+                      @click="editingNote.color = c"
+                      :style="{ backgroundColor: c }"
+                      class="w-8 h-8 rounded-full border-2 transition-all"
+                      :class="editingNote.color === c ? 'border-[#d4a3a3] scale-110' : 'border-transparent'"></div>
             </div>
             <button @click="saveNote" class="w-full bg-[#d4a3a3] text-white py-4 rounded-2xl font-medium shadow-md">保存して閉じる</button>
         </div>
@@ -177,7 +177,6 @@ createApp({
             if (currentPageIndex.value < currentNotebook.value.pages.length - 1) {
                 currentPageIndex.value++;
             } else {
-                // 自動で新しいページを追加
                 currentNotebook.value.pages.push({ id: Date.now(), notes: [] });
                 currentPageIndex.value++;
             }
@@ -188,12 +187,49 @@ createApp({
         };
 
         const addNote = () => {
+            // 付箋のサイズ定義
+            const noteWidth = 160; 
+            const noteHeight = 110;
+            const padding = 20;
+            
+            // 配置候補の計算ロジック
+            let newX = padding;
+            let newY = 50;
+            let foundSpace = false;
+
+            // 簡易的な衝突判定を行い、空きスペースを探す
+            for (let row = 0; row < 3; row++) {
+                for (let col = 0; col < 2; col++) {
+                    const testX = padding + (col * (noteWidth + 10));
+                    const testY = 50 + (row * (noteHeight + 10));
+                    
+                    // 既存の付箋と重なっているかチェック
+                    const isOverlapping = currentPagesNotes.value.some(note => {
+                        return Math.abs(note.x - testX) < 30 && Math.abs(note.y - testY) < 30;
+                    });
+
+                    if (!isOverlapping) {
+                        newX = testX;
+                        newY = testY;
+                        foundSpace = true;
+                        break;
+                    }
+                }
+                if (foundSpace) break;
+            }
+
+            // スペースが見つからない場合はランダムに少しずらす
+            if (!foundSpace) {
+                newX = Math.random() * 40 + 20;
+                newY = Math.random() * 60 + 50;
+            }
+
             const newNote = {
                 id: Date.now(),
                 content: '',
                 color: noteColors[0],
-                x: Math.random() * 50 + 20,
-                y: Math.random() * 100 + 50
+                x: newX,
+                y: newY
             };
             editingNote.value = { ...newNote };
         };
