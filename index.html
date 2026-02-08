@@ -45,8 +45,11 @@
             text-align: center;
             /* 改行を反映させるための設定 */
             white-space: pre-wrap;
+            position: relative; /* 絶対配置から相対配置へ変更 */
+            width: 100%; /* 横幅MAX */
+            min-height: 80px; /* 高さは維持しつつ可変に */
         }
-        .sticky-note:active { transform: scale(0.96); }
+        .sticky-note:active { transform: scale(0.98); }
 
         /* Line Clamp for 3 lines */
         .line-clamp-3 {
@@ -104,24 +107,24 @@
         </div>
 
         <transition name="page" mode="out-in">
-            <div :key="currentNbId + '-' + currentPageIndex" class="h-full w-full p-4 pt-16 relative">
-                <div v-for="note in currentPagesNotes" :key="note.id"
-                     class="sticky-note absolute p-3 w-[105px] h-[80px] rounded-br-2xl text-[11px] leading-snug font-medium overflow-hidden"
-                     :style="{ 
-                        backgroundColor: note.color, 
-                        left: note.x + 'px', 
-                        top: note.y + 'px',
-                        backgroundImage: 'linear-gradient(135deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 100%)'
-                     }"
-                     @click="editNote(note)">
-                    <span class="line-clamp-3">{{ note.content || 'タップして編集' }}</span>
-                </div>
-
-                <div v-if="currentPagesNotes.length === 0" class="h-full flex flex-col items-center justify-center text-[#d4a3a3]/50">
-                    <div class="p-6 rounded-full bg-white/30 mb-4">
-                        <i data-lucide="sparkles" class="w-10 h-10"></i>
+            <div :key="currentNbId + '-' + currentPageIndex" class="h-full w-full p-4 pt-16 overflow-y-auto no-scrollbar">
+                <div class="flex flex-col gap-4 pb-24">
+                    <div v-for="note in currentPagesNotes" :key="note.id"
+                         class="sticky-note p-4 rounded-xl text-[13px] leading-snug font-medium overflow-hidden"
+                         :style="{ 
+                            backgroundColor: note.color, 
+                            backgroundImage: 'linear-gradient(135deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 100%)'
+                         }"
+                         @click="editNote(note)">
+                        <span class="line-clamp-3">{{ note.content || 'タップして編集' }}</span>
                     </div>
-                    <p class="text-sm font-medium">右下のボタンから付箋を追加</p>
+
+                    <div v-if="currentPagesNotes.length === 0" class="h-[60vh] flex flex-col items-center justify-center text-[#d4a3a3]/50">
+                        <div class="p-6 rounded-full bg-white/30 mb-4">
+                            <i data-lucide="sparkles" class="w-10 h-10"></i>
+                        </div>
+                        <p class="text-sm font-medium">右下のボタンから付箋を追加</p>
+                    </div>
                 </div>
             </div>
         </transition>
@@ -221,50 +224,11 @@ createApp({
         };
 
         const addNote = () => {
-            // 付箋サイズとレイアウトの調整
-            const noteWidth = 105; 
-            const noteHeight = 80;
-            const margin = 12;
-            const startY = 60;
-            const startX = 16;
-            
-            let newX = startX;
-            let newY = startY;
-            let foundSpace = false;
-
-            // 縦に5行、横に3列のグリッドで空きを探す（計15枚まで綺麗に並ぶ）
-            for (let row = 0; row < 5; row++) {
-                for (let col = 0; col < 3; col++) {
-                    const testX = startX + (col * (noteWidth + margin));
-                    const testY = startY + (row * (noteHeight + margin));
-                    
-                    // 既存の付箋と座標が重なっていないかチェック
-                    const isOverlapping = currentPagesNotes.value.some(note => {
-                        return Math.abs(note.x - testX) < 10 && Math.abs(note.y - testY) < 10;
-                    });
-
-                    if (!isOverlapping) {
-                        newX = testX;
-                        newY = testY;
-                        foundSpace = true;
-                        break;
-                    }
-                }
-                if (foundSpace) break;
-            }
-
-            // スペースがない場合は少しランダムにずらす
-            if (!foundSpace) {
-                newX = Math.random() * 40 + 20;
-                newY = Math.random() * 60 + 50;
-            }
-
+            // レイアウトを縦並び（通常のフロー）に変更したため、x, y座標の計算を廃止
             const newNote = {
                 id: Date.now(),
                 content: '',
-                color: noteColors[0],
-                x: newX,
-                y: newY
+                color: noteColors[0]
             };
             editingNote.value = { ...newNote };
         };
