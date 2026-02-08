@@ -87,52 +87,69 @@
         }
         .sidebar-overlay.active { display: block; }
 
+        .sidebar-title {
+            font-family: 'Playfair Display', serif;
+            font-style: italic;
+            color: var(--deep-pink);
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
         .section-label {
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             text-transform: uppercase;
-            letter-spacing: 0.1em;
+            letter-spacing: 0.15em;
             color: var(--text-sub);
-            margin: 15px 0 10px;
+            margin: 15px 0 8px;
+            border-bottom: 1px solid rgba(216, 160, 164, 0.1);
+            padding-bottom: 4px;
         }
 
         .notebook-list, .page-list {
             list-style: none;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
             overflow-y: auto;
-            max-height: 30vh;
+            max-height: 25vh;
         }
 
         .list-item {
-            padding: 12px 15px;
+            padding: 10px 12px;
             border-radius: 8px;
             cursor: pointer;
-            margin-bottom: 8px;
+            margin-bottom: 4px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             background: rgba(255,255,255,0.5);
+            transition: 0.2s;
         }
 
+        .list-item:hover { background: rgba(238, 189, 192, 0.2); }
         .list-item.active { background-color: var(--accent-pink); color: white; font-weight: 500; }
 
         .btn-add {
-            background: white;
+            background: transparent;
             border: 1px dashed var(--deep-pink);
             color: var(--deep-pink);
-            padding: 12px;
+            padding: 8px;
             border-radius: 8px;
             cursor: pointer;
-            font-size: 0.85rem;
-            margin-bottom: 15px;
+            font-size: 0.8rem;
+            margin-bottom: 10px;
             width: 100%;
+            transition: 0.2s;
         }
+        .btn-add:hover { background: var(--accent-pink); color: white; }
 
         .delete-btn { 
-            padding: 5px 10px;
-            font-size: 1rem;
+            padding: 2px 8px;
+            font-size: 0.9rem;
             color: var(--text-sub);
+            opacity: 0.6;
         }
+        .list-item.active .delete-btn { color: white; opacity: 1; }
 
         /* --- Main Content --- */
         #main-content {
@@ -142,6 +159,12 @@
             overflow-y: auto;
             background-image: radial-gradient(var(--accent-pink) 0.5px, transparent 0.5px);
             background-size: 25px 25px;
+        }
+
+        .breadcrumb {
+            font-size: 0.8rem;
+            color: var(--text-sub);
+            margin-bottom: 5px;
         }
 
         #page-title-display {
@@ -154,7 +177,7 @@
 
         .canvas {
             display: grid;
-            grid-template-columns: 1fr; /* Mobile default */
+            grid-template-columns: 1fr;
             gap: 20px;
             padding-bottom: 100px;
         }
@@ -169,6 +192,7 @@
             position: relative;
             display: flex;
             flex-direction: column;
+            transition: transform 0.2s;
         }
 
         .sticky-note textarea {
@@ -238,26 +262,32 @@
 <div class="sidebar-overlay" id="overlay" onclick="toggleSidebar()"></div>
 
 <div id="sidebar">
-    <h1 style="display: var(--desktop-only-header);">Petal Notes</h1>
+    <div class="sidebar-title">Petal Notes</div>
     
     <div class="section-label">Notebooks</div>
     <ul id="notebook-list" class="notebook-list"></ul>
     <button class="btn-add" onclick="addNotebook()">+ New Notebook</button>
 
-    <div class="section-label">Pages</div>
+    <div class="section-label">Pages in Note</div>
     <ul id="page-list" class="page-list"></ul>
     <button class="btn-add" onclick="addPage()">+ New Page</button>
 </div>
 
 <div id="main-content">
-    <h2 id="page-title-display">Select a page</h2>
+    <div id="breadcrumb" class="breadcrumb">Select a notebook</div>
+    <h2 id="page-title-display">Welcome</h2>
     <div id="canvas" class="canvas"></div>
     <div class="add-note-circle" onclick="addStickyNote()">+</div>
 </div>
 
 <script>
+    // 初期データの構造: Notebooks > Pages > Notes
     let db = JSON.parse(localStorage.getItem('petal_notes_db')) || {
-        notebooks: [{ id: Date.now(), name: "My Journal", pages: [{ id: Date.now()+1, name: "Today's Idea", notes: [] }] }]
+        notebooks: [{ 
+            id: Date.now(), 
+            name: "My Journal", 
+            pages: [{ id: Date.now()+1, name: "Today's Idea", notes: [] }] 
+        }]
     };
 
     let currentNotebookId = db.notebooks[0]?.id;
@@ -276,6 +306,13 @@
         renderNotebooks();
         renderPages();
         renderNotes();
+        updateBreadcrumb();
+    }
+
+    function updateBreadcrumb() {
+        const nb = db.notebooks.find(n => n.id === currentNotebookId);
+        const breadcrumb = document.getElementById('breadcrumb');
+        breadcrumb.innerText = nb ? `Notebook: ${nb.name}` : "Select a notebook";
     }
 
     // --- Notebook Logic ---
@@ -288,20 +325,20 @@
             li.innerHTML = `<span>${nb.name}</span><span class="delete-btn" onclick="deleteNotebook(event, ${nb.id})">✕</span>`;
             li.onclick = () => { 
                 currentNotebookId = nb.id; 
-                currentPageId = nb.pages[0]?.id; 
+                currentPageId = nb.pages[0]?.id || null; 
                 render(); 
-                if(window.innerWidth < 768) toggleSidebar();
             };
             list.appendChild(li);
         });
     }
 
     function addNotebook() {
-        const name = prompt("ノートブック名", "New Notebook");
+        const name = prompt("ノートブック名を入力してください", "New Notebook");
         if (!name) return;
-        const newNb = { id: Date.now(), name: name, pages: [{ id: Date.now()+1, name: "First Page", notes: [] }] };
+        const newId = Date.now();
+        const newNb = { id: newId, name: name, pages: [{ id: newId + 1, name: "First Page", notes: [] }] };
         db.notebooks.push(newNb);
-        currentNotebookId = newNb.id;
+        currentNotebookId = newId;
         currentPageId = newNb.pages[0].id;
         saveData();
         render();
@@ -310,7 +347,7 @@
     function deleteNotebook(e, id) {
         e.stopPropagation();
         if (db.notebooks.length <= 1) return alert("最後のノートは削除できません");
-        if (!confirm("ノートブック全体を削除しますか？")) return;
+        if (!confirm("ノートブック全体を削除しますか？（中のページも消去されます）")) return;
         db.notebooks = db.notebooks.filter(nb => nb.id !== id);
         if (currentNotebookId === id) {
             currentNotebookId = db.notebooks[0].id;
@@ -341,9 +378,12 @@
     }
 
     function addPage() {
-        const name = prompt("ページ名", "New Page");
-        if (!name) return;
         const nb = db.notebooks.find(n => n.id === currentNotebookId);
+        if (!nb) return alert("先にノートブックを選択してください");
+        
+        const name = prompt("ページ名を入力してください", "New Page");
+        if (!name) return;
+        
         const newPg = { id: Date.now(), name: name, notes: [] };
         nb.pages.push(newPg);
         currentPageId = newPg.id;
@@ -355,14 +395,14 @@
         e.stopPropagation();
         const nb = db.notebooks.find(n => n.id === currentNotebookId);
         if (nb.pages.length <= 1) return alert("最後のページは削除できません");
-        if (!confirm("ページを削除しますか？")) return;
+        if (!confirm("このページを削除しますか？")) return;
         nb.pages = nb.pages.filter(p => p.id !== id);
         if (currentPageId === id) currentPageId = nb.pages[0].id;
         saveData();
         render();
     }
 
-    // --- Sticky Note Logic ---
+    // --- Sticky Note (付箋) Logic ---
     function renderNotes() {
         const canvas = document.getElementById('canvas');
         const titleDisp = document.getElementById('page-title-display');
@@ -372,7 +412,7 @@
         const pg = nb?.pages.find(p => p.id === currentPageId);
 
         if (!pg) {
-            titleDisp.innerText = "Select a page";
+            titleDisp.innerText = "Select or create a page";
             return;
         }
 
@@ -382,7 +422,7 @@
             const div = document.createElement('div');
             div.className = 'sticky-note';
             div.innerHTML = `
-                <textarea placeholder="メモを入力..." oninput="updateNoteText(${note.id}, this.value)">${note.content}</textarea>
+                <textarea placeholder="ここにメモを書く..." oninput="updateNoteText(${note.id}, this.value)">${note.content}</textarea>
                 <div class="note-footer">
                     <span class="delete-btn" onclick="deleteNote(${note.id})">削除</span>
                 </div>
@@ -394,15 +434,15 @@
     function addStickyNote() {
         const nb = db.notebooks.find(n => n.id === currentNotebookId);
         const pg = nb?.pages.find(p => p.id === currentPageId);
-        if (!pg) return alert("ページを選択してください");
+        if (!pg) return alert("付箋を貼るページを選択してください");
 
         pg.notes.push({ id: Date.now(), content: "" });
         saveData();
         renderNotes();
-        // 追加後に最新のメモにフォーカス
+        
         setTimeout(() => {
             const areas = document.querySelectorAll('textarea');
-            areas[areas.length - 1].focus();
+            if(areas.length > 0) areas[areas.length - 1].focus();
         }, 100);
     }
 
@@ -410,12 +450,14 @@
         const nb = db.notebooks.find(n => n.id === currentNotebookId);
         const pg = nb.pages.find(p => p.id === currentPageId);
         const note = pg.notes.find(n => n.id === id);
-        note.content = text;
-        saveData();
+        if (note) {
+            note.content = text;
+            saveData();
+        }
     }
 
     function deleteNote(id) {
-        if(!confirm("メモを削除しますか？")) return;
+        if(!confirm("この付箋を削除しますか？")) return;
         const nb = db.notebooks.find(n => n.id === currentNotebookId);
         const pg = nb.pages.find(p => p.id === currentPageId);
         pg.notes = pg.notes.filter(n => n.id !== id);
@@ -423,6 +465,7 @@
         renderNotes();
     }
 
+    // 初期化実行
     render();
 </script>
 
