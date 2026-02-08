@@ -2,8 +2,8 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Petal Notes | 洗練されたメモタイム</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Petal Notes | Mobile</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500&family=Playfair+Display:ital@0;1&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -13,179 +13,224 @@
             --deep-pink: #d8a0a4;
             --text-main: #5a4a4b;
             --text-sub: #8e7d7e;
-            --sticky-yellow: #fff9c4;
             --shadow: 0 4px 15px rgba(216, 160, 164, 0.15);
+            --header-height: 60px;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
         body {
             font-family: 'Noto Sans JP', sans-serif;
             background-color: var(--bg-color);
             color: var(--text-main);
-            display: flex;
             height: 100vh;
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
         }
 
-        /* --- Sidebar --- */
+        /* --- Header (Mobile Only) --- */
+        header {
+            height: var(--header-height);
+            background: var(--sidebar-color);
+            display: flex;
+            align-items: center;
+            padding: 0 15px;
+            border-bottom: 1px solid rgba(216, 160, 164, 0.2);
+            z-index: 100;
+        }
+
+        .menu-toggle {
+            font-size: 1.5rem;
+            background: none;
+            border: none;
+            color: var(--deep-pink);
+            cursor: pointer;
+            padding: 10px;
+        }
+
+        header h1 {
+            flex-grow: 1;
+            font-family: 'Playfair Display', serif;
+            font-size: 1.2rem;
+            text-align: center;
+            margin-right: 40px; /* バランス調整 */
+            color: var(--deep-pink);
+        }
+
+        /* --- Sidebar (Drawer Logic) --- */
         #sidebar {
-            width: 260px;
+            position: fixed;
+            left: -280px;
+            top: 0;
+            width: 280px;
+            height: 100%;
             background-color: var(--sidebar-color);
-            border-right: 1px solid rgba(216, 160, 164, 0.2);
+            z-index: 200;
+            transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             display: flex;
             flex-direction: column;
             padding: 20px;
+            box-shadow: 5px 0 15px rgba(0,0,0,0.1);
         }
 
-        h1 {
-            font-family: 'Playfair Display', serif;
-            font-size: 1.5rem;
-            font-style: italic;
-            color: var(--deep-pink);
-            margin-bottom: 30px;
-            text-align: center;
+        #sidebar.open { left: 0; }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.3);
+            display: none;
+            z-index: 150;
         }
+
+        .overlay.show { display: block; }
 
         .section-label {
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             text-transform: uppercase;
             letter-spacing: 0.1em;
             color: var(--text-sub);
-            margin-bottom: 10px;
+            margin: 15px 0 10px;
         }
 
         .notebook-list, .page-list {
             list-style: none;
-            margin-bottom: 20px;
             overflow-y: auto;
+            max-height: 30vh;
         }
 
         .list-item {
-            padding: 10px 15px;
-            border-radius: 8px;
-            cursor: pointer;
+            padding: 12px 15px;
+            border-radius: 10px;
             margin-bottom: 5px;
-            transition: all 0.3s;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 0.9rem;
+            font-size: 0.95rem;
+            background: rgba(255,255,255,0.5);
         }
 
-        .list-item:hover { background-color: var(--accent-pink); color: white; }
-        .list-item.active { background-color: var(--accent-pink); color: white; font-weight: 500; }
+        .list-item.active { background-color: var(--accent-pink); color: white; }
 
         .btn-add {
-            background: none;
+            background: white;
             border: 1px dashed var(--deep-pink);
             color: var(--deep-pink);
-            padding: 8px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.8rem;
-            margin-bottom: 20px;
-            transition: 0.2s;
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            margin-top: 5px;
+            width: 100%;
         }
 
-        .btn-add:hover { background: var(--accent-pink); color: white; border-style: solid; }
+        .delete-btn { color: #ff8e8e; padding: 5px 10px; font-size: 1.1rem; }
 
-        .delete-btn { opacity: 0; transition: 0.2s; font-size: 0.8rem; }
-        .list-item:hover .delete-btn { opacity: 0.7; }
-        .delete-btn:hover { opacity: 1 !important; color: #ff8e8e; }
-
-        /* --- Main Canvas --- */
+        /* --- Main Content --- */
         #main-content {
             flex-grow: 1;
-            position: relative;
-            padding: 40px;
             overflow-y: auto;
+            padding: 20px;
             background-image: radial-gradient(var(--accent-pink) 0.5px, transparent 0.5px);
-            background-size: 30px 30px; /* 方眼紙風 */
+            background-size: 25px 25px;
+            position: relative;
         }
 
         #page-title-display {
-            font-size: 1.8rem;
-            margin-bottom: 30px;
+            font-size: 1.4rem;
+            margin-bottom: 20px;
             border-bottom: 2px solid var(--accent-pink);
             display: inline-block;
-            padding-bottom: 5px;
         }
 
         .canvas {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 25px;
-            align-items: start;
+            grid-template-columns: 1fr; /* スマホは1列が基本 */
+            gap: 20px;
+            padding-bottom: 100px;
         }
 
         /* --- Sticky Note --- */
         .sticky-note {
             background-color: white;
-            padding: 20px;
-            min-height: 180px;
+            padding: 15px;
+            min-height: 150px;
             box-shadow: var(--shadow);
-            border-radius: 2px;
+            border-radius: 8px;
             position: relative;
-            transform: rotate(-1deg);
-            transition: transform 0.2s;
             display: flex;
             flex-direction: column;
         }
-
-        .sticky-note:nth-child(even) { transform: rotate(1.5deg); }
-        .sticky-note:hover { transform: scale(1.03) rotate(0deg); z-index: 10; }
 
         .sticky-note textarea {
             border: none;
             resize: none;
             width: 100%;
-            height: 100%;
+            height: 120px;
             background: transparent;
             font-family: inherit;
             color: var(--text-main);
             outline: none;
-            font-size: 0.95rem;
-            line-height: 1.6;
+            font-size: 1rem; /* スマホでズームされないための最小サイズ */
+            line-height: 1.5;
         }
 
-        .sticky-note .note-delete {
+        .note-delete {
             position: absolute;
-            top: 5px;
-            right: 8px;
-            cursor: pointer;
-            color: #ccc;
-            font-size: 1.2rem;
+            top: -10px;
+            right: -10px;
+            background: #ff8e8e;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
 
-        .sticky-note .note-delete:hover { color: var(--deep-pink); }
-
+        /* --- FAB (Floating Action Button) --- */
         .add-note-circle {
             position: fixed;
-            bottom: 40px;
-            right: 40px;
-            width: 60px;
-            height: 60px;
+            bottom: 30px;
+            right: 25px;
+            width: 65px;
+            height: 65px;
             background-color: var(--deep-pink);
             color: white;
             border-radius: 50%;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 2rem;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-            cursor: pointer;
-            transition: 0.3s;
+            font-size: 2.5rem;
+            box-shadow: 0 5px 15px rgba(216, 160, 164, 0.4);
+            z-index: 90;
         }
 
-        .add-note-circle:hover { transform: translateY(-5px); background-color: #c98e92; }
-
+        @media (min-width: 600px) {
+            .canvas { grid-template-columns: 1fr 1fr; }
+        }
     </style>
 </head>
 <body>
 
-<div id="sidebar">
+<header>
+    <button class="menu-toggle" onclick="toggleMenu()">☰</button>
     <h1>Petal Notes</h1>
+</header>
+
+<div class="overlay" id="overlay" onclick="toggleMenu()"></div>
+
+<div id="sidebar">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h1 style="font-size: 1.2rem; margin-bottom: 0;">Menu</h1>
+        <button onclick="toggleMenu()" style="background:none; border:none; font-size: 1.5rem;">✕</button>
+    </div>
     
     <div class="section-label">Notebooks</div>
     <ul id="notebook-list" class="notebook-list"></ul>
@@ -203,10 +248,8 @@
 </div>
 
 <script>
-    // データ構造
-    // { notebooks: [ { id, name, pages: [ { id, name, notes: [ { id, content } ] } ] } ] }
     let db = JSON.parse(localStorage.getItem('petal_notes_db')) || {
-        notebooks: [{ id: Date.now(), name: "My Journal", pages: [{ id: Date.now()+1, name: "Today's Idea", notes: [] }] }]
+        notebooks: [{ id: Date.now(), name: "My Journal", pages: [{ id: Date.now()+1, name: "Idea", notes: [] }] }]
     };
 
     let currentNotebookId = db.notebooks[0]?.id;
@@ -216,13 +259,17 @@
         localStorage.setItem('petal_notes_db', JSON.stringify(db));
     }
 
+    function toggleMenu() {
+        document.getElementById('sidebar').classList.toggle('open');
+        document.getElementById('overlay').classList.toggle('show');
+    }
+
     function render() {
         renderNotebooks();
         renderPages();
         renderNotes();
     }
 
-    // --- Notebook Logic ---
     function renderNotebooks() {
         const list = document.getElementById('notebook-list');
         list.innerHTML = '';
@@ -230,15 +277,15 @@
             const li = document.createElement('li');
             li.className = `list-item ${nb.id === currentNotebookId ? 'active' : ''}`;
             li.innerHTML = `<span>${nb.name}</span><span class="delete-btn" onclick="deleteNotebook(event, ${nb.id})">✕</span>`;
-            li.onclick = () => { currentNotebookId = nb.id; currentPageId = nb.pages[0]?.id; render(); };
+            li.onclick = () => { currentNotebookId = nb.id; currentPageId = nb.pages[0]?.id; render(); toggleMenu(); };
             list.appendChild(li);
         });
     }
 
     function addNotebook() {
-        const name = prompt("ノートブックの名前を入力してください", "New Notebook");
+        const name = prompt("ノート名", "New Notebook");
         if (!name) return;
-        const newNb = { id: Date.now(), name: name, pages: [{ id: Date.now()+1, name: "First Page", notes: [] }] };
+        const newNb = { id: Date.now(), name: name, pages: [{ id: Date.now()+1, name: "Page 1", notes: [] }] };
         db.notebooks.push(newNb);
         currentNotebookId = newNb.id;
         currentPageId = newNb.pages[0].id;
@@ -248,17 +295,18 @@
 
     function deleteNotebook(e, id) {
         e.stopPropagation();
-        if (db.notebooks.length <= 1) return alert("最後のノートブックは削除できません");
-        db.notebooks = db.notebooks.filter(nb => nb.id !== id);
-        if (currentNotebookId === id) {
-            currentNotebookId = db.notebooks[0].id;
-            currentPageId = db.notebooks[0].pages[0]?.id;
+        if (db.notebooks.length <= 1) return;
+        if (confirm("このノートブックを削除しますか？")) {
+            db.notebooks = db.notebooks.filter(nb => nb.id !== id);
+            if (currentNotebookId === id) {
+                currentNotebookId = db.notebooks[0].id;
+                currentPageId = db.notebooks[0].pages[0]?.id;
+            }
+            saveData();
+            render();
         }
-        saveData();
-        render();
     }
 
-    // --- Page Logic ---
     function renderPages() {
         const list = document.getElementById('page-list');
         list.innerHTML = '';
@@ -269,13 +317,13 @@
             const li = document.createElement('li');
             li.className = `list-item ${pg.id === currentPageId ? 'active' : ''}`;
             li.innerHTML = `<span>${pg.name}</span><span class="delete-btn" onclick="deletePage(event, ${pg.id})">✕</span>`;
-            li.onclick = () => { currentPageId = pg.id; render(); };
+            li.onclick = () => { currentPageId = pg.id; render(); toggleMenu(); };
             list.appendChild(li);
         });
     }
 
     function addPage() {
-        const name = prompt("ページ名を入力してください", "New Page");
+        const name = prompt("ページ名", "New Page");
         if (!name) return;
         const nb = db.notebooks.find(n => n.id === currentNotebookId);
         const newPg = { id: Date.now(), name: name, notes: [] };
@@ -288,35 +336,32 @@
     function deletePage(e, id) {
         e.stopPropagation();
         const nb = db.notebooks.find(n => n.id === currentNotebookId);
-        if (nb.pages.length <= 1) return alert("最後のページは削除できません");
-        nb.pages = nb.pages.filter(p => p.id !== id);
-        if (currentPageId === id) currentPageId = nb.pages[0].id;
-        saveData();
-        render();
+        if (nb.pages.length <= 1) return;
+        if (confirm("ページを削除しますか？")) {
+            nb.pages = nb.pages.filter(p => p.id !== id);
+            if (currentPageId === id) currentPageId = nb.pages[0].id;
+            saveData();
+            render();
+        }
     }
 
-    // --- Sticky Note Logic ---
     function renderNotes() {
         const canvas = document.getElementById('canvas');
         const titleDisp = document.getElementById('page-title-display');
         canvas.innerHTML = '';
-
         const nb = db.notebooks.find(n => n.id === currentNotebookId);
         const pg = nb?.pages.find(p => p.id === currentPageId);
-
         if (!pg) {
-            titleDisp.innerText = "Select or create a page";
+            titleDisp.innerText = "Select a page";
             return;
         }
-
         titleDisp.innerText = pg.name;
-
         pg.notes.forEach(note => {
             const div = document.createElement('div');
             div.className = 'sticky-note';
             div.innerHTML = `
                 <span class="note-delete" onclick="deleteNote(${note.id})">×</span>
-                <textarea oninput="updateNoteText(${note.id}, this.value)">${note.content}</textarea>
+                <textarea placeholder="メモを入力..." oninput="updateNoteText(${note.id}, this.value)">${note.content}</textarea>
             `;
             canvas.appendChild(div);
         });
@@ -326,10 +371,11 @@
         const nb = db.notebooks.find(n => n.id === currentNotebookId);
         const pg = nb?.pages.find(p => p.id === currentPageId);
         if (!pg) return alert("ページを選択してください");
-
         pg.notes.push({ id: Date.now(), content: "" });
         saveData();
         renderNotes();
+        // 追加したノートへスクロール
+        window.scrollTo(0, document.body.scrollHeight);
     }
 
     function updateNoteText(id, text) {
@@ -348,7 +394,6 @@
         renderNotes();
     }
 
-    // 初期化
     render();
 </script>
 
