@@ -43,6 +43,8 @@
             align-items: center;
             justify-content: center;
             text-align: center;
+            /* 改行を反映させるための設定 */
+            white-space: pre-wrap;
         }
         .sticky-note:active { transform: scale(0.96); }
 
@@ -140,7 +142,7 @@
             </div>
             
             <textarea v-model="editingNote.content" 
-                      class="w-full h-44 bg-gray-50 rounded-2xl p-5 focus:outline-none focus:ring-2 focus:ring-[#d4a3a3]/30 mb-6 text-base leading-relaxed"
+                      class="w-full h-80 bg-gray-50 rounded-2xl p-5 focus:outline-none focus:ring-2 focus:ring-[#d4a3a3]/30 mb-6 text-base leading-relaxed"
                       placeholder="今の気持ちをメモ..." autofocus></textarea>
             
             <div class="flex gap-4 mb-8 overflow-x-auto no-scrollbar py-1">
