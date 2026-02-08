@@ -3,471 +3,150 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Petal Notes | Mobile optimized</title>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500&family=Playfair+Display:ital@0;1&display=swap" rel="stylesheet">
+    <title>Sticky Note Pad</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        :root {
-            --bg-color: #fdf7f8;
-            --sidebar-color: #fffafb;
-            --accent-pink: #eebdc0;
-            --deep-pink: #d8a0a4;
-            --text-main: #5a4a4b;
-            --text-sub: #8e7d7e;
-            --sticky-yellow: #fff9c4;
-            --shadow: 0 4px 15px rgba(216, 160, 164, 0.15);
-            --header-height: 60px;
-        }
-
-        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-
-        body {
-            font-family: 'Noto Sans JP', sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            overflow: hidden;
-        }
-
-        /* --- Header (Mobile only) --- */
-        header {
-            height: var(--header-height);
-            background: var(--sidebar-color);
-            display: flex;
-            align-items: center;
-            padding: 0 15px;
-            border-bottom: 1px solid rgba(216, 160, 164, 0.2);
-            z-index: 100;
-        }
-
-        .menu-toggle {
-            font-size: 1.5rem;
-            background: none;
-            border: none;
-            color: var(--deep-pink);
-            cursor: pointer;
-            padding: 10px;
-        }
-
-        .header-title {
-            flex-grow: 1;
-            text-align: center;
-            font-family: 'Playfair Display', serif;
-            font-style: italic;
-            color: var(--deep-pink);
-            font-size: 1.2rem;
-        }
-
-        /* --- Sidebar / Drawer --- */
-        #sidebar {
-            position: fixed;
-            left: -280px;
-            top: 0;
-            width: 280px;
-            height: 100%;
-            background-color: var(--sidebar-color);
-            border-right: 1px solid rgba(216, 160, 164, 0.2);
-            display: flex;
-            flex-direction: column;
-            padding: 20px;
-            transition: 0.3s ease;
-            z-index: 200;
-            box-shadow: 5px 0 15px rgba(0,0,0,0.05);
-        }
-
-        #sidebar.open { left: 0; }
-
-        .sidebar-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.3);
-            z-index: 150;
-        }
-        .sidebar-overlay.active { display: block; }
-
-        .sidebar-title {
-            font-family: 'Playfair Display', serif;
-            font-style: italic;
-            color: var(--deep-pink);
-            font-size: 1.5rem;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        .section-label {
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            letter-spacing: 0.15em;
-            color: var(--text-sub);
-            margin: 15px 0 8px;
-            border-bottom: 1px solid rgba(216, 160, 164, 0.1);
-            padding-bottom: 4px;
-        }
-
-        .notebook-list, .page-list {
-            list-style: none;
-            margin-bottom: 5px;
-            overflow-y: auto;
-            max-height: 25vh;
-        }
-
-        .list-item {
-            padding: 10px 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            margin-bottom: 4px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 0.9rem;
-            background: rgba(255,255,255,0.5);
-            transition: 0.2s;
-        }
-
-        .list-item:hover { background: rgba(238, 189, 192, 0.2); }
-        .list-item.active { background-color: var(--accent-pink); color: white; font-weight: 500; }
-
-        .btn-add {
-            background: transparent;
-            border: 1px dashed var(--deep-pink);
-            color: var(--deep-pink);
-            padding: 8px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.8rem;
-            margin-bottom: 10px;
-            width: 100%;
-            transition: 0.2s;
-        }
-        .btn-add:hover { background: var(--accent-pink); color: white; }
-
-        .delete-btn { 
-            padding: 2px 8px;
-            font-size: 0.9rem;
-            color: var(--text-sub);
-            opacity: 0.6;
-        }
-        .list-item.active .delete-btn { color: white; opacity: 1; }
-
-        /* --- Main Content --- */
-        #main-content {
-            flex-grow: 1;
-            position: relative;
-            padding: 20px;
-            overflow-y: auto;
-            background-image: radial-gradient(var(--accent-pink) 0.5px, transparent 0.5px);
-            background-size: 25px 25px;
-        }
-
-        .breadcrumb {
-            font-size: 0.8rem;
-            color: var(--text-sub);
-            margin-bottom: 5px;
-        }
-
-        #page-title-display {
-            font-size: 1.4rem;
-            margin-bottom: 20px;
-            border-bottom: 2px solid var(--accent-pink);
-            display: inline-block;
-            padding-bottom: 5px;
-        }
-
-        .canvas {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 20px;
-            padding-bottom: 100px;
-        }
-
-        /* --- Sticky Note --- */
-        .sticky-note {
-            background-color: white;
-            padding: 15px;
-            min-height: 150px;
-            box-shadow: var(--shadow);
-            border-radius: 8px;
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            transition: transform 0.2s;
-        }
-
-        .sticky-note textarea {
-            border: none;
-            resize: none;
-            width: 100%;
-            height: 120px;
-            background: transparent;
-            font-family: inherit;
-            color: var(--text-main);
-            outline: none;
-            font-size: 1rem;
-            line-height: 1.5;
-        }
-
-        .note-footer {
-            display: flex;
-            justify-content: flex-end;
-            margin-top: 10px;
-            border-top: 1px solid #f0f0f0;
-            padding-top: 5px;
-        }
-
-        .add-note-circle {
-            position: fixed;
-            bottom: 30px;
-            right: 25px;
-            width: 65px;
-            height: 65px;
-            background-color: var(--deep-pink);
-            color: white;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 2rem;
-            box-shadow: 0 4px 15px rgba(216, 160, 164, 0.4);
-            cursor: pointer;
-            z-index: 100;
-        }
-
-        /* --- Desktop adjustments --- */
-        @media (min-width: 768px) {
-            body { flex-direction: row; }
-            header { display: none; }
-            #sidebar {
-                position: relative;
-                left: 0;
-                width: 260px;
-                box-shadow: none;
-            }
-            .sidebar-overlay { display: none !important; }
-            .canvas {
-                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            }
-            #main-content { padding: 40px; }
-        }
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #e5e7eb; overflow: hidden; }
+        .page-container { display: flex; transition: transform 0.3s ease-out; height: calc(100vh - 120px); }
+        .page { min-width: 100%; height: 100%; padding: 20px; box-sizing: border-box; overflow-y: auto; background-image: radial-gradient(#d1d5db 1px, transparent 1px); background-size: 20px 20px; }
+        .sticky-note { width: 140px; min-height: 140px; padding: 10px; margin: 10px; background: #fff9c4; box-shadow: 3px 3px 10px rgba(0,0,0,0.1); border-bottom-right-radius: 20px 5px; transform: rotate(-1deg); display: inline-block; vertical-align: top; }
+        .sticky-note:nth-child(even) { transform: rotate(1.5deg); background: #e3f2fd; }
+        .active-tab { border-bottom: 4px solid #3b82f6; color: #3b82f6; font-weight: bold; }
     </style>
 </head>
-<body>
+<body class="fixed inset-0 flex flex-col">
 
-<header>
-    <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
-    <div class="header-title">Petal Notes</div>
-</header>
+    <div id="tab-bar" class="flex bg-white shadow-md overflow-x-auto whitespace-nowrap scrollbar-hide">
+        </div>
+    <div class="flex bg-white px-2 py-1 border-t text-xs justify-between items-center">
+        <button onclick="addNotebook()" class="bg-blue-500 text-white px-3 py-1 rounded">+ ノート追加</button>
+        <span id="page-indicator" class="text-gray-500 italic">Page 1</span>
+        <button onclick="deleteCurrentNotebook()" class="text-red-400">ノート削除</button>
+    </div>
 
-<div class="sidebar-overlay" id="overlay" onclick="toggleSidebar()"></div>
+    <div id="viewer" class="flex-1 overflow-hidden relative" ontouchstart="handleTouchStart(event)" ontouchmove="handleTouchMove(event)" ontouchend="handleTouchEnd()">
+        <div id="page-container" class="page-container">
+            </div>
+    </div>
 
-<div id="sidebar">
-    <div class="sidebar-title">Petal Notes</div>
-    
-    <div class="section-label">Notebooks</div>
-    <ul id="notebook-list" class="notebook-list"></ul>
-    <button class="btn-add" onclick="addNotebook()">+ New Notebook</button>
+    <div class="p-4 bg-white flex justify-around border-t shadow-inner">
+        <button onclick="addPage()" class="bg-gray-200 p-2 rounded-lg text-sm">＋ ページ追加</button>
+        <button onclick="addSticky()" class="bg-yellow-200 p-2 rounded-lg text-sm font-bold">＋ 付箋を貼る</button>
+    </div>
 
-    <div class="section-label">Pages in Note</div>
-    <ul id="page-list" class="page-list"></ul>
-    <button class="btn-add" onclick="addPage()">+ New Page</button>
-</div>
+    <script>
+        let notebooks = JSON.parse(localStorage.getItem('sticky_notes_data')) || [
+            { title: "Note 1", pages: [ { notes: ["最初の付箋です"] } ] }
+        ];
+        let currentNotebookIdx = 0;
+        let currentPageIdx = 0;
 
-<div id="main-content">
-    <div id="breadcrumb" class="breadcrumb">Select a notebook</div>
-    <h2 id="page-title-display">Welcome</h2>
-    <div id="canvas" class="canvas"></div>
-    <div class="add-note-circle" onclick="addStickyNote()">+</div>
-</div>
+        // --- タッチスワイプ制御 ---
+        let touchStartX = 0;
+        let touchEndX = 0;
 
-<script>
-    // 初期データの構造: Notebooks > Pages > Notes
-    let db = JSON.parse(localStorage.getItem('petal_notes_db')) || {
-        notebooks: [{ 
-            id: Date.now(), 
-            name: "My Journal", 
-            pages: [{ id: Date.now()+1, name: "Today's Idea", notes: [] }] 
-        }]
-    };
-
-    let currentNotebookId = db.notebooks[0]?.id;
-    let currentPageId = db.notebooks[0]?.pages[0]?.id;
-
-    function toggleSidebar() {
-        document.getElementById('sidebar').classList.toggle('open');
-        document.getElementById('overlay').classList.toggle('active');
-    }
-
-    function saveData() {
-        localStorage.setItem('petal_notes_db', JSON.stringify(db));
-    }
-
-    function render() {
-        renderNotebooks();
-        renderPages();
-        renderNotes();
-        updateBreadcrumb();
-    }
-
-    function updateBreadcrumb() {
-        const nb = db.notebooks.find(n => n.id === currentNotebookId);
-        const breadcrumb = document.getElementById('breadcrumb');
-        breadcrumb.innerText = nb ? `Notebook: ${nb.name}` : "Select a notebook";
-    }
-
-    // --- Notebook Logic ---
-    function renderNotebooks() {
-        const list = document.getElementById('notebook-list');
-        list.innerHTML = '';
-        db.notebooks.forEach(nb => {
-            const li = document.createElement('li');
-            li.className = `list-item ${nb.id === currentNotebookId ? 'active' : ''}`;
-            li.innerHTML = `<span>${nb.name}</span><span class="delete-btn" onclick="deleteNotebook(event, ${nb.id})">✕</span>`;
-            li.onclick = () => { 
-                currentNotebookId = nb.id; 
-                currentPageId = nb.pages[0]?.id || null; 
-                render(); 
-            };
-            list.appendChild(li);
-        });
-    }
-
-    function addNotebook() {
-        const name = prompt("ノートブック名を入力してください", "New Notebook");
-        if (!name) return;
-        const newId = Date.now();
-        const newNb = { id: newId, name: name, pages: [{ id: newId + 1, name: "First Page", notes: [] }] };
-        db.notebooks.push(newNb);
-        currentNotebookId = newId;
-        currentPageId = newNb.pages[0].id;
-        saveData();
-        render();
-    }
-
-    function deleteNotebook(e, id) {
-        e.stopPropagation();
-        if (db.notebooks.length <= 1) return alert("最後のノートは削除できません");
-        if (!confirm("ノートブック全体を削除しますか？（中のページも消去されます）")) return;
-        db.notebooks = db.notebooks.filter(nb => nb.id !== id);
-        if (currentNotebookId === id) {
-            currentNotebookId = db.notebooks[0].id;
-            currentPageId = db.notebooks[0].pages[0]?.id;
-        }
-        saveData();
-        render();
-    }
-
-    // --- Page Logic ---
-    function renderPages() {
-        const list = document.getElementById('page-list');
-        list.innerHTML = '';
-        const nb = db.notebooks.find(n => n.id === currentNotebookId);
-        if (!nb) return;
-
-        nb.pages.forEach(pg => {
-            const li = document.createElement('li');
-            li.className = `list-item ${pg.id === currentPageId ? 'active' : ''}`;
-            li.innerHTML = `<span>${pg.name}</span><span class="delete-btn" onclick="deletePage(event, ${pg.id})">✕</span>`;
-            li.onclick = () => { 
-                currentPageId = pg.id; 
-                render(); 
-                if(window.innerWidth < 768) toggleSidebar();
-            };
-            list.appendChild(li);
-        });
-    }
-
-    function addPage() {
-        const nb = db.notebooks.find(n => n.id === currentNotebookId);
-        if (!nb) return alert("先にノートブックを選択してください");
-        
-        const name = prompt("ページ名を入力してください", "New Page");
-        if (!name) return;
-        
-        const newPg = { id: Date.now(), name: name, notes: [] };
-        nb.pages.push(newPg);
-        currentPageId = newPg.id;
-        saveData();
-        render();
-    }
-
-    function deletePage(e, id) {
-        e.stopPropagation();
-        const nb = db.notebooks.find(n => n.id === currentNotebookId);
-        if (nb.pages.length <= 1) return alert("最後のページは削除できません");
-        if (!confirm("このページを削除しますか？")) return;
-        nb.pages = nb.pages.filter(p => p.id !== id);
-        if (currentPageId === id) currentPageId = nb.pages[0].id;
-        saveData();
-        render();
-    }
-
-    // --- Sticky Note (付箋) Logic ---
-    function renderNotes() {
-        const canvas = document.getElementById('canvas');
-        const titleDisp = document.getElementById('page-title-display');
-        canvas.innerHTML = '';
-
-        const nb = db.notebooks.find(n => n.id === currentNotebookId);
-        const pg = nb?.pages.find(p => p.id === currentPageId);
-
-        if (!pg) {
-            titleDisp.innerText = "Select or create a page";
-            return;
+        function handleTouchStart(e) { touchStartX = e.changedTouches[0].screenX; }
+        function handleTouchMove(e) { touchEndX = e.changedTouches[0].screenX; }
+        function handleTouchEnd() {
+            const diff = touchStartX - touchEndX;
+            if (Math.abs(diff) > 50) {
+                if (diff > 0) movePage(1); // 左スワイプ -> 次へ
+                else movePage(-1);        // 右スワイプ -> 前へ
+            }
         }
 
-        titleDisp.innerText = pg.name;
+        function movePage(dir) {
+            const pages = notebooks[currentNotebookIdx].pages;
+            const newIdx = currentPageIdx + dir;
+            if (newIdx >= 0 && newIdx < pages.length) {
+                currentPageIdx = newIdx;
+                render();
+            }
+        }
 
-        pg.notes.forEach(note => {
-            const div = document.createElement('div');
-            div.className = 'sticky-note';
-            div.innerHTML = `
-                <textarea placeholder="ここにメモを書く..." oninput="updateNoteText(${note.id}, this.value)">${note.content}</textarea>
-                <div class="note-footer">
-                    <span class="delete-btn" onclick="deleteNote(${note.id})">削除</span>
+        // --- データ操作 ---
+        function addNotebook() {
+            const title = prompt("ノートの名前を入力してください", "新ノート");
+            if (title) {
+                notebooks.push({ title: title, pages: [{ notes: [] }] });
+                currentNotebookIdx = notebooks.length - 1;
+                currentPageIdx = 0;
+                saveAndRender();
+            }
+        }
+
+        function deleteCurrentNotebook() {
+            if (confirm("このノートを丸ごと削除しますか？")) {
+                notebooks.splice(currentNotebookIdx, 1);
+                if (notebooks.length === 0) notebooks = [{ title: "Note 1", pages: [{ notes: [] }] }];
+                currentNotebookIdx = 0;
+                currentPageIdx = 0;
+                saveAndRender();
+            }
+        }
+
+        function addPage() {
+            notebooks[currentNotebookIdx].pages.push({ notes: [] });
+            currentPageIdx = notebooks[currentNotebookIdx].pages.length - 1;
+            saveAndRender();
+        }
+
+        function addSticky() {
+            const text = prompt("メモを入力してください");
+            if (text) {
+                notebooks[currentNotebookIdx].pages[currentPageIdx].notes.push(text);
+                saveAndRender();
+            }
+        }
+
+        function deleteSticky(idx) {
+            notebooks[currentNotebookIdx].pages[currentPageIdx].notes.splice(idx, 1);
+            saveAndRender();
+        }
+
+        function saveAndRender() {
+            localStorage.setItem('sticky_notes_data', JSON.stringify(notebooks));
+            render();
+        }
+
+        // --- 描画 ---
+        function render() {
+            // タブの描画
+            const tabBar = document.getElementById('tab-bar');
+            tabBar.innerHTML = notebooks.map((nb, i) => `
+                <div onclick="switchNotebook(${i})" class="px-6 py-3 cursor-pointer ${i === currentNotebookIdx ? 'active-tab' : 'text-gray-400'}">
+                    ${nb.title}
                 </div>
-            `;
-            canvas.appendChild(div);
-        });
-    }
+            `).join('');
 
-    function addStickyNote() {
-        const nb = db.notebooks.find(n => n.id === currentNotebookId);
-        const pg = nb?.pages.find(p => p.id === currentPageId);
-        if (!pg) return alert("付箋を貼るページを選択してください");
+            // ページの描画
+            const container = document.getElementById('page-container');
+            const currentNB = notebooks[currentNotebookIdx];
+            
+            container.style.width = `${currentNB.pages.length * 100}%`;
+            container.style.transform = `translateX(-${(currentPageIdx * (100 / currentNB.pages.length))}%)`;
 
-        pg.notes.push({ id: Date.now(), content: "" });
-        saveData();
-        renderNotes();
-        
-        setTimeout(() => {
-            const areas = document.querySelectorAll('textarea');
-            if(areas.length > 0) areas[areas.length - 1].focus();
-        }, 100);
-    }
+            container.innerHTML = currentNB.pages.map((page, pIdx) => `
+                <div class="page">
+                    ${page.notes.map((note, nIdx) => `
+                        <div class="sticky-note" onclick="deleteSticky(${nIdx})">
+                            <p class="text-sm text-gray-800 break-words">${note}</p>
+                        </div>
+                    `).join('')}
+                    ${page.notes.length === 0 ? '<p class="text-gray-300 text-center mt-20">ページは空です</p>' : ''}
+                </div>
+            `).join('');
 
-    function updateNoteText(id, text) {
-        const nb = db.notebooks.find(n => n.id === currentNotebookId);
-        const pg = nb.pages.find(p => p.id === currentPageId);
-        const note = pg.notes.find(n => n.id === id);
-        if (note) {
-            note.content = text;
-            saveData();
+            document.getElementById('page-indicator').innerText = `${currentPageIdx + 1} / ${currentNB.pages.length} ページ`;
         }
-    }
 
-    function deleteNote(id) {
-        if(!confirm("この付箋を削除しますか？")) return;
-        const nb = db.notebooks.find(n => n.id === currentNotebookId);
-        const pg = nb.pages.find(p => p.id === currentPageId);
-        pg.notes = pg.notes.filter(n => n.id !== id);
-        saveData();
-        renderNotes();
-    }
+        function switchNotebook(idx) {
+            currentNotebookIdx = idx;
+            currentPageIdx = 0;
+            render();
+        }
 
-    // 初期化実行
-    render();
-</script>
-
+        render();
+    </script>
 </body>
 </html>
