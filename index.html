@@ -2,665 +2,355 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>OTK-Room Designer v6.5 Pro</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Petal Notes | 洗練されたメモタイム</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500&family=Playfair+Display:ital@0;1&display=swap" rel="stylesheet">
     <style>
-        :root { 
-            --accent: #4ade80; --accent-dark: #064e3b;
-            --sub: #f472b6; --bg: #020617; 
-            --panel: rgba(15, 23, 42, 0.9); --text: #f8fafc; 
-            --danger: #ef4444; --card: rgba(255,255,255,0.03);
-            --safe-bottom: env(safe-area-inset-bottom);
-        }
-        body { 
-            margin: 0; overflow: hidden; position: fixed; width: 100%; height: 100%;
-            font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: var(--text); 
-            touch-action: none; -webkit-user-select: none;
-        }
-        
-        #view-container { height: 100%; width: 100%; outline: none; }
-        
-        /* ステータスバー */
-        #status-bar {
-            position: fixed; top: 15px; left: 15px; background: rgba(0,0,0,0.7);
-            padding: 8px 15px; border-radius: 50px; font-size: 10px; border: 1px solid rgba(255,255,255,0.1);
-            backdrop-filter: blur(10px); z-index: 60; display: flex; align-items: center; gap: 8px; font-weight: 700;
-        }
-        .dot { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; }
-
-        /* 右側ビューコントローラー */
-        .v-controls {
-            position: fixed; top: 15px; right: 15px; display: flex; flex-direction: column; gap: 8px; z-index: 50;
-        }
-        .v-btn { 
-            background: rgba(30, 41, 59, 0.8); color: white; border: 1px solid rgba(255,255,255,0.1); 
-            width: 52px; height: 52px; border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center;
-            backdrop-filter: blur(10px); font-weight: bold; font-size: 10px; transition: 0.2s;
-        }
-        .v-btn.active { background: var(--accent); color: var(--accent-dark); border-color: var(--accent); }
-        .v-btn i { font-size: 16px; margin-bottom: 2px; }
-
-        /* UIパネル */
-        #ui-panel {
-            position: fixed; bottom: 0; left: 0; width: 100%; height: 75vh;
-            background: var(--panel); border-top: 1px solid rgba(255,255,255,0.15);
-            border-radius: 32px 32px 0 0; z-index: 100; 
-            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-            backdrop-filter: blur(20px); display: flex; flex-direction: column;
-            padding-bottom: var(--safe-bottom);
-        }
-        #ui-panel.collapsed { transform: translateY(calc(75vh - 70px)); }
-        #ui-panel.half { transform: translateY(35vh); }
-        
-        .panel-toggle {
-            width: 100%; height: 70px; display: flex; flex-direction: column; justify-content: center; align-items: center; flex-shrink: 0;
-        }
-        .handle-bar { width: 36px; height: 4px; background: rgba(255,255,255,0.2); border-radius: 10px; margin-bottom: 10px; }
-
-        .tabs { display: flex; padding: 0 16px; gap: 10px; margin-bottom: 15px; }
-        .tab { 
-            flex: 1; padding: 10px; text-align: center; font-size: 11px; font-weight: 800;
-            border-radius: 12px; background: rgba(255,255,255,0.03); color: #64748b; transition: 0.2s;
-        }
-        .tab.active { background: #334155; color: var(--accent); }
-
-        .content-scroll { flex: 1; overflow-y: auto; padding: 0 20px 40px 20px; }
-        .card { background: var(--card); padding: 18px; border-radius: 20px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.05); }
-        .section { display: none; }
-        .section.active { display: block; }
-
-        .grid-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px; }
-        label { display: block; font-size: 10px; color: #94a3b8; margin-bottom: 6px; font-weight: 700; }
-        input, select { 
-            width: 100%; background: #1e293b; border: 1px solid #334155; color: white; 
-            padding: 12px; border-radius: 12px; font-size: 14px; box-sizing: border-box;
-        }
-        
-        .btn-main { 
-            background: var(--accent); color: var(--accent-dark); border: none; width: 100%; padding: 18px; 
-            border-radius: 18px; font-weight: 900; font-size: 14px; margin-top: 10px;
-        }
-        .btn-sub { background: #334155; color: white; border: none; padding: 10px; border-radius: 10px; font-size: 11px; font-weight: 700; }
-
-        .item-row { 
-            background: rgba(255,255,255,0.03); padding: 10px 15px; border-radius: 12px; 
-            margin-top: 8px; display: flex; justify-content: space-between; align-items: center;
-            border-left: 3px solid var(--sub);
+        :root {
+            --bg-color: #fdf7f8;
+            --sidebar-color: #fffafb;
+            --accent-pink: #eebdc0;
+            --deep-pink: #d8a0a4;
+            --text-main: #5a4a4b;
+            --text-sub: #8e7d7e;
+            --sticky-yellow: #fff9c4;
+            --shadow: 0 4px 15px rgba(216, 160, 164, 0.15);
         }
 
-        /* 補助オーバーレイ */
-        #mode-overlay {
-            position: fixed; top: 100px; left: 50%; transform: translateX(-50%);
-            background: var(--accent); color: var(--accent-dark); padding: 6px 15px;
-            border-radius: 20px; font-size: 11px; font-weight: 900; z-index: 150;
-            display: none; pointer-events: none;
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
         }
+
+        /* --- Sidebar --- */
+        #sidebar {
+            width: 260px;
+            background-color: var(--sidebar-color);
+            border-right: 1px solid rgba(216, 160, 164, 0.2);
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            font-style: italic;
+            color: var(--deep-pink);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .section-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-sub);
+            margin-bottom: 10px;
+        }
+
+        .notebook-list, .page-list {
+            list-style: none;
+            margin-bottom: 20px;
+            overflow-y: auto;
+        }
+
+        .list-item {
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-bottom: 5px;
+            transition: all 0.3s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+        }
+
+        .list-item:hover { background-color: var(--accent-pink); color: white; }
+        .list-item.active { background-color: var(--accent-pink); color: white; font-weight: 500; }
+
+        .btn-add {
+            background: none;
+            border: 1px dashed var(--deep-pink);
+            color: var(--deep-pink);
+            padding: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            margin-bottom: 20px;
+            transition: 0.2s;
+        }
+
+        .btn-add:hover { background: var(--accent-pink); color: white; border-style: solid; }
+
+        .delete-btn { opacity: 0; transition: 0.2s; font-size: 0.8rem; }
+        .list-item:hover .delete-btn { opacity: 0.7; }
+        .delete-btn:hover { opacity: 1 !important; color: #ff8e8e; }
+
+        /* --- Main Canvas --- */
+        #main-content {
+            flex-grow: 1;
+            position: relative;
+            padding: 40px;
+            overflow-y: auto;
+            background-image: radial-gradient(var(--accent-pink) 0.5px, transparent 0.5px);
+            background-size: 30px 30px; /* 方眼紙風 */
+        }
+
+        #page-title-display {
+            font-size: 1.8rem;
+            margin-bottom: 30px;
+            border-bottom: 2px solid var(--accent-pink);
+            display: inline-block;
+            padding-bottom: 5px;
+        }
+
+        .canvas {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 25px;
+            align-items: start;
+        }
+
+        /* --- Sticky Note --- */
+        .sticky-note {
+            background-color: white;
+            padding: 20px;
+            min-height: 180px;
+            box-shadow: var(--shadow);
+            border-radius: 2px;
+            position: relative;
+            transform: rotate(-1deg);
+            transition: transform 0.2s;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sticky-note:nth-child(even) { transform: rotate(1.5deg); }
+        .sticky-note:hover { transform: scale(1.03) rotate(0deg); z-index: 10; }
+
+        .sticky-note textarea {
+            border: none;
+            resize: none;
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            font-family: inherit;
+            color: var(--text-main);
+            outline: none;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .sticky-note .note-delete {
+            position: absolute;
+            top: 5px;
+            right: 8px;
+            cursor: pointer;
+            color: #ccc;
+            font-size: 1.2rem;
+        }
+
+        .sticky-note .note-delete:hover { color: var(--deep-pink); }
+
+        .add-note-circle {
+            position: fixed;
+            bottom: 40px;
+            right: 40px;
+            width: 60px;
+            height: 60px;
+            background-color: var(--deep-pink);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2rem;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .add-note-circle:hover { transform: translateY(-5px); background-color: #c98e92; }
+
     </style>
 </head>
 <body>
 
-<div id="view-container"></div>
-<div id="status-bar"><div class="dot"></div><span id="status-text">SYSTEM ACTIVE</span></div>
-<div id="mode-overlay">HOLD TO MOVE</div>
+<div id="sidebar">
+    <h1>Petal Notes</h1>
+    
+    <div class="section-label">Notebooks</div>
+    <ul id="notebook-list" class="notebook-list"></ul>
+    <button class="btn-add" onclick="addNotebook()">+ New Notebook</button>
 
-<div class="v-controls">
-    <button class="v-btn" id="btn-3d" onclick="changeView('3d')"><span>3D</span></button>
-    <button class="v-btn" id="btn-2d" onclick="changeView('2d')"><span>2D</span></button>
-    <button class="v-btn" id="btn-elev" onclick="changeView('elev')"><span>ELEV</span></button>
-    <button class="v-btn" style="margin-top:20px; background:var(--accent-dark)" onclick="saveData()">SAVE</button>
+    <div class="section-label">Pages</div>
+    <ul id="page-list" class="page-list"></ul>
+    <button class="btn-add" onclick="addPage()">+ New Page</button>
 </div>
 
-<div id="ui-panel" class="collapsed">
-    <div class="panel-toggle" onclick="cyclePanel()">
-        <div class="handle-bar"></div>
-        <div style="font-size: 10px; font-weight: 900; color: #4ade80; letter-spacing: 0.1em;">OTK-ROOM DESIGNER v6.5</div>
-    </div>
-    
-    <div class="tabs">
-        <div class="tab active" onclick="tab(0)">ROOM</div>
-        <div class="tab" onclick="tab(1)">CATALOG</div>
-        <div class="tab" id="tab-edit" onclick="tab(2)">EDIT</div>
-    </div>
-
-    <div class="content-scroll">
-        <div id="sec-0" class="section active">
-            <div class="card">
-                <label>部屋サイズ (cm)</label>
-                <div class="grid-row">
-                    <div><label>幅</label><input type="number" id="room-w" value="300" onchange="updateRoom()"></div>
-                    <div><label>奥行</label><input type="number" id="room-d" value="300" onchange="updateRoom()"></div>
-                    <div><label>床色</label>
-                        <select id="floor-mat" onchange="updateRoom()">
-                            <option value="0x0f172a">Dark</option>
-                            <option value="0x334155">Slate</option>
-                            <option value="0x451a03">Wood</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-            <button class="btn-sub" style="width:100%; color:var(--danger); background:rgba(239,68,68,0.05)" onclick="clearAll()">リセット</button>
-        </div>
-
-        <div id="sec-1" class="section">
-            <div class="card">
-                <label>家具の種類</label>
-                <select id="f-preset" onchange="applyFPreset()" style="margin-bottom:15px;">
-                    <option value="box">カラーボックス (3段)</option>
-                    <option value="shelf">ブックシェルフ</option>
-                    <option value="case">アクリルショーケース</option>
-                    <option value="desk">デスク</option>
-                </select>
-                <div class="grid-row">
-                    <div><label>幅</label><input type="number" id="f-w" value="42"></div>
-                    <div><label>高</label><input type="number" id="f-h" value="90"></div>
-                    <div><label>奥</label><input type="number" id="f-d" value="30"></div>
-                </div>
-                <div class="grid-row">
-                    <div><label>段数</label><input type="number" id="f-step" value="3"></div>
-                    <div><label>色</label><input type="color" id="f-c" value="#e2e8f0"></div>
-                    <div><label>透明度</label><input type="range" id="f-op" min="0.2" max="1" step="0.1" value="1"></div>
-                </div>
-                <button class="btn-main" onclick="spawnFurniture()">家具を部屋に配置</button>
-            </div>
-        </div>
-
-        <div id="sec-2" class="section">
-            <div id="storage-editor" style="display:none;">
-                <div class="card">
-                    <label>家具のプロパティ変更</label>
-                    <div class="grid-row">
-                        <div><label>幅</label><input type="number" id="edit-f-w" onchange="updateSelectedFurniture()"></div>
-                        <div><label>高</label><input type="number" id="edit-f-h" onchange="updateSelectedFurniture()"></div>
-                        <div><label>奥</label><input type="number" id="edit-f-d" onchange="updateSelectedFurniture()"></div>
-                    </div>
-                    <div class="grid-row">
-                        <div><label>段数</label><input type="number" id="edit-f-step" onchange="updateSelectedFurniture()"></div>
-                        <div><label>色</label><input type="color" id="edit-f-c" onchange="updateSelectedFurniture()"></div>
-                        <div><label>透明</label><input type="range" id="edit-f-op" min="0.2" max="1" step="0.1" onchange="updateSelectedFurniture()"></div>
-                    </div>
-                </div>
-
-                <div class="card" style="border-color: var(--accent);">
-                    <div id="target-name" style="font-weight:900; color:var(--accent); margin-bottom:12px; font-size:12px;">選択中</div>
-                    <div style="display:flex; gap:10px;">
-                        <button class="btn-sub" style="flex:1" onclick="rotateFurniture()">90°回転</button>
-                        <button class="btn-sub" style="flex:1; color:var(--danger)" onclick="deleteFurniture()">削除</button>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <label>グッズを追加 (立面表示推奨)</label>
-                    <select id="item-preset" onchange="applyItemPreset()" style="margin-bottom:15px;">
-                        <option value="manga">📚 コミック/本</option>
-                        <option value="figure">🧸 フィギュア/アクスタ</option>
-                        <option value="file">📄 クリアファイル</option>
-                    </select>
-                    <div class="grid-row" style="grid-template-columns: 2fr 1fr;">
-                        <div><label>ラベル</label><input type="text" id="i-label" placeholder="推しの名前など"></div>
-                        <div><label>段</label><input type="number" id="i-step-idx" value="1" min="1"></div>
-                    </div>
-                    <div class="grid-row">
-                        <div><label>幅(cm)</label><input type="number" id="i-w" value="11.3"></div>
-                        <div><label>高さ(cm)</label><input type="number" id="i-h" value="17.6"></div>
-                        <div><label>前後位置</label><input type="range" id="i-z-off" min="0.1" max="0.9" step="0.1" value="0.5"></div>
-                    </div>
-                    <button class="btn-main" style="background: var(--sub); color:white;" onclick="addItemToFurniture()">この位置に追加</button>
-                </div>
-                <div id="item-list"></div>
-            </div>
-            
-            <div id="storage-msg" style="text-align:center; opacity:0.5; padding:60px 20px; border:2px dashed rgba(255,255,255,0.1); border-radius:24px; font-size: 12px;">
-                家具をタップして編集を開始
-            </div>
-        </div>
-    </div>
+<div id="main-content">
+    <h2 id="page-title-display">Select a page</h2>
+    <div id="canvas" class="canvas"></div>
+    <div class="add-note-circle" onclick="addStickyNote()">+</div>
 </div>
 
 <script>
-let scene, camera, renderer, controls, raycaster, mouse;
-let furnitureList = [];
-let selectedFurniture = null;
-let roomFloor;
-let currentViewMode = '3d';
-let longPressTimer = null;
+    // データ構造
+    // { notebooks: [ { id, name, pages: [ { id, name, notes: [ { id, content } ] } ] } ] }
+    let db = JSON.parse(localStorage.getItem('petal_notes_db')) || {
+        notebooks: [{ id: Date.now(), name: "My Journal", pages: [{ id: Date.now()+1, name: "Today's Idea", notes: [] }] }]
+    };
 
-init();
-animate();
+    let currentNotebookId = db.notebooks[0]?.id;
+    let currentPageId = db.notebooks[0]?.pages[0]?.id;
 
-function init() {
-    scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x020617);
+    function saveData() {
+        localStorage.setItem('petal_notes_db', JSON.stringify(db));
+    }
 
-    camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 5000);
-    camera.position.set(400, 500, 400);
+    function render() {
+        renderNotebooks();
+        renderPages();
+        renderNotes();
+    }
 
-    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.shadowMap.enabled = true;
-    document.getElementById('view-container').appendChild(renderer.domElement);
+    // --- Notebook Logic ---
+    function renderNotebooks() {
+        const list = document.getElementById('notebook-list');
+        list.innerHTML = '';
+        db.notebooks.forEach(nb => {
+            const li = document.createElement('li');
+            li.className = `list-item ${nb.id === currentNotebookId ? 'active' : ''}`;
+            li.innerHTML = `<span>${nb.name}</span><span class="delete-btn" onclick="deleteNotebook(event, ${nb.id})">✕</span>`;
+            li.onclick = () => { currentNotebookId = nb.id; currentPageId = nb.pages[0]?.id; render(); };
+            list.appendChild(li);
+        });
+    }
 
-    controls = new THREE.OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.1;
-    controls.maxPolarAngle = Math.PI / 2.1;
+    function addNotebook() {
+        const name = prompt("ノートブックの名前を入力してください", "New Notebook");
+        if (!name) return;
+        const newNb = { id: Date.now(), name: name, pages: [{ id: Date.now()+1, name: "First Page", notes: [] }] };
+        db.notebooks.push(newNb);
+        currentNotebookId = newNb.id;
+        currentPageId = newNb.pages[0].id;
+        saveData();
+        render();
+    }
 
-    const ambient = new THREE.AmbientLight(0xffffff, 0.6);
-    scene.add(ambient);
-    
-    const sun = new THREE.DirectionalLight(0xffffff, 0.6);
-    sun.position.set(200, 500, 200);
-    sun.castShadow = true;
-    scene.add(sun);
-
-    raycaster = new THREE.Raycaster();
-    mouse = new THREE.Vector2();
-
-    updateRoom();
-    loadData();
-
-    window.addEventListener('resize', onResize);
-    renderer.domElement.addEventListener('pointerdown', onPointerDown, {passive: false});
-}
-
-function cyclePanel() {
-    const p = document.getElementById('ui-panel');
-    if (p.classList.contains('collapsed')) p.className = 'half';
-    else if (p.classList.contains('half')) p.className = '';
-    else p.className = 'collapsed';
-}
-
-function tab(idx) {
-    document.querySelectorAll('.section').forEach((s, i) => s.classList.toggle('active', i === idx));
-    document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', i === idx));
-}
-
-function changeView(mode) {
-    currentViewMode = mode;
-    document.querySelectorAll('.v-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById(`btn-${mode}`).classList.add('active');
-
-    // コントロールの基本設定をリセット
-    controls.enabled = true;
-    controls.enableRotate = true;
-    controls.screenSpacePanning = true;
-
-    if(mode === '2d') {
-        controls.enableRotate = false; // 3D回転を禁止
-        camera.position.set(0, 700, 0);
-        controls.target.set(0, 0, 0);
-    } else if (mode === 'elev') {
-        if (selectedFurniture) {
-            focusOnFurniture(selectedFurniture);
-        } else {
-            camera.position.set(0, 100, 400);
-            controls.target.set(0, 100, 0);
+    function deleteNotebook(e, id) {
+        e.stopPropagation();
+        if (db.notebooks.length <= 1) return alert("最後のノートブックは削除できません");
+        db.notebooks = db.notebooks.filter(nb => nb.id !== id);
+        if (currentNotebookId === id) {
+            currentNotebookId = db.notebooks[0].id;
+            currentPageId = db.notebooks[0].pages[0]?.id;
         }
-        controls.enableRotate = false; // 平面移動のみ許可
-    } else {
-        camera.position.set(400, 400, 400);
-        controls.target.set(0, 0, 0);
-    }
-}
-
-function focusOnFurniture(obj) {
-    const fPos = obj.position;
-    // 家具の回転方向を考慮して正面に配置
-    const offset = new THREE.Vector3(0, 0, 300).applyAxisAngle(new THREE.Vector3(0,1,0), obj.rotation.y);
-    camera.position.set(fPos.x + offset.x, fPos.y, fPos.z + offset.z);
-    controls.target.set(fPos.x, fPos.y, fPos.z);
-}
-
-function updateRoom() {
-    if(roomFloor) scene.remove(roomFloor);
-    const w = parseFloat(document.getElementById('room-w').value) || 300;
-    const d = parseFloat(document.getElementById('room-d').value) || 300;
-    const col = parseInt(document.getElementById('floor-mat').value);
-    
-    const group = new THREE.Group();
-    const floor = new THREE.Mesh(
-        new THREE.PlaneGeometry(w, d),
-        new THREE.MeshStandardMaterial({ color: col, roughness: 0.9 })
-    );
-    floor.rotation.x = -Math.PI/2;
-    floor.receiveShadow = true;
-    group.add(floor);
-
-    const grid = new THREE.GridHelper(Math.max(w,d), 20, 0x4ade80, 0x1e293b);
-    grid.position.y = 0.1;
-    grid.material.opacity = 0.2;
-    grid.material.transparent = true;
-    group.add(grid);
-
-    roomFloor = group;
-    scene.add(roomFloor);
-    
-    furnitureList.forEach(f => {
-        const clamped = clampPosition(f.position.x, f.position.z, f.userData.w, f.userData.d, f.rotation.y);
-        f.position.x = clamped.x;
-        f.position.z = clamped.z;
-    });
-}
-
-function clampPosition(x, z, fw, fd, rot) {
-    const rw = parseFloat(document.getElementById('room-w').value) || 300;
-    const rd = parseFloat(document.getElementById('room-d').value) || 300;
-    const isRotated = (Math.round(rot / (Math.PI/2)) % 2 !== 0);
-    const actualW = isRotated ? fd : fw;
-    const actualD = isRotated ? fw : fd;
-    const limitX = (rw - actualW) / 2;
-    const limitZ = (rd - actualD) / 2;
-    return {
-        x: Math.max(-limitX, Math.min(limitX, x)),
-        z: Math.max(-limitZ, Math.min(limitZ, z))
-    };
-}
-
-function spawnFurniture(data = null) {
-    const config = data || {
-        w: parseFloat(document.getElementById('f-w').value),
-        h: parseFloat(document.getElementById('f-h').value),
-        d: parseFloat(document.getElementById('f-d').value),
-        steps: parseInt(document.getElementById('f-step').value),
-        color: document.getElementById('f-c').value,
-        opacity: parseFloat(document.getElementById('f-op').value),
-        pos: [0, 0, 0], rot: 0, items: []
-    };
-
-    const group = new THREE.Group();
-    const mat = new THREE.MeshStandardMaterial({ 
-        color: config.color, transparent: config.opacity < 1, opacity: config.opacity, roughness: 0.6
-    });
-    
-    const t = 1.8; 
-    const parts = [
-        {s:[t, config.h, config.d], p:[-config.w/2 + t/2, 0, 0]},
-        {s:[t, config.h, config.d], p:[config.w/2 - t/2, 0, 0]},
-        {s:[config.w, t, config.d], p:[0, config.h/2 - t/2, 0]},
-        {s:[config.w, config.h, 0.5], p:[0, 0, -config.d/2 + 0.25]}
-    ];
-
-    parts.forEach(p => {
-        const m = new THREE.Mesh(new THREE.BoxGeometry(...p.s), mat);
-        m.position.set(...p.p);
-        m.castShadow = true; m.receiveShadow = true;
-        group.add(m);
-    });
-
-    const stepH = (config.h - t*2) / Math.max(1, config.steps);
-    for(let i=0; i<=config.steps; i++) {
-        const p = new THREE.Mesh(new THREE.BoxGeometry(config.w - t*2, t, config.d - 1), mat);
-        p.position.y = -config.h/2 + (stepH * i) + (i === 0 ? t/2 : 0);
-        group.add(p);
+        saveData();
+        render();
     }
 
-    group.userData = { type: 'furniture', items: [], ...config, stepH };
-    const clamped = clampPosition(config.pos[0], config.pos[2], config.w, config.d, config.rot);
-    group.position.set(clamped.x, config.h/2, clamped.z);
-    group.rotation.y = config.rot;
-    
-    scene.add(group);
-    furnitureList.push(group);
-    config.items.forEach(item => addItemToFurniture(group, item));
+    // --- Page Logic ---
+    function renderPages() {
+        const list = document.getElementById('page-list');
+        list.innerHTML = '';
+        const nb = db.notebooks.find(n => n.id === currentNotebookId);
+        if (!nb) return;
 
-    if(!data) { selectFurniture(group); tab(2); } 
-    return group;
-}
+        nb.pages.forEach(pg => {
+            const li = document.createElement('li');
+            li.className = `list-item ${pg.id === currentPageId ? 'active' : ''}`;
+            li.innerHTML = `<span>${pg.name}</span><span class="delete-btn" onclick="deletePage(event, ${pg.id})">✕</span>`;
+            li.onclick = () => { currentPageId = pg.id; render(); };
+            list.appendChild(li);
+        });
+    }
 
-function updateSelectedFurniture() {
-    if (!selectedFurniture) return;
-    const oldData = selectedFurniture.userData;
-    const newData = {
-        ...oldData,
-        w: parseFloat(document.getElementById('edit-f-w').value),
-        h: parseFloat(document.getElementById('edit-f-h').value),
-        d: parseFloat(document.getElementById('edit-f-d').value),
-        steps: parseInt(document.getElementById('edit-f-step').value),
-        color: document.getElementById('edit-f-c').value,
-        opacity: parseFloat(document.getElementById('edit-f-op').value),
-        pos: [selectedFurniture.position.x, 0, selectedFurniture.position.z],
-        rot: selectedFurniture.rotation.y,
-        items: oldData.items.map(i => ({...i, mesh: null})) 
-    };
-    const idx = furnitureList.indexOf(selectedFurniture);
-    scene.remove(selectedFurniture);
-    furnitureList.splice(idx, 1);
-    const newObj = spawnFurniture(newData);
-    selectFurniture(newObj);
-    saveData();
-}
+    function addPage() {
+        const name = prompt("ページ名を入力してください", "New Page");
+        if (!name) return;
+        const nb = db.notebooks.find(n => n.id === currentNotebookId);
+        const newPg = { id: Date.now(), name: name, notes: [] };
+        nb.pages.push(newPg);
+        currentPageId = newPg.id;
+        saveData();
+        render();
+    }
 
-function onPointerDown(e) {
-    if (e.button !== 0) return;
-    const rect = renderer.domElement.getBoundingClientRect();
-    mouse.x = (e.clientX / rect.width) * 2 - 1;
-    mouse.y = -(e.clientY / rect.height) * 2 + 1;
+    function deletePage(e, id) {
+        e.stopPropagation();
+        const nb = db.notebooks.find(n => n.id === currentNotebookId);
+        if (nb.pages.length <= 1) return alert("最後のページは削除できません");
+        nb.pages = nb.pages.filter(p => p.id !== id);
+        if (currentPageId === id) currentPageId = nb.pages[0].id;
+        saveData();
+        render();
+    }
 
-    raycaster.setFromCamera(mouse, camera);
-    const intersects = raycaster.intersectObjects(furnitureList, true);
+    // --- Sticky Note Logic ---
+    function renderNotes() {
+        const canvas = document.getElementById('canvas');
+        const titleDisp = document.getElementById('page-title-display');
+        canvas.innerHTML = '';
 
-    if (intersects.length > 0) {
-        let obj = intersects[0].object;
-        while(obj.parent && obj.userData.type !== 'furniture') obj = obj.parent;
-        
-        // 選択処理
-        selectFurniture(obj);
+        const nb = db.notebooks.find(n => n.id === currentNotebookId);
+        const pg = nb?.pages.find(p => p.id === currentPageId);
 
-        // 立面ビューの場合は、面の切り替えを行う
-        if(currentViewMode === 'elev') {
-            focusOnFurniture(obj);
+        if (!pg) {
+            titleDisp.innerText = "Select or create a page";
             return;
         }
 
-        // 3D/2Dビューの場合：長押しによる移動制御
-        clearTimeout(longPressTimer);
-        longPressTimer = setTimeout(() => {
-            startDragging(obj, rect);
-        }, 500); // 500ms長押しで移動開始
+        titleDisp.innerText = pg.name;
 
-        const cancelLongPress = () => {
-            clearTimeout(longPressTimer);
-            window.removeEventListener('pointerup', cancelLongPress);
-            window.removeEventListener('pointermove', cancelLongPress);
-        };
-        window.addEventListener('pointerup', cancelLongPress);
-        window.addEventListener('pointermove', (me) => {
-            // 指が大きく動いたらキャンセル
-            if(Math.abs(me.clientX - e.clientX) > 10 || Math.abs(me.clientY - e.clientY) > 10) cancelLongPress();
+        pg.notes.forEach(note => {
+            const div = document.createElement('div');
+            div.className = 'sticky-note';
+            div.innerHTML = `
+                <span class="note-delete" onclick="deleteNote(${note.id})">×</span>
+                <textarea oninput="updateNoteText(${note.id}, this.value)">${note.content}</textarea>
+            `;
+            canvas.appendChild(div);
         });
     }
-}
 
-function startDragging(obj, rect) {
-    const overlay = document.getElementById('mode-overlay');
-    overlay.innerText = "MOVING...";
-    overlay.style.display = 'block';
-    controls.enabled = false;
+    function addStickyNote() {
+        const nb = db.notebooks.find(n => n.id === currentNotebookId);
+        const pg = nb?.pages.find(p => p.id === currentPageId);
+        if (!pg) return alert("ページを選択してください");
 
-    const move = (me) => {
-        const mx = (me.clientX / rect.width) * 2 - 1;
-        const my = -(me.clientY / rect.height) * 2 + 1;
-        raycaster.setFromCamera({x:mx, y:my}, camera);
-        const hit = new THREE.Vector3();
-        raycaster.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0,1,0), 0), hit);
-        
-        const clamped = clampPosition(hit.x, hit.z, obj.userData.w, obj.userData.d, obj.rotation.y);
-        obj.position.x = Math.round(clamped.x / 5) * 5;
-        obj.position.z = Math.round(clamped.z / 5) * 5;
-    };
-
-    const up = () => {
-        window.removeEventListener('pointermove', move);
-        overlay.style.display = 'none';
-        overlay.innerText = "HOLD TO MOVE";
-        controls.enabled = true;
+        pg.notes.push({ id: Date.now(), content: "" });
         saveData();
-    };
+        renderNotes();
+    }
 
-    window.addEventListener('pointermove', move);
-    window.addEventListener('pointerup', up, {once:true});
-}
-
-function selectFurniture(obj) {
-    furnitureList.forEach(f => {
-        f.traverse(n => { if(n.isMesh) { n.material.emissive = new THREE.Color(0x000000); } });
-    });
-    selectedFurniture = obj;
-    obj.traverse(n => { if(n.isMesh) { n.material.emissive = new THREE.Color(0x112211); } });
-    
-    document.getElementById('storage-editor').style.display = 'block';
-    document.getElementById('storage-msg').style.display = 'none';
-    document.getElementById('target-name').innerText = `選択中: ${obj.userData.w}x${obj.userData.h}cm`;
-    
-    document.getElementById('edit-f-w').value = obj.userData.w;
-    document.getElementById('edit-f-h').value = obj.userData.h;
-    document.getElementById('edit-f-d').value = obj.userData.d;
-    document.getElementById('edit-f-step').value = obj.userData.steps;
-    document.getElementById('edit-f-c').value = obj.userData.color;
-    document.getElementById('edit-f-op').value = obj.userData.opacity;
-    
-    document.getElementById('i-step-idx').max = obj.userData.steps;
-    updateItemList();
-}
-
-function rotateFurniture() {
-    if(selectedFurniture) {
-        const newRot = selectedFurniture.rotation.y + Math.PI / 2;
-        const clamped = clampPosition(selectedFurniture.position.x, selectedFurniture.position.z, selectedFurniture.userData.w, selectedFurniture.userData.d, newRot);
-        selectedFurniture.rotation.y = newRot;
-        selectedFurniture.position.x = clamped.x;
-        selectedFurniture.position.z = clamped.z;
-        if(currentViewMode === 'elev') focusOnFurniture(selectedFurniture);
+    function updateNoteText(id, text) {
+        const nb = db.notebooks.find(n => n.id === currentNotebookId);
+        const pg = nb.pages.find(p => p.id === currentPageId);
+        const note = pg.notes.find(n => n.id === id);
+        note.content = text;
         saveData();
     }
-}
 
-function deleteFurniture() {
-    if(!selectedFurniture || !confirm("家具を削除しますか？")) return;
-    scene.remove(selectedFurniture);
-    furnitureList = furnitureList.filter(f => f !== selectedFurniture);
-    selectedFurniture = null;
-    document.getElementById('storage-editor').style.display = 'none';
-    document.getElementById('storage-msg').style.display = 'block';
-    saveData();
-}
-
-function addItemToFurniture(target = null, savedItem = null) {
-    const f = target || selectedFurniture;
-    if(!f) return;
-    const preset = document.getElementById('item-preset').value;
-    const itemData = savedItem || {
-        name: document.getElementById('i-label').value || "Goods",
-        w: parseFloat(document.getElementById('i-w').value) || 10,
-        h: parseFloat(document.getElementById('i-h').value) || 10,
-        d: (preset === 'figure' ? 8 : 1.5),
-        step: parseInt(document.getElementById('i-step-idx').value) - 1,
-        zOff: parseFloat(document.getElementById('i-z-off').value),
-        color: preset === 'figure' ? 0xffffff : `hsl(${Math.random() * 360}, 50%, 75%)`,
-        opacity: preset === 'figure' ? 0.7 : 1
-    };
-
-    const itemMesh = new THREE.Mesh(
-        new THREE.BoxGeometry(itemData.w, itemData.h, itemData.d),
-        new THREE.MeshStandardMaterial({ color: itemData.color, transparent: itemData.opacity < 1, opacity: itemData.opacity })
-    );
-
-    const { stepH, h, w, d } = f.userData;
-    const posY = -h/2 + (stepH * itemData.step) + itemData.h/2 + 2;
-    const sameStepItems = f.userData.items.filter(i => i.step === itemData.step);
-    const offsetX = sameStepItems.reduce((acc, cur) => acc + cur.w + 1, 0);
-    const posX = -w/2 + 3 + offsetX + itemData.w/2;
-    const posZ = (-d/2 + 3) + (d - 6) * itemData.zOff;
-    
-    if (!savedItem && posX > w/2 - 3) { alert("この段にはもう入りません"); return; }
-    itemMesh.position.set(posX, posY, posZ);
-    f.add(itemMesh);
-    
-    if(savedItem) {
-        savedItem.mesh = itemMesh;
-    } else {
-        f.userData.items.push({ ...itemData, mesh: itemMesh });
-        updateItemList(); 
+    function deleteNote(id) {
+        const nb = db.notebooks.find(n => n.id === currentNotebookId);
+        const pg = nb.pages.find(p => p.id === currentPageId);
+        pg.notes = pg.notes.filter(n => n.id !== id);
         saveData();
+        renderNotes();
     }
-}
 
-function updateItemList() {
-    const container = document.getElementById('item-list');
-    container.innerHTML = '<label style="margin-top:20px">配置済みアイテム</label>';
-    if(!selectedFurniture) return;
-    selectedFurniture.userData.items.forEach((item, idx) => {
-        const div = document.createElement('div');
-        div.className = 'item-row';
-        div.innerHTML = `<div><b>${item.name}</b><br><small>${item.step+1}段目</small></div>
-                         <button class="btn-sub" style="background:none; color:var(--danger)" onclick="removeItem(${idx})">✕</button>`;
-        container.appendChild(div);
-    });
-}
-
-function removeItem(idx) {
-    const item = selectedFurniture.userData.items[idx];
-    selectedFurniture.remove(item.mesh);
-    selectedFurniture.userData.items.splice(idx, 1);
-    updateItemList();
-    saveData();
-}
-
-function applyFPreset() {
-    const sets = { box: [42, 90, 30, 3, 1], shelf: [80, 180, 28, 6, 1], case: [60, 150, 40, 4, 0.4], desk: [120, 72, 60, 1, 1] };
-    const s = sets[document.getElementById('f-preset').value];
-    ['f-w','f-h','f-d','f-step','f-op'].forEach((id, i) => document.getElementById(id).value = s[i]);
-}
-
-function applyItemPreset() {
-    const sets = { manga: ["コミック", 11.3, 17.6, 0.2], figure: ["フィギュア", 12, 18, 0.5], file: ["ファイル", 22, 31, 0.1] };
-    const s = sets[document.getElementById('item-preset').value];
-    ['i-label','i-w','i-h','i-z-off'].forEach((id, i) => document.getElementById(id).value = s[i]);
-}
-
-function saveData() {
-    const data = {
-        room: { w: document.getElementById('room-w').value, d: document.getElementById('room-d').value, mat: document.getElementById('floor-mat').value },
-        furniture: furnitureList.map(f => ({
-            w: f.userData.w, h: f.userData.h, d: f.userData.d, steps: f.userData.steps, 
-            color: f.userData.color, opacity: f.userData.opacity,
-            pos: [f.position.x, f.position.y, f.position.z], rot: f.rotation.y,
-            items: f.userData.items.map(i => ({ name: i.name, w: i.w, h: i.h, d: i.d, step: i.step, zOff: i.zOff, color: i.color, opacity: i.opacity }))
-        }))
-    };
-    localStorage.setItem('otk_room_v6', JSON.stringify(data));
-    document.getElementById('status-text').innerText = "DATA SAVED";
-    setTimeout(() => { document.getElementById('status-text').innerText = "SYSTEM ACTIVE"; }, 1500);
-}
-
-function loadData() {
-    const raw = localStorage.getItem('otk_room_v6');
-    if(!raw) return;
-    const data = JSON.parse(raw);
-    document.getElementById('room-w').value = data.room.w;
-    document.getElementById('room-d').value = data.room.d;
-    document.getElementById('floor-mat').value = data.room.mat;
-    updateRoom();
-    data.furniture.forEach(f => spawnFurniture(f));
-}
-
-function clearAll() {
-    if(confirm("全てのデータを削除しますか？")) { localStorage.removeItem('otk_room_v6'); location.reload(); }
-}
-
-function onResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-}
-
-function animate() {
-    requestAnimationFrame(animate);
-    controls.update();
-    renderer.render(scene, camera);
-}
+    // 初期化
+    render();
 </script>
+
 </body>
 </html>
