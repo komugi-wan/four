@@ -3,150 +3,238 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sticky Note Pad</title>
+    <title>Petal Notes | 洗練された付箋アプリ</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500&family=Playfair+Display:ital@1&display=swap" rel="stylesheet">
+    
     <style>
-        body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #e5e7eb; overflow: hidden; }
-        .page-container { display: flex; transition: transform 0.3s ease-out; height: calc(100vh - 120px); }
-        .page { min-width: 100%; height: 100%; padding: 20px; box-sizing: border-box; overflow-y: auto; background-image: radial-gradient(#d1d5db 1px, transparent 1px); background-size: 20px 20px; }
-        .sticky-note { width: 140px; min-height: 140px; padding: 10px; margin: 10px; background: #fff9c4; box-shadow: 3px 3px 10px rgba(0,0,0,0.1); border-bottom-right-radius: 20px 5px; transform: rotate(-1deg); display: inline-block; vertical-align: top; }
-        .sticky-note:nth-child(even) { transform: rotate(1.5deg); background: #e3f2fd; }
-        .active-tab { border-bottom: 4px solid #3b82f6; color: #3b82f6; font-weight: bold; }
+        :root {
+            --bg-base: #fdf8f8;
+            --accent-pink: #f4dada;
+            --deep-rose: #d4a3a3;
+            --text-main: #5a4a4a;
+        }
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+        .serif { font-family: 'Playfair Display', serif; }
+        
+        /* Glassmorphism */
+        .glass {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(212, 163, 163, 0.2);
+        }
+
+        /* Sticky Note Style */
+        .sticky-note {
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .sticky-note:active { transform: scale(0.98); }
+
+        /* Swipe Animation */
+        .page-enter-active, .page-leave-active {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .page-enter-from { opacity: 0; transform: translateX(50px); }
+        .page-leave-to { opacity: 0; transform: translateX(-50px); }
+
+        /* Custom Scrollbar */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
     </style>
 </head>
-<body class="fixed inset-0 flex flex-col">
+<body>
 
-    <div id="tab-bar" class="flex bg-white shadow-md overflow-x-auto whitespace-nowrap scrollbar-hide">
+<div id="app" class="h-screen flex flex-col relative overflow-hidden">
+    
+    <header class="glass pt-8 pb-2 px-4 z-20">
+        <div class="flex items-center justify-between mb-4">
+            <h1 class="serif text-2xl font-light italic text-[#d4a3a3]">Petal Notes</h1>
+            <button @click="addNotebook" class="p-2 bg-white rounded-full shadow-sm">
+                <i data-lucide="plus" class="w-4 h-4 text-[#d4a3a3]"></i>
+            </button>
         </div>
-    <div class="flex bg-white px-2 py-1 border-t text-xs justify-between items-center">
-        <button onclick="addNotebook()" class="bg-blue-500 text-white px-3 py-1 rounded">+ ノート追加</button>
-        <span id="page-indicator" class="text-gray-500 italic">Page 1</span>
-        <button onclick="deleteCurrentNotebook()" class="text-red-400">ノート削除</button>
-    </div>
-
-    <div id="viewer" class="flex-1 overflow-hidden relative" ontouchstart="handleTouchStart(event)" ontouchmove="handleTouchMove(event)" ontouchend="handleTouchEnd()">
-        <div id="page-container" class="page-container">
+        
+        <div class="flex gap-4 overflow-x-auto no-scrollbar pb-2">
+            <div v-for="nb in notebooks" :key="nb.id" 
+                 @click="selectNotebook(nb.id)"
+                 :class="['whitespace-nowrap px-4 py-1 text-sm rounded-full transition-all border', 
+                          currentNbId === nb.id ? 'bg-[#d4a3a3] text-white border-[#d4a3a3]' : 'bg-transparent border-[#d4a3a3]/30 text-[#d4a3a3]']">
+                {{ nb.name }}
             </div>
+        </div>
+    </header>
+
+    <main class="flex-1 relative overflow-hidden touch-none" 
+          @touchstart="handleTouchStart" 
+          @touchend="handleTouchEnd">
+        
+        <div class="absolute top-4 left-0 right-0 flex justify-center gap-1.5 z-10">
+            <div v-for="pIndex in currentNotebook.pages.length" :key="pIndex"
+                 class="h-1 rounded-full transition-all duration-300"
+                 :class="[currentPageIndex === pIndex - 1 ? 'w-6 bg-[#d4a3a3]' : 'w-2 bg-[#d4a3a3]/30']">
+            </div>
+        </div>
+
+        <transition name="page" mode="out-in">
+            <div :key="currentNbId + '-' + currentPageIndex" class="h-full w-full p-6 pt-12 relative">
+                <div v-for="note in currentPagesNotes" :key="note.id"
+                     class="sticky-note absolute p-4 w-40 min-h-[100px] rounded-br-2xl text-sm leading-relaxed"
+                     :style="{ backgroundColor: note.color, left: note.x + 'px', top: note.y + 'px' }"
+                     @click="editNote(note)">
+                    {{ note.content || 'Tap to edit...' }}
+                </div>
+
+                <div v-if="currentPagesNotes.length === 0" class="h-full flex flex-col items-center justify-center text-[#d4a3a3]/40">
+                    <i data-lucide="sparkles" class="w-12 h-12 mb-4"></i>
+                    <p class="text-sm">画面右下のボタンから付箋を追加</p>
+                </div>
+            </div>
+        </transition>
+    </main>
+
+    <button @click="addNote" 
+            class="absolute bottom-8 right-6 w-14 h-14 bg-[#d4a3a3] text-white rounded-full shadow-lg flex items-center justify-center active:scale-90 transition-transform z-30">
+        <i data-lucide="edit-3"></i>
+    </button>
+
+    <div v-if="editingNote" class="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-end">
+        <div class="bg-white w-full rounded-t-3xl p-6 shadow-2xl transition-transform transform translate-y-0">
+            <div class="flex justify-between items-center mb-6">
+                <span class="text-xs font-medium tracking-widest uppercase text-[#d4a3a3]">Edit Memo</span>
+                <button @click="deleteNote" class="text-rose-300 px-3 py-1 text-sm border border-rose-100 rounded-full">Delete</button>
+            </div>
+            <textarea v-model="editingNote.content" 
+                      class="w-full h-40 bg-gray-50 rounded-2xl p-4 focus:outline-none focus:ring-1 focus:ring-[#d4a3a3]/50 mb-6"
+                      placeholder="今の気持ちをメモ..." autofocus></textarea>
+            <div class="flex gap-3 mb-8 overflow-x-auto">
+                <div v-for="c in noteColors" :key="c" 
+                     @click="editingNote.color = c"
+                     :style="{ backgroundColor: c }"
+                     class="w-8 h-8 rounded-full border-2 transition-all"
+                     :class="editingNote.color === c ? 'border-[#d4a3a3] scale-110' : 'border-transparent'"></div>
+            </div>
+            <button @click="saveNote" class="w-full bg-[#d4a3a3] text-white py-4 rounded-2xl font-medium shadow-md">保存して閉じる</button>
+        </div>
     </div>
+</div>
 
-    <div class="p-4 bg-white flex justify-around border-t shadow-inner">
-        <button onclick="addPage()" class="bg-gray-200 p-2 rounded-lg text-sm">＋ ページ追加</button>
-        <button onclick="addSticky()" class="bg-yellow-200 p-2 rounded-lg text-sm font-bold">＋ 付箋を貼る</button>
-    </div>
+<script>
+const { createApp, ref, computed, onMounted, watch } = Vue;
 
-    <script>
-        let notebooks = JSON.parse(localStorage.getItem('sticky_notes_data')) || [
-            { title: "Note 1", pages: [ { notes: ["最初の付箋です"] } ] }
-        ];
-        let currentNotebookIdx = 0;
-        let currentPageIdx = 0;
-
-        // --- タッチスワイプ制御 ---
+createApp({
+    setup() {
+        // --- Data State ---
+        const notebooks = ref(JSON.parse(localStorage.getItem('petal_data')) || [
+            { id: 1, name: 'Work', pages: [ { id: 101, notes: [] }, { id: 102, notes: [] } ] },
+            { id: 2, name: 'Private', pages: [ { id: 201, notes: [] } ] }
+        ]);
+        const currentNbId = ref(notebooks.value[0].id);
+        const currentPageIndex = ref(0);
+        const editingNote = ref(null);
+        const noteColors = ['#fff5f5', '#fff9db', '#f3f0ff', '#ebfbee', '#e3fafc'];
+        
+        // --- Swipe Logic ---
         let touchStartX = 0;
-        let touchEndX = 0;
 
-        function handleTouchStart(e) { touchStartX = e.changedTouches[0].screenX; }
-        function handleTouchMove(e) { touchEndX = e.changedTouches[0].screenX; }
-        function handleTouchEnd() {
+        const handleTouchStart = (e) => { touchStartX = e.touches[0].clientX; };
+        const handleTouchEnd = (e) => {
+            const touchEndX = e.changedTouches[0].clientX;
             const diff = touchStartX - touchEndX;
             if (Math.abs(diff) > 50) {
-                if (diff > 0) movePage(1); // 左スワイプ -> 次へ
-                else movePage(-1);        // 右スワイプ -> 前へ
+                if (diff > 0) nextPage();
+                else prevPage();
             }
-        }
+        };
 
-        function movePage(dir) {
-            const pages = notebooks[currentNotebookIdx].pages;
-            const newIdx = currentPageIdx + dir;
-            if (newIdx >= 0 && newIdx < pages.length) {
-                currentPageIdx = newIdx;
-                render();
+        // --- Computed ---
+        const currentNotebook = computed(() => notebooks.value.find(n => n.id === currentNbId.value));
+        const currentPagesNotes = computed(() => currentNotebook.value.pages[currentPageIndex.value].notes);
+
+        // --- Methods ---
+        const selectNotebook = (id) => {
+            currentNbId.value = id;
+            currentPageIndex.value = 0;
+        };
+
+        const addNotebook = () => {
+            const name = prompt("ノートブック名を入力してください");
+            if (name) {
+                const newId = Date.now();
+                notebooks.value.push({ id: newId, name, pages: [{ id: Date.now() + 1, notes: [] }] });
+                selectNotebook(newId);
             }
-        }
+        };
 
-        // --- データ操作 ---
-        function addNotebook() {
-            const title = prompt("ノートの名前を入力してください", "新ノート");
-            if (title) {
-                notebooks.push({ title: title, pages: [{ notes: [] }] });
-                currentNotebookIdx = notebooks.length - 1;
-                currentPageIdx = 0;
-                saveAndRender();
+        const nextPage = () => {
+            if (currentPageIndex.value < currentNotebook.value.pages.length - 1) {
+                currentPageIndex.value++;
+            } else {
+                // 自動で新しいページを追加
+                currentNotebook.value.pages.push({ id: Date.now(), notes: [] });
+                currentPageIndex.value++;
             }
-        }
+        };
 
-        function deleteCurrentNotebook() {
-            if (confirm("このノートを丸ごと削除しますか？")) {
-                notebooks.splice(currentNotebookIdx, 1);
-                if (notebooks.length === 0) notebooks = [{ title: "Note 1", pages: [{ notes: [] }] }];
-                currentNotebookIdx = 0;
-                currentPageIdx = 0;
-                saveAndRender();
+        const prevPage = () => {
+            if (currentPageIndex.value > 0) currentPageIndex.value--;
+        };
+
+        const addNote = () => {
+            const newNote = {
+                id: Date.now(),
+                content: '',
+                color: noteColors[0],
+                x: Math.random() * 50 + 20,
+                y: Math.random() * 100 + 50
+            };
+            editingNote.value = { ...newNote };
+        };
+
+        const editNote = (note) => {
+            editingNote.value = { ...note };
+        };
+
+        const saveNote = () => {
+            const index = currentPagesNotes.value.findIndex(n => n.id === editingNote.value.id);
+            if (index > -1) {
+                currentPagesNotes.value[index] = { ...editingNote.value };
+            } else {
+                currentPagesNotes.value.push({ ...editingNote.value });
             }
-        }
+            editingNote.value = null;
+        };
 
-        function addPage() {
-            notebooks[currentNotebookIdx].pages.push({ notes: [] });
-            currentPageIdx = notebooks[currentNotebookIdx].pages.length - 1;
-            saveAndRender();
-        }
+        const deleteNote = () => {
+            const index = currentPagesNotes.value.findIndex(n => n.id === editingNote.value.id);
+            if (index > -1) currentPagesNotes.value.splice(index, 1);
+            editingNote.value = null;
+        };
 
-        function addSticky() {
-            const text = prompt("メモを入力してください");
-            if (text) {
-                notebooks[currentNotebookIdx].pages[currentPageIdx].notes.push(text);
-                saveAndRender();
-            }
-        }
+        // Persistent Data
+        watch(notebooks, (newVal) => {
+            localStorage.setItem('petal_data', JSON.stringify(newVal));
+        }, { deep: true });
 
-        function deleteSticky(idx) {
-            notebooks[currentNotebookIdx].pages[currentPageIdx].notes.splice(idx, 1);
-            saveAndRender();
-        }
+        onMounted(() => {
+            lucide.createIcons();
+        });
 
-        function saveAndRender() {
-            localStorage.setItem('sticky_notes_data', JSON.stringify(notebooks));
-            render();
-        }
+        return {
+            notebooks, currentNbId, currentPageIndex, currentNotebook, currentPagesNotes,
+            selectNotebook, addNotebook, addNote, editNote, editingNote, saveNote, deleteNote,
+            noteColors, handleTouchStart, handleTouchEnd
+        };
+    }
+}).mount('#app');
+</script>
 
-        // --- 描画 ---
-        function render() {
-            // タブの描画
-            const tabBar = document.getElementById('tab-bar');
-            tabBar.innerHTML = notebooks.map((nb, i) => `
-                <div onclick="switchNotebook(${i})" class="px-6 py-3 cursor-pointer ${i === currentNotebookIdx ? 'active-tab' : 'text-gray-400'}">
-                    ${nb.title}
-                </div>
-            `).join('');
-
-            // ページの描画
-            const container = document.getElementById('page-container');
-            const currentNB = notebooks[currentNotebookIdx];
-            
-            container.style.width = `${currentNB.pages.length * 100}%`;
-            container.style.transform = `translateX(-${(currentPageIdx * (100 / currentNB.pages.length))}%)`;
-
-            container.innerHTML = currentNB.pages.map((page, pIdx) => `
-                <div class="page">
-                    ${page.notes.map((note, nIdx) => `
-                        <div class="sticky-note" onclick="deleteSticky(${nIdx})">
-                            <p class="text-sm text-gray-800 break-words">${note}</p>
-                        </div>
-                    `).join('')}
-                    ${page.notes.length === 0 ? '<p class="text-gray-300 text-center mt-20">ページは空です</p>' : ''}
-                </div>
-            `).join('');
-
-            document.getElementById('page-indicator').innerText = `${currentPageIdx + 1} / ${currentNB.pages.length} ページ`;
-        }
-
-        function switchNotebook(idx) {
-            currentNotebookIdx = idx;
-            currentPageIdx = 0;
-            render();
-        }
-
-        render();
-    </script>
 </body>
 </html>
