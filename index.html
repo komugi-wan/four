@@ -14,7 +14,7 @@
             --bg-base: #fdf8f8;
             --accent-pink: #f4dada;
             --deep-rose: #d4a3a3;
-            --text-main: #4a3a3a; /* 少し濃くして視認性向上 */
+            --text-main: #4a3a3a;
             --text-muted: #8c7676;
         }
         body {
@@ -45,6 +45,14 @@
             text-align: center;
         }
         .sticky-note:active { transform: scale(0.96); }
+
+        /* Line Clamp for 3 lines */
+        .line-clamp-3 {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
 
         /* Swipe Animation */
         .page-enter-active, .page-leave-active {
@@ -94,9 +102,9 @@
         </div>
 
         <transition name="page" mode="out-in">
-            <div :key="currentNbId + '-' + currentPageIndex" class="h-full w-full p-6 pt-16 relative">
+            <div :key="currentNbId + '-' + currentPageIndex" class="h-full w-full p-4 pt-16 relative">
                 <div v-for="note in currentPagesNotes" :key="note.id"
-                     class="sticky-note absolute p-4 w-40 min-h-[110px] rounded-br-3xl text-[13px] leading-relaxed font-medium overflow-hidden"
+                     class="sticky-note absolute p-3 w-[105px] h-[80px] rounded-br-2xl text-[11px] leading-snug font-medium overflow-hidden"
                      :style="{ 
                         backgroundColor: note.color, 
                         left: note.x + 'px', 
@@ -104,7 +112,7 @@
                         backgroundImage: 'linear-gradient(135deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 100%)'
                      }"
                      @click="editNote(note)">
-                    {{ note.content || 'タップして編集' }}
+                    <span class="line-clamp-3">{{ note.content || 'タップして編集' }}</span>
                 </div>
 
                 <div v-if="currentPagesNotes.length === 0" class="h-full flex flex-col items-center justify-center text-[#d4a3a3]/50">
@@ -163,7 +171,6 @@ createApp({
         const currentNbId = ref(notebooks.value[0].id);
         const currentPageIndex = ref(0);
         const editingNote = ref(null);
-        // 付箋の背景色を少し彩度を落として視認性向上
         const noteColors = ['#ffffff', '#fffbe6', '#f5f3ff', '#f0fdf4', '#f0f9ff'];
         
         // --- Swipe Logic ---
@@ -212,20 +219,26 @@ createApp({
         };
 
         const addNote = () => {
-            const noteWidth = 160; 
-            const noteHeight = 110;
-            const padding = 20;
+            // 付箋サイズとレイアウトの調整
+            const noteWidth = 105; 
+            const noteHeight = 80;
+            const margin = 12;
+            const startY = 60;
+            const startX = 16;
             
-            let newX = padding;
-            let newY = 50;
+            let newX = startX;
+            let newY = startY;
             let foundSpace = false;
 
-            for (let row = 0; row < 3; row++) {
-                for (let col = 0; col < 2; col++) {
-                    const testX = padding + (col * (noteWidth + 10));
-                    const testY = 50 + (row * (noteHeight + 10));
+            // 縦に5行、横に3列のグリッドで空きを探す（計15枚まで綺麗に並ぶ）
+            for (let row = 0; row < 5; row++) {
+                for (let col = 0; col < 3; col++) {
+                    const testX = startX + (col * (noteWidth + margin));
+                    const testY = startY + (row * (noteHeight + margin));
+                    
+                    // 既存の付箋と座標が重なっていないかチェック
                     const isOverlapping = currentPagesNotes.value.some(note => {
-                        return Math.abs(note.x - testX) < 30 && Math.abs(note.y - testY) < 30;
+                        return Math.abs(note.x - testX) < 10 && Math.abs(note.y - testY) < 10;
                     });
 
                     if (!isOverlapping) {
@@ -238,6 +251,7 @@ createApp({
                 if (foundSpace) break;
             }
 
+            // スペースがない場合は少しランダムにずらす
             if (!foundSpace) {
                 newX = Math.random() * 40 + 20;
                 newY = Math.random() * 60 + 50;
