@@ -7,14 +7,15 @@
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500&family=Playfair+Display:ital@1&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Playfair+Display:ital@1&display=swap" rel="stylesheet">
     
     <style>
         :root {
             --bg-base: #fdf8f8;
             --accent-pink: #f4dada;
             --deep-rose: #d4a3a3;
-            --text-main: #5a4a4a;
+            --text-main: #4a3a3a; /* 少し濃くして視認性向上 */
+            --text-muted: #8c7676;
         }
         body {
             font-family: 'Noto Sans JP', sans-serif;
@@ -27,46 +28,55 @@
         
         /* Glassmorphism */
         .glass {
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid rgba(212, 163, 163, 0.2);
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(212, 163, 163, 0.25);
         }
 
         /* Sticky Note Style */
         .sticky-note {
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            box-shadow: 2px 4px 12px rgba(0,0,0,0.08);
             transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 1px solid rgba(0,0,0,0.03);
+            word-break: break-all;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
         }
-        .sticky-note:active { transform: scale(0.98); }
+        .sticky-note:active { transform: scale(0.96); }
 
         /* Swipe Animation */
         .page-enter-active, .page-leave-active {
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .page-enter-from { opacity: 0; transform: translateX(50px); }
-        .page-leave-to { opacity: 0; transform: translateX(-50px); }
+        .page-enter-from { opacity: 0; transform: translateX(30px); }
+        .page-leave-to { opacity: 0; transform: translateX(-30px); }
 
         /* Custom Scrollbar */
         .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body>
 
-<div id="app" class="h-screen flex flex-col relative overflow-hidden">
+<div id="app" class="h-screen flex flex-col relative overflow-hidden text-[#4a3a3a]">
     
-    <header class="glass pt-8 pb-2 px-4 z-20">
-        <div class="flex items-center justify-between mb-4">
-            <h1 class="serif text-2xl font-light italic text-[#d4a3a3]">Petal Notes</h1>
-            <button @click="addNotebook" class="p-2 bg-white rounded-full shadow-sm">
-                <i data-lucide="plus" class="w-4 h-4 text-[#d4a3a3]"></i>
+    <header class="glass pt-10 pb-3 px-4 z-20 shadow-sm">
+        <div class="flex items-center justify-between mb-5">
+            <h1 class="serif text-2xl font-light italic text-[#d4a3a3] tracking-wide">Petal Notes</h1>
+            <button @click="addNotebook" class="p-2.5 bg-white rounded-full shadow-sm border border-[#f4dada] active:bg-[#fdf8f8]">
+                <i data-lucide="plus" class="w-5 h-5 text-[#d4a3a3]"></i>
             </button>
         </div>
         
-        <div class="flex gap-4 overflow-x-auto no-scrollbar pb-2">
+        <div class="flex gap-3 overflow-x-auto no-scrollbar pb-1">
             <div v-for="nb in notebooks" :key="nb.id" 
                  @click="selectNotebook(nb.id)"
-                 :class="['whitespace-nowrap px-4 py-1 text-sm rounded-full transition-all border', 
-                          currentNbId === nb.id ? 'bg-[#d4a3a3] text-white border-[#d4a3a3]' : 'bg-transparent border-[#d4a3a3]/30 text-[#d4a3a3]']">
+                 :class="['whitespace-nowrap px-5 py-1.5 text-sm rounded-full transition-all border font-medium cursor-pointer', 
+                          currentNbId === nb.id 
+                          ? 'bg-[#d4a3a3] text-white border-[#d4a3a3] shadow-md' 
+                          : 'bg-white/50 border-[#d4a3a3]/30 text-[#8c7676]']">
                 {{ nb.name }}
             </div>
         </div>
@@ -76,53 +86,67 @@
           @touchstart="handleTouchStart" 
           @touchend="handleTouchEnd">
         
-        <div class="absolute top-4 left-0 right-0 flex justify-center gap-1.5 z-10">
+        <div class="absolute top-6 left-0 right-0 flex justify-center gap-2 z-10">
             <div v-for="pIndex in currentNotebook.pages.length" :key="pIndex"
-                 class="h-1 rounded-full transition-all duration-300"
-                 :class="[currentPageIndex === pIndex - 1 ? 'w-6 bg-[#d4a3a3]' : 'w-2 bg-[#d4a3a3]/30']">
+                 class="h-1.5 rounded-full transition-all duration-300"
+                 :class="[currentPageIndex === pIndex - 1 ? 'w-8 bg-[#d4a3a3]' : 'w-2 bg-[#d4a3a3]/20']">
             </div>
         </div>
 
         <transition name="page" mode="out-in">
-            <div :key="currentNbId + '-' + currentPageIndex" class="h-full w-full p-6 pt-12 relative">
+            <div :key="currentNbId + '-' + currentPageIndex" class="h-full w-full p-6 pt-16 relative">
                 <div v-for="note in currentPagesNotes" :key="note.id"
-                     class="sticky-note absolute p-4 w-40 min-h-[100px] rounded-br-2xl text-sm leading-relaxed"
-                     :style="{ backgroundColor: note.color, left: note.x + 'px', top: note.y + 'px' }"
+                     class="sticky-note absolute p-4 w-40 min-h-[110px] rounded-br-3xl text-[13px] leading-relaxed font-medium overflow-hidden"
+                     :style="{ 
+                        backgroundColor: note.color, 
+                        left: note.x + 'px', 
+                        top: note.y + 'px',
+                        backgroundImage: 'linear-gradient(135deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 100%)'
+                     }"
                      @click="editNote(note)">
-                    {{ note.content || 'Tap to edit...' }}
+                    {{ note.content || 'タップして編集' }}
                 </div>
 
-                <div v-if="currentPagesNotes.length === 0" class="h-full flex flex-col items-center justify-center text-[#d4a3a3]/40">
-                    <i data-lucide="sparkles" class="w-12 h-12 mb-4"></i>
-                    <p class="text-sm">画面右下のボタンから付箋を追加</p>
+                <div v-if="currentPagesNotes.length === 0" class="h-full flex flex-col items-center justify-center text-[#d4a3a3]/50">
+                    <div class="p-6 rounded-full bg-white/30 mb-4">
+                        <i data-lucide="sparkles" class="w-10 h-10"></i>
+                    </div>
+                    <p class="text-sm font-medium">右下のボタンから付箋を追加</p>
                 </div>
             </div>
         </transition>
     </main>
 
     <button @click="addNote" 
-            class="absolute bottom-8 right-6 w-14 h-14 bg-[#d4a3a3] text-white rounded-full shadow-lg flex items-center justify-center active:scale-90 transition-transform z-30">
-        <i data-lucide="edit-3"></i>
+            class="absolute bottom-10 right-6 w-16 h-16 bg-[#d4a3a3] text-white rounded-full shadow-xl flex items-center justify-center active:scale-90 transition-transform z-30 ring-4 ring-white/50">
+        <i data-lucide="edit-3" class="w-7 h-7"></i>
     </button>
 
-    <div v-if="editingNote" class="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-end">
-        <div class="bg-white w-full rounded-t-3xl p-6 shadow-2xl transition-transform transform translate-y-0">
+    <div v-if="editingNote" class="fixed inset-0 bg-black/40 backdrop-blur-md z-50 flex items-end">
+        <div class="bg-white w-full rounded-t-[2.5rem] p-8 shadow-2xl transition-transform transform translate-y-0">
             <div class="flex justify-between items-center mb-6">
-                <span class="text-xs font-medium tracking-widest uppercase text-[#d4a3a3]">Edit Memo</span>
-                <button @click="deleteNote" class="text-rose-300 px-3 py-1 text-sm border border-rose-100 rounded-full">Delete</button>
+                <span class="text-xs font-bold tracking-[0.2em] uppercase text-[#d4a3a3]">Note Editor</span>
+                <button @click="deleteNote" class="text-rose-400 px-4 py-1.5 text-xs font-bold border border-rose-100 rounded-full active:bg-rose-50">
+                    削除する
+                </button>
             </div>
+            
             <textarea v-model="editingNote.content" 
-                      class="w-full h-40 bg-gray-50 rounded-2xl p-4 focus:outline-none focus:ring-1 focus:ring-[#d4a3a3]/50 mb-6"
+                      class="w-full h-44 bg-gray-50 rounded-2xl p-5 focus:outline-none focus:ring-2 focus:ring-[#d4a3a3]/30 mb-6 text-base leading-relaxed"
                       placeholder="今の気持ちをメモ..." autofocus></textarea>
-            <div class="flex gap-3 mb-8 overflow-x-auto">
+            
+            <div class="flex gap-4 mb-8 overflow-x-auto no-scrollbar py-1">
                 <div v-for="c in noteColors" :key="c" 
                       @click="editingNote.color = c"
                       :style="{ backgroundColor: c }"
-                      class="w-8 h-8 rounded-full border-2 transition-all"
-                      :class="editingNote.color === c ? 'border-[#d4a3a3] scale-110' : 'border-transparent'"></div>
+                      class="flex-shrink-0 w-10 h-10 rounded-full border-2 transition-all shadow-sm"
+                      :class="editingNote.color === c ? 'border-[#d4a3a3] scale-110 shadow-md' : 'border-gray-100'"></div>
             </div>
-            <button @click="saveNote" class="w-full bg-[#d4a3a3] text-white py-4 rounded-2xl font-medium shadow-md">保存して閉じる</button>
-        </div>
+            
+            <button @click="saveNote" class="w-full bg-[#d4a3a3] text-white py-4 rounded-2xl font-bold shadow-lg active:opacity-90 transition-opacity">
+                保存して閉じる
+            </button>
+            <div class="h-4"></div> </div>
     </div>
 </div>
 
@@ -139,7 +163,8 @@ createApp({
         const currentNbId = ref(notebooks.value[0].id);
         const currentPageIndex = ref(0);
         const editingNote = ref(null);
-        const noteColors = ['#fff5f5', '#fff9db', '#f3f0ff', '#ebfbee', '#e3fafc'];
+        // 付箋の背景色を少し彩度を落として視認性向上
+        const noteColors = ['#ffffff', '#fffbe6', '#f5f3ff', '#f0fdf4', '#f0f9ff'];
         
         // --- Swipe Logic ---
         let touchStartX = 0;
@@ -187,23 +212,18 @@ createApp({
         };
 
         const addNote = () => {
-            // 付箋のサイズ定義
             const noteWidth = 160; 
             const noteHeight = 110;
             const padding = 20;
             
-            // 配置候補の計算ロジック
             let newX = padding;
             let newY = 50;
             let foundSpace = false;
 
-            // 簡易的な衝突判定を行い、空きスペースを探す
             for (let row = 0; row < 3; row++) {
                 for (let col = 0; col < 2; col++) {
                     const testX = padding + (col * (noteWidth + 10));
                     const testY = 50 + (row * (noteHeight + 10));
-                    
-                    // 既存の付箋と重なっているかチェック
                     const isOverlapping = currentPagesNotes.value.some(note => {
                         return Math.abs(note.x - testX) < 30 && Math.abs(note.y - testY) < 30;
                     });
@@ -218,7 +238,6 @@ createApp({
                 if (foundSpace) break;
             }
 
-            // スペースが見つからない場合はランダムに少しずらす
             if (!foundSpace) {
                 newX = Math.random() * 40 + 20;
                 newY = Math.random() * 60 + 50;
@@ -246,15 +265,16 @@ createApp({
                 currentPagesNotes.value.push({ ...editingNote.value });
             }
             editingNote.value = null;
+            setTimeout(() => lucide.createIcons(), 0);
         };
 
         const deleteNote = () => {
             const index = currentPagesNotes.value.findIndex(n => n.id === editingNote.value.id);
             if (index > -1) currentPagesNotes.value.splice(index, 1);
             editingNote.value = null;
+            setTimeout(() => lucide.createIcons(), 0);
         };
 
-        // Persistent Data
         watch(notebooks, (newVal) => {
             localStorage.setItem('petal_data', JSON.stringify(newVal));
         }, { deep: true });
