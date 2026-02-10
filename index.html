@@ -3,45 +3,74 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minimal Spreadsheet App</title>
+    <title>Professional Spreadsheet App</title>
     <style>
-        body { font-family: sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; }
-        /* スマホ向けにボタンを押しやすく調整 */
-        .toolbar { background: #f3f3f3; padding: 10px; border-bottom: 1px solid #ccc; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-        .table-container { overflow: auto; flex-grow: 1; position: relative; -webkit-overflow-scrolling: touch; }
-        
-        table { border-collapse: collapse; table-layout: fixed; width: max-content; } 
-        th, td { border: 1px solid #ccc; position: relative; min-width: 80px; height: 30px; box-sizing: border-box; }
-        
-        /* Headers */
-        th { background: #e8e8e8; font-size: 12px; font-weight: normal; user-select: none; overflow: visible; }
-        .row-header { width: 40px; text-align: center; }
-        
-        /* Cell Input */
-        td input { 
-            border: none; width: 100%; height: 100%; padding: 0 4px; 
-            box-sizing: border-box; outline: none; font-size: 16px; /* スマホでズームされないよう16px以上に */
-            display: block;
+        :root {
+            --header-bg: #f8f9fa;
+            --border-color: #ddd;
+            --accent-color: #1a73e8;
+            --cell-width: 100px;
+            --row-height: 32px;
         }
-        td input:focus { border: 2px solid #1a73e8; margin: -1px; position: relative; z-index: 2; }
 
-        /* Resizers - スマホ操作用に当たり判定を拡大 (15px) */
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; color: #333; }
+        
+        /* ツールバーの装飾 */
+        .toolbar { 
+            background: #fff; padding: 12px; border-bottom: 1px solid var(--border-color); 
+            display: flex; gap: 10px; align-items: center; flex-wrap: wrap; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            z-index: 100;
+        }
+        
+        .table-container { overflow: auto; flex-grow: 1; position: relative; -webkit-overflow-scrolling: touch; background: #fff; }
+        
+        table { border-collapse: collapse; table-layout: fixed; width: 0; /* 内容に合わせて広がるように設定 */ } 
+        
+        /* ヘッダー固定 (Sticky) */
+        th { 
+            background: var(--header-bg); border: 1px solid var(--border-color); 
+            position: sticky; top: 0; z-index: 20; font-size: 12px; font-weight: 600; 
+            user-select: none; height: var(--row-height); box-sizing: border-box;
+        }
+
+        /* 行ヘッダーの固定 */
+        .row-header { 
+            left: 0; z-index: 30; width: 50px; text-align: center; background: var(--header-bg);
+        }
+        
+        /* 交差する左上のセル */
+        tr:first-child th:first-child { z-index: 40; }
+
+        td { border: 1px solid var(--border-color); padding: 0; box-sizing: border-box; height: var(--row-height); }
+        
+        /* セル入力欄 */
+        td input { 
+            border: none; width: 100%; height: 100%; padding: 0 8px; 
+            box-sizing: border-box; outline: none; font-size: 14px;
+            background: transparent; display: block;
+        }
+        td input:focus { border: 2px solid var(--accent-color); padding: 0 7px; background: #fff; }
+
+        /* リサイザー */
         .resizer-h {
-            position: absolute; right: -5px; top: 0; width: 15px; height: 100%;
-            cursor: col-resize; z-index: 10; touch-action: none;
+            position: absolute; right: -5px; top: 0; width: 10px; height: 100%;
+            cursor: col-resize; z-index: 50; touch-action: none;
         }
         .resizer-v {
-            position: absolute; bottom: -5px; left: 0; width: 100%; height: 15px;
-            cursor: row-resize; z-index: 10; touch-action: none;
+            position: absolute; bottom: -5px; left: 0; width: 100%; height: 10px;
+            cursor: row-resize; z-index: 50; touch-action: none;
         }
-        /* 視覚的な線は細く保つ */
-        .resizer-h::after { content: ''; position: absolute; right: 5px; top: 0; width: 2px; height: 100%; }
-        .resizer-v::after { content: ''; position: absolute; bottom: 5px; left: 0; width: 100%; height: 2px; }
         
-        .resizer-h:active::after, .resizer-v:active::after { background: #1a73e8; }
+        .resizer-h::after { content: ''; position: absolute; right: 4px; top: 0; width: 1px; height: 100%; background: transparent; }
+        .resizer-v::after { content: ''; position: absolute; bottom: 4px; left: 0; width: 100%; height: 1px; background: transparent; }
+        .resizer-h:hover::after, .resizer-v:hover::after { background: var(--accent-color); }
 
-        button { cursor: pointer; padding: 8px 12px; background: #fff; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
-        button:hover { background: #eee; }
+        button { 
+            cursor: pointer; padding: 8px 16px; background: #fff; border: 1px solid #ced4da; 
+            border-radius: 4px; font-size: 14px; transition: all 0.2s; font-weight: 500;
+        }
+        button:hover { background: #f1f3f4; border-color: #1a73e8; color: #1a73e8; }
+        button:active { background: #e8f0fe; }
     </style>
 </head>
 <body>
@@ -50,7 +79,7 @@
     <button onclick="addRow()">行を追加 (+)</button>
     <button onclick="addCol()">列を追加 (+)</button>
     <button onclick="exportCSV()">CSV書き出し</button>
-    <span style="font-size: 12px; color: #666;">※端をドラッグでリサイズ</span>
+    <span style="font-size: 12px; color: #777; margin-left: 10px;">※境界をドラッグでサイズ調整</span>
 </div>
 
 <div class="table-container">
@@ -66,12 +95,12 @@
 </div>
 
 <script>
-    const table = document.getElementById('spreadsheet');
     const headerRow = document.getElementById('header-row');
     const tableBody = document.getElementById('table-body');
     
     let rowCount = 20;
     let colCount = 10;
+    const DEFAULT_COL_WIDTH = 100;
 
     function getColName(n) {
         let name = "";
@@ -83,17 +112,19 @@
     }
 
     function initTable() {
+        // 先にヘッダーを作成
         for (let i = 0; i < colCount; i++) createColHeader(i);
+        // 次に行を作成
         for (let i = 0; i < rowCount; i++) createRow(i);
     }
 
     function createColHeader(index) {
         const th = document.createElement('th');
-        th.innerText = getColName(index);
+        th.style.width = DEFAULT_COL_WIDTH + 'px';
+        th.innerHTML = `<span>${getColName(index)}</span>`;
         
         const resizer = document.createElement('div');
         resizer.className = 'resizer-h';
-        // マウスとタッチの両方に対応
         resizer.addEventListener('mousedown', initResizeCol);
         resizer.addEventListener('touchstart', initResizeCol, {passive: false});
         th.appendChild(resizer);
@@ -103,6 +134,8 @@
 
     function createRow(rowIndex) {
         const tr = document.createElement('tr');
+        
+        // 行番号ヘッダー
         const th = document.createElement('th');
         th.className = 'row-header';
         th.innerText = rowIndex + 1;
@@ -112,17 +145,24 @@
         resizer.addEventListener('mousedown', initResizeRow);
         resizer.addEventListener('touchstart', initResizeRow, {passive: false});
         th.appendChild(resizer);
-        
         tr.appendChild(th);
 
+        // データセル
         for (let i = 0; i < colCount; i++) {
-            const td = document.createElement('td');
-            const input = document.createElement('input');
-            input.type = 'text';
-            td.appendChild(input);
-            tr.appendChild(td);
+            tr.appendChild(createCell());
         }
         tableBody.appendChild(tr);
+    }
+
+    function createCell() {
+        const td = document.createElement('td');
+        const input = document.createElement('input');
+        input.type = 'text';
+        // 入力補完をオフにして使いやすく
+        input.setAttribute('autocomplete', 'off');
+        input.setAttribute('spellcheck', 'false');
+        td.appendChild(input);
+        return td;
     }
 
     function addRow() {
@@ -132,40 +172,35 @@
     function addCol() {
         createColHeader(colCount++);
         Array.from(tableBody.rows).forEach(row => {
-            const td = document.createElement('td');
-            const input = document.createElement('input');
-            input.type = 'text';
-            td.appendChild(input);
-            row.appendChild(td);
+            row.appendChild(createCell());
         });
     }
 
-    // 座標取得の共通化（マウス/タッチ両対応）
-    function getClientX(e) {
-        return e.touches ? e.touches[0].clientX : e.clientX;
-    }
-    function getClientY(e) {
-        return e.touches ? e.touches[0].clientY : e.clientY;
-    }
+    // 座標取得の共通化
+    const getX = e => e.touches ? e.touches[0].clientX : e.clientX;
+    const getY = e => e.touches ? e.touches[0].clientY : e.clientY;
 
     function initResizeCol(e) {
-        if (e.cancelable) e.preventDefault(); // スクロール防止
+        if (e.cancelable) e.preventDefault();
         const th = e.target.parentElement;
-        const startX = getClientX(e);
+        const startX = getX(e);
         const startWidth = th.offsetWidth;
         
-        function onMove(e) {
-            const newWidth = startWidth + getClientX(e) - startX;
+        const onMove = (ev) => {
+            const newWidth = startWidth + getX(ev) - startX;
             if (newWidth > 40) {
                 th.style.width = newWidth + 'px';
+                th.style.minWidth = newWidth + 'px'; // 強制適用
             }
-        }
-        function onEnd() {
+        };
+        
+        const onEnd = () => {
             document.removeEventListener('mousemove', onMove);
             document.removeEventListener('mouseup', onEnd);
             document.removeEventListener('touchmove', onMove);
             document.removeEventListener('touchend', onEnd);
-        }
+        };
+
         document.addEventListener('mousemove', onMove);
         document.addEventListener('mouseup', onEnd);
         document.addEventListener('touchmove', onMove, {passive: false});
@@ -174,23 +209,24 @@
 
     function initResizeRow(e) {
         if (e.cancelable) e.preventDefault();
-        const th = e.target.parentElement;
-        const tr = th.parentElement;
-        const startY = getClientY(e);
+        const tr = e.target.parentElement.parentElement;
+        const startY = getY(e);
         const startHeight = tr.offsetHeight;
 
-        function onMove(e) {
-            const newHeight = startHeight + getClientY(e) - startY;
+        const onMove = (ev) => {
+            const newHeight = startHeight + getY(ev) - startY;
             if (newHeight > 20) {
                 tr.style.height = newHeight + 'px';
             }
-        }
-        function onEnd() {
+        };
+
+        const onEnd = () => {
             document.removeEventListener('mousemove', onMove);
             document.removeEventListener('mouseup', onEnd);
             document.removeEventListener('touchmove', onMove);
             document.removeEventListener('touchend', onEnd);
-        }
+        };
+
         document.addEventListener('mousemove', onMove);
         document.addEventListener('mouseup', onEnd);
         document.addEventListener('touchmove', onMove, {passive: false});
@@ -201,15 +237,24 @@
         let csv = "";
         const rows = tableBody.querySelectorAll('tr');
         rows.forEach(row => {
-            const cols = row.querySelectorAll('input');
-            const rowData = Array.from(cols).map(input => `"${input.value}"`).join(",");
+            const inputs = row.querySelectorAll('input');
+            const rowData = Array.from(inputs)
+                .map(input => {
+                    let val = input.value.replace(/"/g, '""'); // ダブルクォートのエスケープ
+                    return `"${val}"`;
+                })
+                .join(",");
             csv += rowData + "\r\n";
         });
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        
+        const bom = new Uint8Array([0xEF, 0xBB, 0xBF]); // Excelでの文字化け防止 (UTF-8 BOM)
+        const blob = new Blob([bom, csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
-        link.download = "data.csv";
+        link.href = url;
+        link.download = `spreadsheet_${new Date().getTime()}.csv`;
         link.click();
+        URL.revokeObjectURL(url);
     }
 
     initTable();
