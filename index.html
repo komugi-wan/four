@@ -2,274 +2,333 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Petal Notes | 洗練された付箋アプリ</title>
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Playfair+Display:ital@1&display=swap" rel="stylesheet">
-    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infinite Plotter - 執筆の宇宙</title>
     <style>
         :root {
-            --bg-base: #fdf8f8;
-            --accent-pink: #f4dada;
-            --deep-rose: #d4a3a3;
-            --text-main: #4a3a3a;
-            --text-muted: #8c7676;
+            --bg-color: #0f111a;
+            --grid-color: rgba(255, 255, 255, 0.05);
+            --card-bg: #1e2132;
+            --accent: #7e57c2;
+            --text-main: #e0e0e0;
+            --text-sub: #9499b7;
         }
-        body {
-            font-family: 'Noto Sans JP', sans-serif;
-            background-color: var(--bg-base);
+
+        body, html {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            background-color: var(--bg-color);
             color: var(--text-main);
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', sans-serif;
             overflow: hidden;
-            touch-action: manipulation;
-        }
-        .serif { font-family: 'Playfair Display', serif; }
-        
-        /* Glassmorphism */
-        .glass {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(12px);
-            border-bottom: 1px solid rgba(212, 163, 163, 0.25);
         }
 
-        /* Sticky Note Style */
-        .sticky-note {
-            box-shadow: 2px 4px 12px rgba(0,0,0,0.08);
-            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            border: 1px solid rgba(0,0,0,0.03);
-            word-break: break-all;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            /* 改行を反映させるための設定 */
+        /* 無限グリッド背景 */
+        #viewport {
+            width: 100vw; height: 100vh;
+            cursor: grab;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #canvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 50000px; height: 50000px; /* 仮想的な広さ */
+            background-image: 
+                linear-gradient(var(--grid-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+            background-size: 100px 100px;
+            transform-origin: 0 0;
+        }
+
+        /* カード（マス）のスタイル */
+        .node {
+            position: absolute;
+            width: 300px;
+            min-height: 150px;
+            background: var(--card-bg);
+            border-radius: 8px;
+            border-left: 4px solid var(--accent);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            padding: 15px;
+            cursor: default;
+            user-select: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .node:hover {
+            box-shadow: 0 0 15px rgba(126, 87, 194, 0.4);
+        }
+
+        .node h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .node-content {
+            font-size: 15px;
+            line-height: 1.6;
+            color: var(--text-main);
             white-space: pre-wrap;
-            position: relative; /* 絶対配置から相対配置へ変更 */
-            width: 100%; /* 横幅MAX */
-            min-height: 80px; /* 高さは維持しつつ可変に */
-        }
-        .sticky-note:active { transform: scale(0.98); }
-
-        /* Line Clamp for 3 lines */
-        .line-clamp-3 {
             display: -webkit-box;
-            -webkit-line-clamp: 3;
+            -webkit-line-clamp: 6;
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
 
-        /* Swipe Animation */
-        .page-enter-active, .page-leave-active {
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        /* エディタモーダル */
+        #editor-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: none;
+            justify-content: center; align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
         }
-        .page-enter-from { opacity: 0; transform: translateX(30px); }
-        .page-leave-to { opacity: 0; transform: translateX(-30px); }
 
-        /* Custom Scrollbar */
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .editor-container {
+            width: 80%; max-width: 800px; height: 80%;
+            background: #1a1c2c;
+            border-radius: 12px;
+            padding: 40px;
+            display: flex; flex-direction: column;
+        }
+
+        #editor-title {
+            background: transparent; border: none;
+            color: var(--accent); font-size: 24px;
+            margin-bottom: 20px; outline: none;
+        }
+
+        #editor-textarea {
+            flex-grow: 1;
+            background: transparent; border: none;
+            color: var(--text-main); font-size: 18px;
+            line-height: 1.8; resize: none; outline: none;
+        }
+
+        /* UIツール */
+        #controls {
+            position: fixed; bottom: 30px; right: 30px;
+            display: flex; gap: 15px; z-index: 500;
+        }
+
+        .btn {
+            background: var(--accent);
+            color: white; border: none;
+            padding: 12px 24px; border-radius: 30px;
+            cursor: pointer; font-weight: bold;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        #minimap {
+            position: fixed; top: 20px; right: 20px;
+            width: 150px; height: 150px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--grid-color);
+            z-index: 500; pointer-events: none;
+        }
+
+        .minimap-dot {
+            position: absolute;
+            width: 4px; height: 4px;
+            background: var(--accent);
+        }
+
+        .help-tip {
+            position: fixed; bottom: 30px; left: 30px;
+            color: var(--text-sub); font-size: 12px;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
 
-<div id="app" class="h-screen flex flex-col relative overflow-hidden text-[#4a3a3a]">
-    
-    <header class="glass pt-10 pb-3 px-4 z-20 shadow-sm">
-        <div class="flex items-center justify-between mb-5">
-            <h1 class="serif text-2xl font-light italic text-[#d4a3a3] tracking-wide">Petal Notes</h1>
-            <button @click="addNotebook" class="p-2.5 bg-white rounded-full shadow-sm border border-[#f4dada] active:bg-[#fdf8f8]">
-                <i data-lucide="plus" class="w-5 h-5 text-[#d4a3a3]"></i>
-            </button>
+<div id="viewport">
+    <div id="canvas">
         </div>
-        
-        <div class="flex gap-3 overflow-x-auto no-scrollbar pb-1">
-            <div v-for="nb in notebooks" :key="nb.id" 
-                 @click="selectNotebook(nb.id)"
-                 :class="['whitespace-nowrap px-5 py-1.5 text-sm rounded-full transition-all border font-medium cursor-pointer', 
-                          currentNbId === nb.id 
-                          ? 'bg-[#d4a3a3] text-white border-[#d4a3a3] shadow-md' 
-                          : 'bg-white/50 border-[#d4a3a3]/30 text-[#8c7676]']">
-                {{ nb.name }}
-            </div>
+</div>
+
+<div id="editor-overlay">
+    <div class="editor-container">
+        <input type="text" id="editor-title" placeholder="章のタイトル...">
+        <textarea id="editor-textarea" placeholder="ここから物語が始まります..."></textarea>
+        <div style="text-align: right; margin-top: 20px;">
+            <button class="btn" onclick="closeEditor()">保存して閉じる</button>
         </div>
-    </header>
-
-    <main class="flex-1 relative overflow-hidden touch-none" 
-          @touchstart="handleTouchStart" 
-          @touchend="handleTouchEnd">
-        
-        <div class="absolute top-6 left-0 right-0 flex justify-center gap-2 z-10">
-            <div v-for="pIndex in currentNotebook.pages.length" :key="pIndex"
-                 class="h-1.5 rounded-full transition-all duration-300"
-                 :class="[currentPageIndex === pIndex - 1 ? 'w-8 bg-[#d4a3a3]' : 'w-2 bg-[#d4a3a3]/20']">
-            </div>
-        </div>
-
-        <transition name="page" mode="out-in">
-            <div :key="currentNbId + '-' + currentPageIndex" class="h-full w-full p-4 pt-16 overflow-y-auto no-scrollbar">
-                <div class="flex flex-col gap-4 pb-24">
-                    <div v-for="note in currentPagesNotes" :key="note.id"
-                         class="sticky-note p-4 rounded-xl text-[13px] leading-snug font-medium overflow-hidden"
-                         :style="{ 
-                            backgroundColor: note.color, 
-                            backgroundImage: 'linear-gradient(135deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 100%)'
-                         }"
-                         @click="editNote(note)">
-                        <span class="line-clamp-3">{{ note.content || 'タップして編集' }}</span>
-                    </div>
-
-                    <div v-if="currentPagesNotes.length === 0" class="h-[60vh] flex flex-col items-center justify-center text-[#d4a3a3]/50">
-                        <div class="p-6 rounded-full bg-white/30 mb-4">
-                            <i data-lucide="sparkles" class="w-10 h-10"></i>
-                        </div>
-                        <p class="text-sm font-medium">右下のボタンから付箋を追加</p>
-                    </div>
-                </div>
-            </div>
-        </transition>
-    </main>
-
-    <button @click="addNote" 
-            class="absolute bottom-10 right-6 w-16 h-16 bg-[#d4a3a3] text-white rounded-full shadow-xl flex items-center justify-center active:scale-90 transition-transform z-30 ring-4 ring-white/50">
-        <i data-lucide="edit-3" class="w-7 h-7"></i>
-    </button>
-
-    <div v-if="editingNote" class="fixed inset-0 bg-black/40 backdrop-blur-md z-50 flex items-end">
-        <div class="bg-white w-full rounded-t-[2.5rem] p-8 shadow-2xl transition-transform transform translate-y-0">
-            <div class="flex justify-between items-center mb-6">
-                <span class="text-xs font-bold tracking-[0.2em] uppercase text-[#d4a3a3]">Note Editor</span>
-                <button @click="deleteNote" class="text-rose-400 px-4 py-1.5 text-xs font-bold border border-rose-100 rounded-full active:bg-rose-50">
-                    削除する
-                </button>
-            </div>
-            
-            <textarea v-model="editingNote.content" 
-                      class="w-full h-80 bg-gray-50 rounded-2xl p-5 focus:outline-none focus:ring-2 focus:ring-[#d4a3a3]/30 mb-6 text-base leading-relaxed"
-                      placeholder="今の気持ちをメモ..." autofocus></textarea>
-            
-            <div class="flex gap-4 mb-8 overflow-x-auto no-scrollbar py-1">
-                <div v-for="c in noteColors" :key="c" 
-                      @click="editingNote.color = c"
-                      :style="{ backgroundColor: c }"
-                      class="flex-shrink-0 w-10 h-10 rounded-full border-2 transition-all shadow-sm"
-                      :class="editingNote.color === c ? 'border-[#d4a3a3] scale-110 shadow-md' : 'border-gray-100'"></div>
-            </div>
-            
-            <button @click="saveNote" class="w-full bg-[#d4a3a3] text-white py-4 rounded-2xl font-bold shadow-lg active:opacity-90 transition-opacity">
-                保存して閉じる
-            </button>
-            <div class="h-4"></div> </div>
     </div>
 </div>
 
+<div id="minimap"></div>
+
+<div id="controls">
+    <button class="btn" onclick="createNewNode()">+ 新しいマスを作成</button>
+</div>
+
+<div class="help-tip">
+    [Space + Drag] 移動 | [Double Click] 編集 | [Scroll] ズーム
+</div>
+
 <script>
-const { createApp, ref, computed, onMounted, watch } = Vue;
+    const canvas = document.getElementById('canvas');
+    const viewport = document.getElementById('viewport');
+    let nodes = JSON.parse(localStorage.getItem('infiniteNodes')) || [];
+    let scale = 1;
+    let offsetX = -24500; // 中央付近からスタート
+    let offsetY = -24500;
+    let isDragging = false;
+    let lastMouseX, lastMouseY;
+    let editingNodeId = null;
 
-createApp({
-    setup() {
-        // --- Data State ---
-        const notebooks = ref(JSON.parse(localStorage.getItem('petal_data')) || [
-            { id: 1, name: 'Work', pages: [ { id: 101, notes: [] }, { id: 102, notes: [] } ] },
-            { id: 2, name: 'Private', pages: [ { id: 201, notes: [] } ] }
-        ]);
-        const currentNbId = ref(notebooks.value[0].id);
-        const currentPageIndex = ref(0);
-        const editingNote = ref(null);
-        const noteColors = ['#ffffff', '#fffbe6', '#f5f3ff', '#f0fdf4', '#f0f9ff'];
-        
-        // --- Swipe Logic ---
-        let touchStartX = 0;
-
-        const handleTouchStart = (e) => { touchStartX = e.touches[0].clientX; };
-        const handleTouchEnd = (e) => {
-            const touchEndX = e.changedTouches[0].clientX;
-            const diff = touchStartX - touchEndX;
-            if (Math.abs(diff) > 50) {
-                if (diff > 0) nextPage();
-                else prevPage();
-            }
-        };
-
-        // --- Computed ---
-        const currentNotebook = computed(() => notebooks.value.find(n => n.id === currentNbId.value));
-        const currentPagesNotes = computed(() => currentNotebook.value.pages[currentPageIndex.value].notes);
-
-        // --- Methods ---
-        const selectNotebook = (id) => {
-            currentNbId.value = id;
-            currentPageIndex.value = 0;
-        };
-
-        const addNotebook = () => {
-            const name = prompt("ノートブック名を入力してください");
-            if (name) {
-                const newId = Date.now();
-                notebooks.value.push({ id: newId, name, pages: [{ id: Date.now() + 1, notes: [] }] });
-                selectNotebook(newId);
-            }
-        };
-
-        const nextPage = () => {
-            if (currentPageIndex.value < currentNotebook.value.pages.length - 1) {
-                currentPageIndex.value++;
-            } else {
-                currentNotebook.value.pages.push({ id: Date.now(), notes: [] });
-                currentPageIndex.value++;
-            }
-        };
-
-        const prevPage = () => {
-            if (currentPageIndex.value > 0) currentPageIndex.value--;
-        };
-
-        const addNote = () => {
-            // レイアウトを縦並び（通常のフロー）に変更したため、x, y座標の計算を廃止
-            const newNote = {
-                id: Date.now(),
-                content: '',
-                color: noteColors[0]
-            };
-            editingNote.value = { ...newNote };
-        };
-
-        const editNote = (note) => {
-            editingNote.value = { ...note };
-        };
-
-        const saveNote = () => {
-            const index = currentPagesNotes.value.findIndex(n => n.id === editingNote.value.id);
-            if (index > -1) {
-                currentPagesNotes.value[index] = { ...editingNote.value };
-            } else {
-                currentPagesNotes.value.push({ ...editingNote.value });
-            }
-            editingNote.value = null;
-            setTimeout(() => lucide.createIcons(), 0);
-        };
-
-        const deleteNote = () => {
-            const index = currentPagesNotes.value.findIndex(n => n.id === editingNote.value.id);
-            if (index > -1) currentPagesNotes.value.splice(index, 1);
-            editingNote.value = null;
-            setTimeout(() => lucide.createIcons(), 0);
-        };
-
-        watch(notebooks, (newVal) => {
-            localStorage.setItem('petal_data', JSON.stringify(newVal));
-        }, { deep: true });
-
-        onMounted(() => {
-            lucide.createIcons();
-        });
-
-        return {
-            notebooks, currentNbId, currentPageIndex, currentNotebook, currentPagesNotes,
-            selectNotebook, addNotebook, addNote, editNote, editingNote, saveNote, deleteNote,
-            noteColors, handleTouchStart, handleTouchEnd
-        };
+    // 初期化
+    function init() {
+        updateTransform();
+        renderNodes();
+        updateMinimap();
     }
-}).mount('#app');
+
+    // キャンバス移動
+    viewport.addEventListener('mousedown', (e) => {
+        if (e.button === 1 || (e.button === 0 && e.shiftKey)) {
+            isDragging = true;
+            lastMouseX = e.clientX;
+            lastMouseY = e.clientY;
+            viewport.style.cursor = 'grabbing';
+        }
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        if (isDragging) {
+            const dx = e.clientX - lastMouseX;
+            const dy = e.clientY - lastMouseY;
+            offsetX += dx;
+            offsetY += dy;
+            lastMouseX = e.clientX;
+            lastMouseY = e.clientY;
+            updateTransform();
+        }
+    });
+
+    window.addEventListener('mouseup', () => {
+        isDragging = false;
+        viewport.style.cursor = 'grab';
+    });
+
+    // ズーム（ホイール）
+    viewport.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? 0.9 : 1.1;
+        scale = Math.min(Math.max(0.1, scale * delta), 2);
+        updateTransform();
+    }, { passive: false });
+
+    function updateTransform() {
+        canvas.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+    }
+
+    // ノード作成
+    function createNewNode() {
+        const id = Date.now();
+        const newNode = {
+            id: id,
+            x: -offsetX / scale + window.innerWidth / 2 / scale,
+            y: -offsetY / scale + window.innerHeight / 2 / scale,
+            title: "無題のシーン",
+            content: ""
+        };
+        nodes.push(newNode);
+        save();
+        renderNodes();
+        openEditor(id);
+    }
+
+    function renderNodes() {
+        canvas.innerHTML = '';
+        nodes.forEach(node => {
+            const el = document.createElement('div');
+            el.className = 'node';
+            el.style.left = node.x + 'px';
+            el.style.top = node.y + 'px';
+            el.innerHTML = `<h3>${node.title}</h3><div class="node-content">${node.content || '本文なし...'}</div>`;
+            
+            el.addEventListener('dblclick', () => openEditor(node.id));
+            
+            // ドラッグ移動用
+            let nodeDragging = false;
+            el.addEventListener('mousedown', (e) => {
+                e.stopPropagation();
+                nodeDragging = true;
+                const startX = e.clientX;
+                const startY = e.clientY;
+                const nodeX = node.x;
+                const nodeY = node.y;
+
+                const onMove = (me) => {
+                    if (!nodeDragging) return;
+                    node.x = nodeX + (me.clientX - startX) / scale;
+                    node.y = nodeY + (me.clientY - startY) / scale;
+                    el.style.left = node.x + 'px';
+                    el.style.top = node.y + 'px';
+                };
+
+                const onUp = () => {
+                    nodeDragging = false;
+                    save();
+                    updateMinimap();
+                    window.removeEventListener('mousemove', onMove);
+                    window.removeEventListener('mouseup', onUp);
+                };
+
+                window.addEventListener('mousemove', onMove);
+                window.addEventListener('mouseup', onUp);
+            });
+
+            canvas.appendChild(el);
+        });
+        updateMinimap();
+    }
+
+    // エディタ機能
+    function openEditor(id) {
+        editingNodeId = id;
+        const node = nodes.find(n => n.id === id);
+        document.getElementById('editor-title').value = node.title;
+        document.getElementById('editor-textarea').value = node.content;
+        document.getElementById('editor-overlay').style.display = 'flex';
+    }
+
+    function closeEditor() {
+        const node = nodes.find(n => n.id === editingNodeId);
+        node.title = document.getElementById('editor-title').value;
+        node.content = document.getElementById('editor-textarea').value;
+        document.getElementById('editor-overlay').style.display = 'none';
+        save();
+        renderNodes();
+    }
+
+    function save() {
+        localStorage.setItem('infiniteNodes', JSON.stringify(nodes));
+    }
+
+    // ミニマップ更新
+    function updateMinimap() {
+        const map = document.getElementById('minimap');
+        map.innerHTML = '';
+        nodes.forEach(node => {
+            const dot = document.createElement('div');
+            dot.className = 'minimap-dot';
+            dot.style.left = (node.x / 50000 * 150) + 'px';
+            dot.style.top = (node.y / 50000 * 150) + 'px';
+            map.appendChild(dot);
+        });
+    }
+
+    init();
 </script>
 
 </body>
