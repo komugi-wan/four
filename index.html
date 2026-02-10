@@ -3,332 +3,188 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Infinite Plotter - 執筆の宇宙</title>
+    <title>Minimal Spreadsheet App</title>
     <style>
-        :root {
-            --bg-color: #0f111a;
-            --grid-color: rgba(255, 255, 255, 0.05);
-            --card-bg: #1e2132;
-            --accent: #7e57c2;
-            --text-main: #e0e0e0;
-            --text-sub: #9499b7;
+        body { font-family: sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; }
+        .toolbar { background: #f3f3f3; padding: 10px; border-bottom: 1px solid #ccc; display: flex; gap: 10px; align-items: center; }
+        .table-container { overflow: auto; flex-grow: 1; position: relative; }
+        
+        table { border-collapse: collapse; table-layout: fixed; width: 0; } /* fixed layout for resizing */
+        th, td { border: 1px solid #ccc; position: relative; min-width: 80px; height: 25px; }
+        
+        /* Headers */
+        th { background: #e8e8e8; font-size: 12px; font-weight: normal; user-select: none; }
+        .row-header { width: 40px; text-align: center; }
+        
+        /* Cell Input */
+        td input { 
+            border: none; width: 100%; height: 100%; padding: 0 4px; 
+            box-sizing: border-box; outline: none; font-size: 14px;
         }
+        td input:focus { border: 2px solid #1a73e8; margin: -1px; }
 
-        body, html {
-            margin: 0; padding: 0;
-            width: 100%; height: 100%;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', sans-serif;
-            overflow: hidden;
+        /* Resizers */
+        .resizer-h {
+            position: absolute; right: 0; top: 0; width: 5px; height: 100%;
+            cursor: col-resize; z-index: 1;
         }
+        .resizer-v {
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 5px;
+            cursor: row-resize; z-index: 1;
+        }
+        .resizer-h:hover, .resizer-v:hover { background: #1a73e8; }
 
-        /* 無限グリッド背景 */
-        #viewport {
-            width: 100vw; height: 100vh;
-            cursor: grab;
-            position: relative;
-            overflow: hidden;
-        }
-
-        #canvas {
-            position: absolute;
-            top: 0; left: 0;
-            width: 50000px; height: 50000px; /* 仮想的な広さ */
-            background-image: 
-                linear-gradient(var(--grid-color) 1px, transparent 1px),
-                linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
-            background-size: 100px 100px;
-            transform-origin: 0 0;
-        }
-
-        /* カード（マス）のスタイル */
-        .node {
-            position: absolute;
-            width: 300px;
-            min-height: 150px;
-            background: var(--card-bg);
-            border-radius: 8px;
-            border-left: 4px solid var(--accent);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            padding: 15px;
-            cursor: default;
-            user-select: none;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        .node:hover {
-            box-shadow: 0 0 15px rgba(126, 87, 194, 0.4);
-        }
-
-        .node h3 {
-            margin: 0 0 10px 0;
-            font-size: 14px;
-            color: var(--accent);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .node-content {
-            font-size: 15px;
-            line-height: 1.6;
-            color: var(--text-main);
-            white-space: pre-wrap;
-            display: -webkit-box;
-            -webkit-line-clamp: 6;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-
-        /* エディタモーダル */
-        #editor-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85);
-            display: none;
-            justify-content: center; align-items: center;
-            z-index: 1000;
-            backdrop-filter: blur(5px);
-        }
-
-        .editor-container {
-            width: 80%; max-width: 800px; height: 80%;
-            background: #1a1c2c;
-            border-radius: 12px;
-            padding: 40px;
-            display: flex; flex-direction: column;
-        }
-
-        #editor-title {
-            background: transparent; border: none;
-            color: var(--accent); font-size: 24px;
-            margin-bottom: 20px; outline: none;
-        }
-
-        #editor-textarea {
-            flex-grow: 1;
-            background: transparent; border: none;
-            color: var(--text-main); font-size: 18px;
-            line-height: 1.8; resize: none; outline: none;
-        }
-
-        /* UIツール */
-        #controls {
-            position: fixed; bottom: 30px; right: 30px;
-            display: flex; gap: 15px; z-index: 500;
-        }
-
-        .btn {
-            background: var(--accent);
-            color: white; border: none;
-            padding: 12px 24px; border-radius: 30px;
-            cursor: pointer; font-weight: bold;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        }
-
-        #minimap {
-            position: fixed; top: 20px; right: 20px;
-            width: 150px; height: 150px;
-            background: rgba(255,255,255,0.05);
-            border: 1px solid var(--grid-color);
-            z-index: 500; pointer-events: none;
-        }
-
-        .minimap-dot {
-            position: absolute;
-            width: 4px; height: 4px;
-            background: var(--accent);
-        }
-
-        .help-tip {
-            position: fixed; bottom: 30px; left: 30px;
-            color: var(--text-sub); font-size: 12px;
-            pointer-events: none;
-        }
+        button { cursor: pointer; padding: 5px 12px; background: #fff; border: 1px solid #ccc; border-radius: 4px; }
+        button:hover { background: #eee; }
     </style>
 </head>
 <body>
 
-<div id="viewport">
-    <div id="canvas">
-        </div>
+<div class="toolbar">
+    <button onclick="addRow()">行を追加 (+)</button>
+    <button onclick="addCol()">列を追加 (+)</button>
+    <button onclick="exportCSV()">CSV書き出し</button>
+    <span style="font-size: 12px; color: #666;">※セルの端をドラッグしてサイズ変更可能</span>
 </div>
 
-<div id="editor-overlay">
-    <div class="editor-container">
-        <input type="text" id="editor-title" placeholder="章のタイトル...">
-        <textarea id="editor-textarea" placeholder="ここから物語が始まります..."></textarea>
-        <div style="text-align: right; margin-top: 20px;">
-            <button class="btn" onclick="closeEditor()">保存して閉じる</button>
-        </div>
-    </div>
-</div>
-
-<div id="minimap"></div>
-
-<div id="controls">
-    <button class="btn" onclick="createNewNode()">+ 新しいマスを作成</button>
-</div>
-
-<div class="help-tip">
-    [Space + Drag] 移動 | [Double Click] 編集 | [Scroll] ズーム
+<div class="table-container">
+    <table id="spreadsheet">
+        <thead>
+            <tr id="header-row">
+                <th class="row-header"></th>
+                </tr>
+        </thead>
+        <tbody id="table-body">
+            </tbody>
+    </table>
 </div>
 
 <script>
-    const canvas = document.getElementById('canvas');
-    const viewport = document.getElementById('viewport');
-    let nodes = JSON.parse(localStorage.getItem('infiniteNodes')) || [];
-    let scale = 1;
-    let offsetX = -24500; // 中央付近からスタート
-    let offsetY = -24500;
-    let isDragging = false;
-    let lastMouseX, lastMouseY;
-    let editingNodeId = null;
+    const table = document.getElementById('spreadsheet');
+    const headerRow = document.getElementById('header-row');
+    const tableBody = document.getElementById('table-body');
+    
+    let rowCount = 20;
+    let colCount = 10;
 
-    // 初期化
-    function init() {
-        updateTransform();
-        renderNodes();
-        updateMinimap();
-    }
-
-    // キャンバス移動
-    viewport.addEventListener('mousedown', (e) => {
-        if (e.button === 1 || (e.button === 0 && e.shiftKey)) {
-            isDragging = true;
-            lastMouseX = e.clientX;
-            lastMouseY = e.clientY;
-            viewport.style.cursor = 'grabbing';
+    // A, B, C... Z, AA, AB... 形式の列名生成
+    function getColName(n) {
+        let name = "";
+        while (n >= 0) {
+            name = String.fromCharCode((n % 26) + 65) + name;
+            n = Math.floor(n / 26) - 1;
         }
-    });
+        return name;
+    }
 
-    window.addEventListener('mousemove', (e) => {
-        if (isDragging) {
-            const dx = e.clientX - lastMouseX;
-            const dy = e.clientY - lastMouseY;
-            offsetX += dx;
-            offsetY += dy;
-            lastMouseX = e.clientX;
-            lastMouseY = e.clientY;
-            updateTransform();
+    // 初期テーブル構築
+    function initTable() {
+        for (let i = 0; i < colCount; i++) createColHeader(i);
+        for (let i = 0; i < rowCount; i++) createRow(i);
+    }
+
+    function createColHeader(index) {
+        const th = document.createElement('th');
+        th.innerText = getColName(index);
+        
+        // 列幅リサイズ
+        const resizer = document.createElement('div');
+        resizer.className = 'resizer-h';
+        resizer.addEventListener('mousedown', initResizeCol);
+        th.appendChild(resizer);
+        
+        headerRow.appendChild(th);
+    }
+
+    function createRow(rowIndex) {
+        const tr = document.createElement('tr');
+        const th = document.createElement('th');
+        th.className = 'row-header';
+        th.innerText = rowIndex + 1;
+        
+        // 行高さリサイズ
+        const resizer = document.createElement('div');
+        resizer.className = 'resizer-v';
+        resizer.addEventListener('mousedown', initResizeRow);
+        th.appendChild(resizer);
+        
+        tr.appendChild(th);
+
+        for (let i = 0; i < colCount; i++) {
+            const td = document.createElement('td');
+            const input = document.createElement('input');
+            input.type = 'text';
+            td.appendChild(input);
+            tr.appendChild(td);
         }
-    });
-
-    window.addEventListener('mouseup', () => {
-        isDragging = false;
-        viewport.style.cursor = 'grab';
-    });
-
-    // ズーム（ホイール）
-    viewport.addEventListener('wheel', (e) => {
-        e.preventDefault();
-        const delta = e.deltaY > 0 ? 0.9 : 1.1;
-        scale = Math.min(Math.max(0.1, scale * delta), 2);
-        updateTransform();
-    }, { passive: false });
-
-    function updateTransform() {
-        canvas.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+        tableBody.appendChild(tr);
     }
 
-    // ノード作成
-    function createNewNode() {
-        const id = Date.now();
-        const newNode = {
-            id: id,
-            x: -offsetX / scale + window.innerWidth / 2 / scale,
-            y: -offsetY / scale + window.innerHeight / 2 / scale,
-            title: "無題のシーン",
-            content: ""
-        };
-        nodes.push(newNode);
-        save();
-        renderNodes();
-        openEditor(id);
+    // 行と列の追加機能
+    function addRow() {
+        createRow(rowCount++);
     }
 
-    function renderNodes() {
-        canvas.innerHTML = '';
-        nodes.forEach(node => {
-            const el = document.createElement('div');
-            el.className = 'node';
-            el.style.left = node.x + 'px';
-            el.style.top = node.y + 'px';
-            el.innerHTML = `<h3>${node.title}</h3><div class="node-content">${node.content || '本文なし...'}</div>`;
-            
-            el.addEventListener('dblclick', () => openEditor(node.id));
-            
-            // ドラッグ移動用
-            let nodeDragging = false;
-            el.addEventListener('mousedown', (e) => {
-                e.stopPropagation();
-                nodeDragging = true;
-                const startX = e.clientX;
-                const startY = e.clientY;
-                const nodeX = node.x;
-                const nodeY = node.y;
-
-                const onMove = (me) => {
-                    if (!nodeDragging) return;
-                    node.x = nodeX + (me.clientX - startX) / scale;
-                    node.y = nodeY + (me.clientY - startY) / scale;
-                    el.style.left = node.x + 'px';
-                    el.style.top = node.y + 'px';
-                };
-
-                const onUp = () => {
-                    nodeDragging = false;
-                    save();
-                    updateMinimap();
-                    window.removeEventListener('mousemove', onMove);
-                    window.removeEventListener('mouseup', onUp);
-                };
-
-                window.addEventListener('mousemove', onMove);
-                window.addEventListener('mouseup', onUp);
-            });
-
-            canvas.appendChild(el);
-        });
-        updateMinimap();
-    }
-
-    // エディタ機能
-    function openEditor(id) {
-        editingNodeId = id;
-        const node = nodes.find(n => n.id === id);
-        document.getElementById('editor-title').value = node.title;
-        document.getElementById('editor-textarea').value = node.content;
-        document.getElementById('editor-overlay').style.display = 'flex';
-    }
-
-    function closeEditor() {
-        const node = nodes.find(n => n.id === editingNodeId);
-        node.title = document.getElementById('editor-title').value;
-        node.content = document.getElementById('editor-textarea').value;
-        document.getElementById('editor-overlay').style.display = 'none';
-        save();
-        renderNodes();
-    }
-
-    function save() {
-        localStorage.setItem('infiniteNodes', JSON.stringify(nodes));
-    }
-
-    // ミニマップ更新
-    function updateMinimap() {
-        const map = document.getElementById('minimap');
-        map.innerHTML = '';
-        nodes.forEach(node => {
-            const dot = document.createElement('div');
-            dot.className = 'minimap-dot';
-            dot.style.left = (node.x / 50000 * 150) + 'px';
-            dot.style.top = (node.y / 50000 * 150) + 'px';
-            map.appendChild(dot);
+    function addCol() {
+        createColHeader(colCount++);
+        Array.from(tableBody.rows).forEach(row => {
+            const td = document.createElement('td');
+            td.appendChild(document.createElement('input'));
+            row.appendChild(td);
         });
     }
 
-    init();
+    // リサイズ機能のロジック
+    function initResizeCol(e) {
+        const th = e.target.parentElement;
+        const startX = e.pageX;
+        const startWidth = th.offsetWidth;
+        
+        function onMouseMove(e) {
+            th.style.width = (startWidth + e.pageX - startX) + 'px';
+        }
+        function onMouseUp() {
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+        }
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+    }
+
+    function initResizeRow(e) {
+        const th = e.target.parentElement;
+        const tr = th.parentElement;
+        const startY = e.pageY;
+        const startHeight = tr.offsetHeight;
+
+        function onMouseMove(e) {
+            tr.style.height = (startHeight + e.pageY - startY) + 'px';
+        }
+        function onMouseUp() {
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+        }
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+    }
+
+    // CSVエクスポート
+    function exportCSV() {
+        let csv = "";
+        const rows = tableBody.querySelectorAll('tr');
+        rows.forEach(row => {
+            const cols = row.querySelectorAll('input');
+            const rowData = Array.from(cols).map(input => `"${input.value}"`).join(",");
+            csv += rowData + "\r\n";
+        });
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "data.csv";
+        link.click();
+    }
+
+    initTable();
 </script>
 
 </body>
