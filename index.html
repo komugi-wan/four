@@ -6,37 +6,41 @@
     <title>Minimal Spreadsheet App</title>
     <style>
         body { font-family: sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; }
-        .toolbar { background: #f3f3f3; padding: 10px; border-bottom: 1px solid #ccc; display: flex; gap: 10px; align-items: center; }
-        .table-container { overflow: auto; flex-grow: 1; position: relative; }
+        /* スマホ向けにボタンを押しやすく調整 */
+        .toolbar { background: #f3f3f3; padding: 10px; border-bottom: 1px solid #ccc; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .table-container { overflow: auto; flex-grow: 1; position: relative; -webkit-overflow-scrolling: touch; }
         
-        /* 修正点: table-layout: fixed は維持しつつ、リサイズを反映しやすく調整 */
         table { border-collapse: collapse; table-layout: fixed; width: max-content; } 
-        th, td { border: 1px solid #ccc; position: relative; min-width: 80px; height: 25px; box-sizing: border-box; }
+        th, td { border: 1px solid #ccc; position: relative; min-width: 80px; height: 30px; box-sizing: border-box; }
         
         /* Headers */
-        th { background: #e8e8e8; font-size: 12px; font-weight: normal; user-select: none; overflow: hidden; }
+        th { background: #e8e8e8; font-size: 12px; font-weight: normal; user-select: none; overflow: visible; }
         .row-header { width: 40px; text-align: center; }
         
         /* Cell Input */
         td input { 
             border: none; width: 100%; height: 100%; padding: 0 4px; 
-            box-sizing: border-box; outline: none; font-size: 14px;
-            display: block; /* 余白対策 */
+            box-sizing: border-box; outline: none; font-size: 16px; /* スマホでズームされないよう16px以上に */
+            display: block;
         }
         td input:focus { border: 2px solid #1a73e8; margin: -1px; position: relative; z-index: 2; }
 
-        /* Resizers */
+        /* Resizers - スマホ操作用に当たり判定を拡大 (15px) */
         .resizer-h {
-            position: absolute; right: 0; top: 0; width: 5px; height: 100%;
-            cursor: col-resize; z-index: 10;
+            position: absolute; right: -5px; top: 0; width: 15px; height: 100%;
+            cursor: col-resize; z-index: 10; touch-action: none;
         }
         .resizer-v {
-            position: absolute; bottom: 0; left: 0; width: 100%; height: 5px;
-            cursor: row-resize; z-index: 10;
+            position: absolute; bottom: -5px; left: 0; width: 100%; height: 15px;
+            cursor: row-resize; z-index: 10; touch-action: none;
         }
-        .resizer-h:hover, .resizer-v:hover { background: #1a73e8; }
+        /* 視覚的な線は細く保つ */
+        .resizer-h::after { content: ''; position: absolute; right: 5px; top: 0; width: 2px; height: 100%; }
+        .resizer-v::after { content: ''; position: absolute; bottom: 5px; left: 0; width: 100%; height: 2px; }
+        
+        .resizer-h:active::after, .resizer-v:active::after { background: #1a73e8; }
 
-        button { cursor: pointer; padding: 5px 12px; background: #fff; border: 1px solid #ccc; border-radius: 4px; }
+        button { cursor: pointer; padding: 8px 12px; background: #fff; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
         button:hover { background: #eee; }
     </style>
 </head>
@@ -46,7 +50,7 @@
     <button onclick="addRow()">行を追加 (+)</button>
     <button onclick="addCol()">列を追加 (+)</button>
     <button onclick="exportCSV()">CSV書き出し</button>
-    <span style="font-size: 12px; color: #666;">※セルの端をドラッグしてサイズ変更可能</span>
+    <span style="font-size: 12px; color: #666;">※端をドラッグでリサイズ</span>
 </div>
 
 <div class="table-container">
@@ -69,7 +73,6 @@
     let rowCount = 20;
     let colCount = 10;
 
-    // A, B, C... Z, AA, AB... 形式の列名生成
     function getColName(n) {
         let name = "";
         while (n >= 0) {
@@ -79,7 +82,6 @@
         return name;
     }
 
-    // 初期テーブル構築
     function initTable() {
         for (let i = 0; i < colCount; i++) createColHeader(i);
         for (let i = 0; i < rowCount; i++) createRow(i);
@@ -89,10 +91,11 @@
         const th = document.createElement('th');
         th.innerText = getColName(index);
         
-        // 列幅リサイズ
         const resizer = document.createElement('div');
         resizer.className = 'resizer-h';
+        // マウスとタッチの両方に対応
         resizer.addEventListener('mousedown', initResizeCol);
+        resizer.addEventListener('touchstart', initResizeCol, {passive: false});
         th.appendChild(resizer);
         
         headerRow.appendChild(th);
@@ -104,10 +107,10 @@
         th.className = 'row-header';
         th.innerText = rowIndex + 1;
         
-        // 行高さリサイズ
         const resizer = document.createElement('div');
         resizer.className = 'resizer-v';
         resizer.addEventListener('mousedown', initResizeRow);
+        resizer.addEventListener('touchstart', initResizeRow, {passive: false});
         th.appendChild(resizer);
         
         tr.appendChild(th);
@@ -122,7 +125,6 @@
         tableBody.appendChild(tr);
     }
 
-    // 行と列の追加機能
     function addRow() {
         createRow(rowCount++);
     }
@@ -131,54 +133,70 @@
         createColHeader(colCount++);
         Array.from(tableBody.rows).forEach(row => {
             const td = document.createElement('td');
-            td.appendChild(document.createElement('input'));
+            const input = document.createElement('input');
+            input.type = 'text';
+            td.appendChild(input);
             row.appendChild(td);
         });
     }
 
-    // リサイズ機能のロジック
+    // 座標取得の共通化（マウス/タッチ両対応）
+    function getClientX(e) {
+        return e.touches ? e.touches[0].clientX : e.clientX;
+    }
+    function getClientY(e) {
+        return e.touches ? e.touches[0].clientY : e.clientY;
+    }
+
     function initResizeCol(e) {
+        if (e.cancelable) e.preventDefault(); // スクロール防止
         const th = e.target.parentElement;
-        const startX = e.pageX;
+        const startX = getClientX(e);
         const startWidth = th.offsetWidth;
         
-        // 修正点: 視覚的に分かりやすくするため、リサイズ中にクラスを追加する等の拡張も可能ですが、
-        // 今回は基本ロジックを確実に動作させるため、thの幅を直接変更します。
-        function onMouseMove(e) {
-            const newWidth = startWidth + e.pageX - startX;
-            if (newWidth > 40) { // 最小幅の制限
+        function onMove(e) {
+            const newWidth = startWidth + getClientX(e) - startX;
+            if (newWidth > 40) {
                 th.style.width = newWidth + 'px';
             }
         }
-        function onMouseUp() {
-            document.removeEventListener('mousemove', onMouseMove);
-            document.removeEventListener('mouseup', onMouseUp);
+        function onEnd() {
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup', onEnd);
+            document.removeEventListener('touchmove', onMove);
+            document.removeEventListener('touchend', onEnd);
         }
-        document.addEventListener('mousemove', onMouseMove);
-        document.addEventListener('mouseup', onMouseUp);
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onEnd);
+        document.addEventListener('touchmove', onMove, {passive: false});
+        document.addEventListener('touchend', onEnd);
     }
 
     function initResizeRow(e) {
+        if (e.cancelable) e.preventDefault();
         const th = e.target.parentElement;
         const tr = th.parentElement;
-        const startY = e.pageY;
+        const startY = getClientY(e);
         const startHeight = tr.offsetHeight;
 
-        function onMouseMove(e) {
-            const newHeight = startHeight + e.pageY - startY;
-            if (newHeight > 20) { // 最小高さの制限
+        function onMove(e) {
+            const newHeight = startHeight + getClientY(e) - startY;
+            if (newHeight > 20) {
                 tr.style.height = newHeight + 'px';
             }
         }
-        function onMouseUp() {
-            document.removeEventListener('mousemove', onMouseMove);
-            document.removeEventListener('mouseup', onMouseUp);
+        function onEnd() {
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup', onEnd);
+            document.removeEventListener('touchmove', onMove);
+            document.removeEventListener('touchend', onEnd);
         }
-        document.addEventListener('mousemove', onMouseMove);
-        document.addEventListener('mouseup', onMouseUp);
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onEnd);
+        document.addEventListener('touchmove', onMove, {passive: false});
+        document.addEventListener('touchend', onEnd);
     }
 
-    // CSVエクスポート
     function exportCSV() {
         let csv = "";
         const rows = tableBody.querySelectorAll('tr');
