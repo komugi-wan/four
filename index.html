@@ -18,46 +18,143 @@
             --tab-bg: #e8eaed;
         }
 
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; color: #333; overflow: hidden; }
-        .toolbar { background: #fff; padding: 12px; border-bottom: 1px solid var(--border-color); display: flex; gap: 10px; align-items: center; flex-wrap: wrap; box-shadow: 0 2px 4px rgba(0,0,0,0.05); z-index: 100; }
-        .color-palette { display: flex; gap: 4px; align-items: center; margin-left: 10px; padding-left: 10px; border-left: 1px solid #ccc; }
-        .color-swatch { width: 20px; height: 20px; border-radius: 3px; cursor: pointer; border: 1px solid #ddd; transition: transform 0.1s; }
-        .color-swatch:hover { transform: scale(1.2); border-color: #999; }
-        .table-container { overflow: auto; flex-grow: 1; position: relative; -webkit-overflow-scrolling: touch; background: #fff; }
-        table { border-collapse: collapse; table-layout: fixed; width: 0; }
-        th { background: var(--header-bg); border: 1px solid var(--border-color); position: sticky; top: 0; z-index: 20; font-size: 12px; font-weight: 600; user-select: none; height: var(--row-height); box-sizing: border-box; }
-        .row-header { left: 0; z-index: 30; width: 50px; text-align: center; background: var(--header-bg); cursor: context-menu; }
-        tr:first-child th:first-child { z-index: 40; }
-        td { border: 1px solid var(--border-color); padding: 0; box-sizing: border-box; height: var(--row-height); position: relative; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0;
+        display: flex; flex-direction: column; height: 100vh; color: #333; overflow: hidden;
+        }
+        .toolbar { background: #fff; padding: 12px; border-bottom: 1px solid var(--border-color); display: flex;
+        gap: 10px; align-items: center; flex-wrap: wrap; box-shadow: 0 2px 4px rgba(0,0,0,0.05); z-index: 100;
+        }
+        .color-palette { display: flex; gap: 4px; align-items: center; margin-left: 10px; padding-left: 10px;
+        border-left: 1px solid #ccc; }
+        .color-swatch { width: 20px; height: 20px; border-radius: 3px;
+        cursor: pointer; border: 1px solid #ddd; transition: transform 0.1s; }
+        .color-swatch:hover { transform: scale(1.2);
+        border-color: #999; }
+        .table-container { overflow: auto; flex-grow: 1; position: relative; -webkit-overflow-scrolling: touch;
+        background: #fff; }
+        table { border-collapse: collapse; table-layout: fixed; width: 0;
+        }
+        th { background: var(--header-bg); border: 1px solid var(--border-color); position: sticky; top: 0;
+        z-index: 20; font-size: 12px; font-weight: 600; user-select: none; height: var(--row-height); box-sizing: border-box;
+        }
+        .row-header { left: 0; z-index: 30; width: 50px; text-align: center; background: var(--header-bg);
+        cursor: context-menu; }
+        tr:first-child th:first-child { z-index: 40;
+        }
+        td { border: 1px solid var(--border-color); padding: 0; box-sizing: border-box; height: var(--row-height);
+        position: relative; }
         
-        /* ドラッグ中のスタイル */
-        td.dragging { opacity: 0.5; background-color: var(--accent-hover) !important; }
-        td.drag-over { border: 2px dashed var(--accent-color); }
+        td textarea { border: none; width: 100%; height: 100%; padding: 4px 8px;
+        box-sizing: border-box; outline: none; font-size: 14px; background: transparent; display: block; resize: none; font-family: inherit; white-space: pre-wrap; overflow: hidden; -webkit-touch-callout: none;
+        }
+        td textarea:focus { position: absolute; top: 0; left: 0; z-index: 60;
+        height: auto; min-height: 100%; background: inherit; border: 2px solid var(--accent-color); padding: 3px 7px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); overflow: hidden;
+        }
 
-        td textarea { border: none; width: 100%; height: 100%; padding: 4px 8px; box-sizing: border-box; outline: none; font-size: 14px; background: transparent; display: block; resize: none; font-family: inherit; white-space: pre-wrap; overflow: hidden; -webkit-touch-callout: none; }
-        td textarea:focus { position: absolute; top: 0; left: 0; z-index: 60; height: auto; min-height: 100%; background: inherit; border: 2px solid var(--accent-color); padding: 3px 7px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); overflow: hidden; }
-        .char-count { position: absolute; bottom: 2px; right: 4px; font-size: 9px; color: #aaa; pointer-events: none; z-index: 70; background: rgba(255, 255, 255, 0.6); padding: 0 2px; border-radius: 2px; display: none; }
-        td:hover .char-count, td textarea:focus + .char-count { display: block; }
-        .resizer-h { position: absolute; right: -5px; top: 0; width: 10px; height: 100%; cursor: col-resize; z-index: 50; touch-action: none; }
-        .resizer-v { position: absolute; bottom: -5px; left: 0; width: 100%; height: 10px; cursor: row-resize; z-index: 50; touch-action: none; }
-        .resizer-h:hover::after, .resizer-v:hover::after { background: var(--accent-color); content: ''; position: absolute; right: 4px; top: 0; width: 1px; height: 100%; }
-        .resizer-v:hover::after { right: auto; bottom: 4px; width: 100%; height: 1px; }
-        button { cursor: pointer; padding: 8px 16px; background: #fff; border: 1px solid #ced4da; border-radius: 4px; font-size: 14px; transition: all 0.2s; font-weight: 500; }
-        button:hover { background: var(--accent-hover); border-color: var(--accent-color); color: var(--accent-color); }
-        .sheet-tabs { display: flex; background: var(--tab-bg); border-top: 1px solid var(--border-color); padding: 0 10px; align-items: center; height: 40px; }
-        .tab { padding: 8px 16px; border: 1px solid transparent; border-bottom: none; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 8px; background: #e8eaed; margin-right: 2px; border-radius: 0 0 4px 4px; white-space: nowrap; }
-        .tab.active { background: #fff; border-color: var(--border-color); font-weight: bold; border-top: 3px solid var(--accent-color); }
-        .tab-close { font-size: 16px; line-height: 1; color: #888; }
-        .tab-close:hover { color: #f44336; }
-        .add-sheet-btn { font-weight: bold; font-size: 18px; padding: 0 12px; height: 30px; border: none; background: none; color: #5f6368; }
-        .add-sheet-btn:hover { background: rgba(0,0,0,0.05); border-radius: 50%; }
-        .context-menu { position: fixed; background: #fff; border: 1px solid #ccc; box-shadow: 2px 2px 5px rgba(0,0,0,0.2); z-index: 1000; display: none; padding: 5px 0; min-width: 150px; }
-        .context-menu-item { padding: 8px 15px; cursor: pointer; font-size: 14px; }
-        .context-menu-item:hover { background: var(--accent-hover); color: var(--accent-color); }
-        .context-menu-item.disabled { color: #ccc; cursor: default; }
+        /* 集中モード用のスタイル（スマホ・タブレット向け） */
+        @media screen and (max-width: 768px) {
+            td textarea:focus {
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 100vw !important;
+                height: 100vh !important;
+                z-index: 10000 !important;
+                background: #fff !important;
+                padding: 60px 20px 20px 20px !important;
+                font-size: 18px !important; /* スマホで入力しやすい文字サイズ */
+                box-shadow: none !important;
+                border: none !important;
+            }
+            .focus-header {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 50px;
+                background: var(--accent-color);
+                color: white;
+                z-index: 10001;
+                align-items: center;
+                justify-content: space-between;
+                padding: 0 15px;
+                box-sizing: border-box;
+                font-weight: bold;
+            }
+            body.is-focus-mode .focus-header {
+                display: flex;
+            }
+            .btn-done {
+                background: white;
+                color: var(--accent-color);
+                border: none;
+                padding: 5px 15px;
+                border-radius: 4px;
+                font-size: 14px;
+            }
+        }
+
+        .char-count { position: absolute; bottom: 2px; right: 4px; font-size: 9px; color: #aaa;
+        pointer-events: none; z-index: 70; background: rgba(255, 255, 255, 0.6); padding: 0 2px; border-radius: 2px; display: none;
+        }
+        td:hover .char-count, td textarea:focus + .char-count { display: block;
+        }
+        /* 集中モード中の文字数カウント位置調整 */
+        body.is-focus-mode .char-count {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 10002;
+            font-size: 14px;
+        }
+
+        .resizer-h { position: absolute; right: -5px; top: 0; width: 100%; height: 100%;
+        cursor: col-resize; z-index: 50; touch-action: none; }
+        .resizer-v { position: absolute; bottom: -5px;
+        left: 0; width: 100%; height: 10px; cursor: row-resize; z-index: 50; touch-action: none;
+        }
+        .resizer-h:hover::after, .resizer-v:hover::after { background: var(--accent-color); content: ''; position: absolute; right: 4px;
+        top: 0; width: 1px; height: 100%; }
+        .resizer-v:hover::after { right: auto; bottom: 4px;
+        width: 100%; height: 1px; }
+        button { cursor: pointer; padding: 8px 16px;
+        background: #fff; border: 1px solid #ced4da; border-radius: 4px; font-size: 14px; transition: all 0.2s; font-weight: 500;
+        }
+        button:hover { background: var(--accent-hover); border-color: var(--accent-color); color: var(--accent-color);
+        }
+        .sheet-tabs { display: flex; background: var(--tab-bg); border-top: 1px solid var(--border-color);
+        padding: 0 10px; align-items: center; height: 40px; }
+        .tab { padding: 8px 16px;
+        border: 1px solid transparent; border-bottom: none; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 8px; background: #e8eaed; margin-right: 2px;
+        border-radius: 0 0 4px 4px; white-space: nowrap; }
+        .tab.active { background: #fff;
+        border-color: var(--border-color); font-weight: bold; border-top: 3px solid var(--accent-color); }
+        .tab-close { font-size: 16px;
+        line-height: 1; color: #888; }
+        .tab-close:hover { color: #f44336;
+        }
+        .add-sheet-btn { font-weight: bold; font-size: 18px; padding: 0 12px; height: 30px;
+        border: none; background: none; color: #5f6368; }
+        .add-sheet-btn:hover { background: rgba(0,0,0,0.05); border-radius: 50%;
+        }
+        .context-menu { position: fixed; background: #fff; border: 1px solid #ccc;
+        box-shadow: 2px 2px 5px rgba(0,0,0,0.2); z-index: 1000; display: none; padding: 5px 0; min-width: 150px;
+        }
+        .context-menu-item { padding: 8px 15px; cursor: pointer; font-size: 14px;
+        }
+        .context-menu-item:hover { background: var(--accent-hover); color: var(--accent-color);
+        }
+        .context-menu-item.disabled { color: #ccc; cursor: default;
+        }
     </style>
 </head>
 <body>
+
+<div class="focus-header" id="focus-header">
+    <span id="focus-cell-address">セル編集</span>
+    <button class="btn-done" onclick="exitFocusMode()">完了</button>
+</div>
 
 <div class="toolbar">
     <button id="btn-add-row">行を追加 (+)</button>
@@ -99,7 +196,6 @@
         activeSheetIndex: 0,
         lastFocusedCell: null,
         clipboard: { type: null, index: null, data: null, heightOrWidth: null, colors: null },
-        dragSource: null, // セル移動用
         
         get currentSheet() { return this.sheets[this.activeSheetIndex]; }
     };
@@ -109,7 +205,9 @@
         tableBody: document.getElementById('table-body'),
         tabContainer: document.getElementById('sheet-tabs'),
         colorPalette: document.getElementById('color-palette'),
-        contextMenu: document.getElementById('context-menu')
+        contextMenu: document.getElementById('context-menu'),
+        focusHeader: document.getElementById('focus-header'),
+        focusAddress: document.getElementById('focus-cell-address')
     };
 
     /** --- データベース操作 --- **/
@@ -179,7 +277,6 @@
         th.style.width = (width || DEFAULT_COL_WIDTH) + 'px';
         th.innerHTML = `<span>${Utils.getColName(index)}</span>`;
         th.oncontextmenu = (e) => showContextMenu(e, 'col', index);
-        
         const resizer = document.createElement('div');
         resizer.className = 'resizer-h';
         resizer.addEventListener('mousedown', initResizeCol);
@@ -215,52 +312,57 @@
     }
 
     function createCell(r, c, value, color) {
-    const td = document.createElement('td');
-    td.style.backgroundColor = color;
-    
-    const textarea = document.createElement('textarea');
-    textarea.setAttribute('autocomplete', 'off');
-    textarea.setAttribute('spellcheck', 'false');
-    textarea.value = value;
-    
-    const countSpan = document.createElement('span');
-    countSpan.className = 'char-count';
-    updateCharCount(countSpan, value);
-
-    textarea.addEventListener('input', function() {
-        autoResize(this);
-        AppState.currentSheet.data[r][c] = this.value;
-        updateCharCount(countSpan, this.value);
-        DB.save();
-    });
-    textarea.addEventListener('focus', function() {
-        autoResize(this);
-        AppState.lastFocusedCell = { r, c, element: td };
-    });
-    textarea.addEventListener('blur', function() { this.style.height = '100%'; });
-    
-    td.appendChild(textarea);
-    td.appendChild(countSpan);
-    return td;
-}
-
-    // セル移動処理
-    function moveCellData(srcR, srcC, destR, destC) {
-        const sheet = AppState.currentSheet;
-        // データの入れ替え
-        const tempVal = sheet.data[srcR][srcC];
-        sheet.data[srcR][srcC] = sheet.data[destR][destC];
-        sheet.data[destR][destC] = tempVal;
+        const td = document.createElement('td');
+        td.style.backgroundColor = color;
         
-        // 色の入れ替え
-        const srcKey = `${srcR}-${srcC}`;
-        const destKey = `${destR}-${destC}`;
-        const tempColor = sheet.colors[srcKey];
-        if (sheet.colors[destKey]) sheet.colors[srcKey] = sheet.colors[destKey]; else delete sheet.colors[srcKey];
-        if (tempColor) sheet.colors[destKey] = tempColor; else delete sheet.colors[destKey];
+        const textarea = document.createElement('textarea');
+        textarea.setAttribute('autocomplete', 'off');
+        textarea.setAttribute('spellcheck', 'false');
+        textarea.value = value;
         
-        DB.save();
-        renderTable();
+        const countSpan = document.createElement('span');
+        countSpan.className = 'char-count';
+        updateCharCount(countSpan, value);
+
+        textarea.addEventListener('input', function() {
+            if (!document.body.classList.contains('is-focus-mode')) {
+                autoResize(this);
+            }
+            AppState.currentSheet.data[r][c] = this.value;
+            updateCharCount(countSpan, this.value);
+            DB.save();
+        });
+
+        textarea.addEventListener('focus', function() {
+            AppState.lastFocusedCell = { r, c, element: td, textarea: this };
+            
+            // モバイル判定（画面幅768px以下）で集中モード起動
+            if (window.innerWidth <= 768) {
+                document.body.classList.add('is-focus-mode');
+                DOM.focusAddress.innerText = `${Utils.getColName(c)}${r + 1} を編集内容`;
+            } else {
+                autoResize(this);
+            }
+        });
+
+        textarea.addEventListener('blur', function() { 
+            if (!document.body.classList.contains('is-focus-mode')) {
+                this.style.height = '100%'; 
+            }
+        });
+        
+        td.appendChild(textarea);
+        td.appendChild(countSpan);
+        return td;
+    }
+
+    // 集中モードを終了する関数
+    function exitFocusMode() {
+        document.body.classList.remove('is-focus-mode');
+        if (AppState.lastFocusedCell && AppState.lastFocusedCell.textarea) {
+            AppState.lastFocusedCell.textarea.blur();
+            AppState.lastFocusedCell.textarea.style.height = '100%';
+        }
     }
 
     /** --- UI操作系 --- **/
@@ -271,6 +373,7 @@
     }
 
     function autoResize(el) {
+        if (document.body.classList.contains('is-focus-mode')) return;
         el.style.height = 'auto';
         el.style.height = el.scrollHeight + 'px';
     }
@@ -417,11 +520,9 @@
             const tab = document.createElement('div');
             tab.className = `tab ${index === AppState.activeSheetIndex ? 'active' : ''}`;
             
-            // シート名表示部分
             const nameSpan = document.createElement('span');
             nameSpan.innerText = sheet.name;
             nameSpan.onclick = () => switchSheet(index);
-            // ダブルクリックで名前変更
             nameSpan.ondblclick = () => renameSheet(index);
             
             tab.appendChild(nameSpan);
@@ -433,7 +534,6 @@
                 closeBtn.onclick = (e) => { e.stopPropagation(); deleteSheet(index); };
                 tab.appendChild(closeBtn);
             }
-            
             DOM.tabContainer.insertBefore(tab, DOM.tabContainer.querySelector('#btn-add-sheet'));
         });
     }
@@ -450,7 +550,6 @@
     function switchSheet(index) {
         AppState.activeSheetIndex = index;
         AppState.lastFocusedCell = null;
-        AppState.dragSource = null;
         DB.save();
         renderTable();
     }
@@ -467,14 +566,12 @@
 
     /** --- リサイズ機能 --- **/
     const getPos = e => ({ x: e.touches ? e.touches[0].clientX : e.clientX, y: e.touches ? e.touches[0].clientY : e.clientY });
-
     function initResizeCol(e) {
         if (e.cancelable) e.preventDefault();
         const th = e.target.parentElement;
         const colIdx = Array.from(th.parentElement.children).indexOf(th) - 1;
         const start = getPos(e);
         const startWidth = th.offsetWidth;
-        
         const onMove = (ev) => {
             const newWidth = startWidth + getPos(ev).x - start.x;
             if (newWidth > 40) {
@@ -484,7 +581,8 @@
         };
         const onEnd = () => {
             DB.save();
-            document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onEnd);
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup', onEnd);
             document.removeEventListener('touchmove', onMove); document.removeEventListener('touchend', onEnd);
         };
         document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onEnd);
@@ -497,7 +595,6 @@
         const rowIdx = Array.from(tr.parentElement.children).indexOf(tr);
         const start = getPos(e);
         const startHeight = tr.offsetHeight;
-
         const onMove = (ev) => {
             const newHeight = startHeight + getPos(ev).y - start.y;
             if (newHeight > 20) {
@@ -507,7 +604,8 @@
         };
         const onEnd = () => {
             DB.save();
-            document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onEnd);
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup', onEnd);
             document.removeEventListener('touchmove', onMove); document.removeEventListener('touchend', onEnd);
         };
         document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onEnd);
@@ -535,7 +633,6 @@
 
     /** --- 初期化ルーチン --- **/
     async function initApp() {
-        // カラーパレット生成
         COLORS.forEach(color => {
             const swatch = document.createElement('div');
             swatch.className = 'color-swatch';
@@ -544,7 +641,6 @@
             DOM.colorPalette.appendChild(swatch);
         });
 
-        // イベント登録
         document.getElementById('btn-add-row').onclick = () => {
             createRow(AppState.currentSheet.rowCount++, null);
             DB.save();
@@ -565,15 +661,11 @@
             renderTable();
         };
         document.addEventListener('click', hideContextMenu);
-
-        // 起動
         try {
             await DB.init();
             await DB.load();
         } catch (e) { console.error("DB Load Error", e); }
         renderTable();
-
-        // SW
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js').catch(console.error);
         }
