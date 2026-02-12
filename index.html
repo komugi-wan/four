@@ -2,312 +2,320 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Professional Spreadsheet App with Sheets & Color</title>
+    <meta name="viewport" content="width=device-width, initial-scale=0.5, minimum-scale=0.1, maximum-scale=5.0, user-scalable=yes">
+    <title>Professional Spreadsheet App</title>
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#1a73e8">
+    <meta name="theme-color" content="#f06595">
     <link rel="apple-touch-icon" href="icon-192.png">
-    
     <style>
         :root {
             --header-bg: #f8f9fa;
             --border-color: #ddd;
-            --accent-color: #1a73e8;
+            --accent-color: #f06595;
+            --accent-hover: #ffdeeb;
             --cell-width: 100px;
             --row-height: 32px;
             --tab-bg: #e8eaed;
         }
 
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0;
-            display: flex; flex-direction: column; height: 100vh; color: #333; overflow: hidden;
-        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; color: #333; overflow: hidden; }
+        .toolbar { background: #fff; padding: 12px; border-bottom: 1px solid var(--border-color); display: flex; gap: 10px; align-items: center; flex-wrap: wrap; box-shadow: 0 2px 4px rgba(0,0,0,0.05); z-index: 100; }
+        .color-palette { display: flex; gap: 4px; align-items: center; margin-left: 10px; padding-left: 10px; border-left: 1px solid #ccc; }
+        .color-swatch { width: 20px; height: 20px; border-radius: 3px; cursor: pointer; border: 1px solid #ddd; transition: transform 0.1s; }
+        .color-swatch:hover { transform: scale(1.2); border-color: #999; }
+        .table-container { overflow: auto; flex-grow: 1; position: relative; -webkit-overflow-scrolling: touch; background: #fff; }
+        table { border-collapse: collapse; table-layout: fixed; width: 0; }
+        th { background: var(--header-bg); border: 1px solid var(--border-color); position: sticky; top: 0; z-index: 20; font-size: 12px; font-weight: 600; user-select: none; height: var(--row-height); box-sizing: border-box; }
+        .row-header { left: 0; z-index: 30; width: 50px; text-align: center; background: var(--header-bg); cursor: context-menu; }
+        tr:first-child th:first-child { z-index: 40; }
+        td { border: 1px solid var(--border-color); padding: 0; box-sizing: border-box; height: var(--row-height); position: relative; }
         
-        /* ツールバー */
-        .toolbar { 
-            background: #fff;
-            padding: 12px; border-bottom: 1px solid var(--border-color); 
-            display: flex; gap: 10px; align-items: center; flex-wrap: wrap; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            z-index: 100;
-        }
-        
-        /* カラーパレット */
-        .color-palette { display: flex;
-            gap: 4px; align-items: center; margin-left: 10px; padding-left: 10px; border-left: 1px solid #ccc;
-        }
-        .color-swatch { 
-            width: 20px;
-            height: 20px; border-radius: 3px; cursor: pointer; border: 1px solid #ddd;
-            transition: transform 0.1s;
-        }
-        .color-swatch:hover { transform: scale(1.2); border-color: #999;
-        }
-        
-        .table-container { overflow: auto;
-            flex-grow: 1; position: relative; -webkit-overflow-scrolling: touch; background: #fff; }
-        
-        table { border-collapse: collapse;
-            table-layout: fixed; width: 0; } 
-        
-        th { 
-            background: var(--header-bg);
-            border: 1px solid var(--border-color); 
-            position: sticky; top: 0; z-index: 20; font-size: 12px; font-weight: 600; 
-            user-select: none; height: var(--row-height); box-sizing: border-box;
-        }
+        /* ドラッグ中のスタイル */
+        td.dragging { opacity: 0.5; background-color: var(--accent-hover) !important; }
+        td.drag-over { border: 2px dashed var(--accent-color); }
 
-        .row-header { left: 0; z-index: 30; width: 50px; text-align: center; background: var(--header-bg);
-        }
-        tr:first-child th:first-child { z-index: 40;
-        }
-
-        td { border: 1px solid var(--border-color); padding: 0; box-sizing: border-box; height: var(--row-height);
-            position: relative; }
-        
-        td textarea { 
-            border: none;
-            width: 100%; height: 100%; padding: 4px 8px; 
-            box-sizing: border-box; outline: none; font-size: 14px;
-            background: transparent; display: block;
-            resize: none;
-            font-family: inherit; white-space: pre-wrap; overflow: hidden;
-            -webkit-touch-callout: none;
-        }
-
-        td textarea:focus { 
-            position: absolute;
-            top: 0; left: 0; z-index: 60; height: auto; min-height: 100%;
-            background: inherit; border: 2px solid var(--accent-color); padding: 3px 7px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15); overflow: hidden;
-        }
-
-        /* リサイザー */
-        .resizer-h { position: absolute;
-            right: -5px; top: 0; width: 10px; height: 100%; cursor: col-resize; z-index: 50; touch-action: none;
-        }
-        .resizer-v { position: absolute; bottom: -5px; left: 0; width: 100%; height: 10px;
-            cursor: row-resize; z-index: 50; touch-action: none; }
-        .resizer-h:hover::after, .resizer-v:hover::after { background: var(--accent-color);
-            content: ''; position: absolute; right: 4px; top: 0; width: 1px; height: 100%;
-        }
-        .resizer-v:hover::after { right: auto; bottom: 4px; width: 100%; height: 1px;
-        }
-
-        button { cursor: pointer; padding: 8px 16px; background: #fff;
-            border: 1px solid #ced4da; border-radius: 4px; font-size: 14px; transition: all 0.2s; font-weight: 500;
-        }
-        button:hover { background: #f1f3f4; border-color: #1a73e8; color: #1a73e8;
-        }
-
-        /* シートタブバー */
-        .sheet-tabs {
-            display: flex;
-            background: var(--tab-bg); border-top: 1px solid var(--border-color);
-            padding: 0 10px; align-items: center; height: 40px;
-        }
-        .tab {
-            padding: 8px 16px;
-            border: 1px solid transparent; border-bottom: none;
-            cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 8px;
-            background: #e8eaed; margin-right: 2px;
-            border-radius: 0 0 4px 4px;
-        }
-        .tab.active { background: #fff; border-color: var(--border-color);
-            font-weight: bold; border-top: 3px solid var(--accent-color); }
-        .tab-close { font-size: 16px; line-height: 1;
-            color: #888; }
-        .tab-close:hover { color: #f44336;
-        }
-        .add-sheet-btn { font-weight: bold; font-size: 18px; padding: 0 12px; height: 30px;
-            border: none; background: none; color: #5f6368; }
-        .add-sheet-btn:hover { background: rgba(0,0,0,0.05); border-radius: 50%;
-        }
+        td textarea { border: none; width: 100%; height: 100%; padding: 4px 8px; box-sizing: border-box; outline: none; font-size: 14px; background: transparent; display: block; resize: none; font-family: inherit; white-space: pre-wrap; overflow: hidden; -webkit-touch-callout: none; }
+        td textarea:focus { position: absolute; top: 0; left: 0; z-index: 60; height: auto; min-height: 100%; background: inherit; border: 2px solid var(--accent-color); padding: 3px 7px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); overflow: hidden; }
+        .char-count { position: absolute; bottom: 2px; right: 4px; font-size: 9px; color: #aaa; pointer-events: none; z-index: 70; background: rgba(255, 255, 255, 0.6); padding: 0 2px; border-radius: 2px; display: none; }
+        td:hover .char-count, td textarea:focus + .char-count { display: block; }
+        .resizer-h { position: absolute; right: -5px; top: 0; width: 10px; height: 100%; cursor: col-resize; z-index: 50; touch-action: none; }
+        .resizer-v { position: absolute; bottom: -5px; left: 0; width: 100%; height: 10px; cursor: row-resize; z-index: 50; touch-action: none; }
+        .resizer-h:hover::after, .resizer-v:hover::after { background: var(--accent-color); content: ''; position: absolute; right: 4px; top: 0; width: 1px; height: 100%; }
+        .resizer-v:hover::after { right: auto; bottom: 4px; width: 100%; height: 1px; }
+        button { cursor: pointer; padding: 8px 16px; background: #fff; border: 1px solid #ced4da; border-radius: 4px; font-size: 14px; transition: all 0.2s; font-weight: 500; }
+        button:hover { background: var(--accent-hover); border-color: var(--accent-color); color: var(--accent-color); }
+        .sheet-tabs { display: flex; background: var(--tab-bg); border-top: 1px solid var(--border-color); padding: 0 10px; align-items: center; height: 40px; }
+        .tab { padding: 8px 16px; border: 1px solid transparent; border-bottom: none; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 8px; background: #e8eaed; margin-right: 2px; border-radius: 0 0 4px 4px; white-space: nowrap; }
+        .tab.active { background: #fff; border-color: var(--border-color); font-weight: bold; border-top: 3px solid var(--accent-color); }
+        .tab-close { font-size: 16px; line-height: 1; color: #888; }
+        .tab-close:hover { color: #f44336; }
+        .add-sheet-btn { font-weight: bold; font-size: 18px; padding: 0 12px; height: 30px; border: none; background: none; color: #5f6368; }
+        .add-sheet-btn:hover { background: rgba(0,0,0,0.05); border-radius: 50%; }
+        .context-menu { position: fixed; background: #fff; border: 1px solid #ccc; box-shadow: 2px 2px 5px rgba(0,0,0,0.2); z-index: 1000; display: none; padding: 5px 0; min-width: 150px; }
+        .context-menu-item { padding: 8px 15px; cursor: pointer; font-size: 14px; }
+        .context-menu-item:hover { background: var(--accent-hover); color: var(--accent-color); }
+        .context-menu-item.disabled { color: #ccc; cursor: default; }
     </style>
 </head>
 <body>
 
 <div class="toolbar">
-    <button onclick="addRow()">行を追加 (+)</button>
-    <button onclick="addCol()">列を追加 (+)</button>
-    <button onclick="exportCSV()">CSV書き出し</button>
-    
+    <button id="btn-add-row">行を追加 (+)</button>
+    <button id="btn-add-col">列を追加 (+)</button>
+    <button id="btn-export">CSV書き出し</button>
     <div class="color-palette" id="color-palette">
         <span style="font-size: 12px; color: #666; margin-right: 5px;">背景色:</span>
-        </div>
+    </div>
 </div>
 
 <div class="table-container">
     <table id="spreadsheet">
-        <thead>
-            <tr id="header-row">
-                <th class="row-header"></th>
-            </tr>
-        </thead>
-        <tbody id="table-body">
-        </tbody>
+        <thead><tr id="header-row"><th class="row-header"></th></tr></thead>
+        <tbody id="table-body"></tbody>
     </table>
 </div>
 
 <div class="sheet-tabs" id="sheet-tabs">
-    <button class="add-sheet-btn" onclick="addNewSheet()">+</button>
+    <button class="add-sheet-btn" id="btn-add-sheet">+</button>
 </div>
 
+<div id="context-menu" class="context-menu"></div>
+
 <script>
-    const headerRow = document.getElementById('header-row');
-    const tableBody = document.getElementById('table-body');
-    const tabContainer = document.getElementById('sheet-tabs');
-    const colorPalette = document.getElementById('color-palette');
-    const colors = [
-        "#fff0f6", "#ffdeeb", "#f06595",
-        "#fff5f5", "#ffc9c9", "#fa5252",
-        "#fff9db", "#ffec99", "#fab005",
-        "#ebfbee", "#b2f2bb", "#40c057",
-        "#e7f5ff", "#a5d8ff", "#228be6",
-        "#f8f0fc", "#eebefa", "#be4bdb",
+    /** --- 定数 & 設定 --- **/
+    const DB_CONFIG = { name: 'SpreadsheetDB', version: 1, store: 'settings' };
+    const DEFAULT_COL_WIDTH = 100;
+    const COLORS = [
+        "#fff0f6", "#ffdeeb", "#f06595", "#fff5f5", "#ffc9c9", "#fa5252",
+        "#fff9db", "#ffec99", "#fab005", "#ebfbee", "#b2f2bb", "#40c057",
+        "#e7f5ff", "#a5d8ff", "#228be6", "#f8f0fc", "#eebefa", "#be4bdb",
         "#ffffff", "#ced4da", "#343a40"
     ];
 
-    // --- LocalStorage Logic ---
-    const STORAGE_KEY = 'spreadsheet_data';
-    const ACTIVE_TAB_KEY = 'spreadsheet_active_tab';
+    /** --- 状態管理 --- **/
+    let db;
+    const AppState = {
+        sheets: [{ name: "シート1", data: [], rowCount: 20, colCount: 10, colWidths: [], rowHeights: [], colors: {} }],
+        activeSheetIndex: 0,
+        lastFocusedCell: null,
+        clipboard: { type: null, index: null, data: null, heightOrWidth: null, colors: null },
+        dragSource: null, // セル移動用
+        
+        get currentSheet() { return this.sheets[this.activeSheetIndex]; }
+    };
 
-    let sheets = [
-        { name: "シート1", data: [], rowCount: 20, colCount: 10, colWidths: [], rowHeights: [], colors: {} }
-    ];
-    let activeSheetIndex = 0;
-    let lastFocusedCell = null;
+    const DOM = {
+        headerRow: document.getElementById('header-row'),
+        tableBody: document.getElementById('table-body'),
+        tabContainer: document.getElementById('sheet-tabs'),
+        colorPalette: document.getElementById('color-palette'),
+        contextMenu: document.getElementById('context-menu')
+    };
 
-    // Load data from localStorage on start
-    const savedData = localStorage.getItem(STORAGE_KEY);
-    const savedActiveTab = localStorage.getItem(ACTIVE_TAB_KEY);
-    if (savedData) {
-        sheets = JSON.parse(savedData);
-        activeSheetIndex = savedActiveTab ? parseInt(savedActiveTab) : 0;
-    }
-
-    function saveToLocalStorage() {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(sheets));
-        localStorage.setItem(ACTIVE_TAB_KEY, activeSheetIndex.toString());
-    }
-
-    const DEFAULT_COL_WIDTH = 100;
-    colors.forEach(color => {
-        const swatch = document.createElement('div');
-        swatch.className = 'color-swatch';
-        swatch.style.backgroundColor = color;
-        swatch.onclick = () => applyColor(color);
-        colorPalette.appendChild(swatch);
-    });
-
-    function getColName(n) {
-        let name = "";
-        while (n >= 0) {
-            name = String.fromCharCode((n % 26) + 65) + name;
-            n = Math.floor(n / 26) - 1;
+    /** --- データベース操作 --- **/
+    const DB = {
+        init() {
+            return new Promise((resolve, reject) => {
+                const req = indexedDB.open(DB_CONFIG.name, DB_CONFIG.version);
+                req.onupgradeneeded = (e) => {
+                    if (!e.target.result.objectStoreNames.contains(DB_CONFIG.store)) {
+                        e.target.result.createObjectStore(DB_CONFIG.store);
+                    }
+                };
+                req.onsuccess = (e) => { db = e.target.result; resolve(); };
+                req.onerror = reject;
+            });
+        },
+        async save() {
+            if (!db) return;
+            const tx = db.transaction([DB_CONFIG.store], 'readwrite');
+            const store = tx.objectStore(DB_CONFIG.store);
+            store.put(AppState.sheets, 'sheets_data');
+            store.put(AppState.activeSheetIndex, 'active_tab_index');
+        },
+        async load() {
+            if (!db) return;
+            const tx = db.transaction([DB_CONFIG.store], 'readonly');
+            const store = tx.objectStore(DB_CONFIG.store);
+            const data = await this._get(store, 'sheets_data');
+            const index = await this._get(store, 'active_tab_index');
+            if (data) AppState.sheets = data;
+            if (index !== undefined) AppState.activeSheetIndex = index;
+        },
+        _get(store, key) {
+            return new Promise(res => {
+                const req = store.get(key);
+                req.onsuccess = () => res(req.result);
+            });
         }
-        return name;
-    }
+    };
 
+    /** --- ユーティリティ --- **/
+    const Utils = {
+        getColName(n) {
+            let name = "";
+            while (n >= 0) {
+                name = String.fromCharCode((n % 26) + 65) + name;
+                n = Math.floor(n / 26) - 1;
+            }
+            return name;
+        },
+        deepCopy(obj) { return JSON.parse(JSON.stringify(obj)); }
+    };
+
+    /** --- コア機能: テーブル描画 --- **/
     function renderTable() {
-        const sheet = sheets[activeSheetIndex];
-        headerRow.innerHTML = '<th class="row-header"></th>';
-        tableBody.innerHTML = '';
-        for (let i = 0; i < sheet.colCount; i++) {
-            createColHeader(i, sheet.colWidths[i]);
-        }
-        for (let i = 0; i < sheet.rowCount; i++) {
-            createRow(i, sheet.rowHeights[i]);
-        }
+        const sheet = AppState.currentSheet;
+        DOM.headerRow.innerHTML = '<th class="row-header"></th>';
+        DOM.tableBody.innerHTML = '';
+        
+        for (let i = 0; i < sheet.colCount; i++) createColHeader(i, sheet.colWidths[i]);
+        for (let i = 0; i < sheet.rowCount; i++) createRow(i, sheet.rowHeights[i]);
         renderTabs();
     }
 
     function createColHeader(index, width) {
         const th = document.createElement('th');
         th.style.width = (width || DEFAULT_COL_WIDTH) + 'px';
-        th.innerHTML = `<span>${getColName(index)}</span>`;
+        th.innerHTML = `<span>${Utils.getColName(index)}</span>`;
+        th.oncontextmenu = (e) => showContextMenu(e, 'col', index);
+        
         const resizer = document.createElement('div');
         resizer.className = 'resizer-h';
         resizer.addEventListener('mousedown', initResizeCol);
         resizer.addEventListener('touchstart', initResizeCol, {passive: false});
         th.appendChild(resizer);
-        headerRow.appendChild(th);
+        DOM.headerRow.appendChild(th);
     }
 
     function createRow(rowIndex, height) {
         const tr = document.createElement('tr');
         if (height) tr.style.height = height + 'px';
+        
         const th = document.createElement('th');
         th.className = 'row-header';
         th.innerText = rowIndex + 1;
+        th.oncontextmenu = (e) => showContextMenu(e, 'row', rowIndex);
+
         const resizer = document.createElement('div');
         resizer.className = 'resizer-v';
         resizer.addEventListener('mousedown', initResizeRow);
         resizer.addEventListener('touchstart', initResizeRow, {passive: false});
         th.appendChild(resizer);
         tr.appendChild(th);
-        const sheet = sheets[activeSheetIndex];
+        
+        const sheet = AppState.currentSheet;
         if (!sheet.data[rowIndex]) sheet.data[rowIndex] = [];
         for (let i = 0; i < sheet.colCount; i++) {
-            const cellValue = sheet.data[rowIndex][i] || "";
-            const cellColor = sheet.colors[`${rowIndex}-${i}`] || "#ffffff";
-            tr.appendChild(createCell(rowIndex, i, cellValue, cellColor));
+            const val = sheet.data[rowIndex][i] || "";
+            const color = sheet.colors[`${rowIndex}-${i}`] || "#ffffff";
+            tr.appendChild(createCell(rowIndex, i, val, color));
         }
-        tableBody.appendChild(tr);
+        DOM.tableBody.appendChild(tr);
     }
 
     function createCell(r, c, value, color) {
         const td = document.createElement('td');
         td.style.backgroundColor = color;
+        td.setAttribute('draggable', 'true'); // ドラッグ有効化
+        
         const textarea = document.createElement('textarea');
         textarea.setAttribute('autocomplete', 'off');
         textarea.setAttribute('spellcheck', 'false');
         textarea.value = value;
+        
+        const countSpan = document.createElement('span');
+        countSpan.className = 'char-count';
+        updateCharCount(countSpan, value);
+
         textarea.addEventListener('input', function() {
             autoResize(this);
-            sheets[activeSheetIndex].data[r][c] = this.value;
-            saveToLocalStorage();
+            AppState.currentSheet.data[r][c] = this.value;
+            updateCharCount(countSpan, this.value);
+            DB.save();
         });
         textarea.addEventListener('focus', function() {
             autoResize(this);
-            lastFocusedCell = { r, c, element: td };
+            AppState.lastFocusedCell = { r, c, element: td };
         });
-        textarea.addEventListener('blur', function() {
-            this.style.height = '100%';
-        });
+        textarea.addEventListener('blur', function() { this.style.height = '100%'; });
+        
+        // 長押し・ドラッグ＆ドロップ関連
         let pressTimer;
         const startPress = (e) => {
             if (e.type === 'mousedown' && e.button !== 0) return;
             pressTimer = setTimeout(() => {
-                if (textarea.value) {
-                    navigator.clipboard.writeText(textarea.value).then(() => {
-                        const originalBg = td.style.backgroundColor;
-                        td.style.backgroundColor = '#d1e7dd';
-                         setTimeout(() => {
-                            td.style.backgroundColor = originalBg;
-                        }, 500);
-                    });
-                }
-            }, 500);
+                // スマホ用: 長押しで移動モード
+                AppState.dragSource = { r, c };
+                td.classList.add('dragging');
+            }, 600);
         };
         const cancelPress = () => clearTimeout(pressTimer);
 
-        textarea.addEventListener('mousedown', startPress);
-        textarea.addEventListener('touchstart', startPress, {passive: true});
-        textarea.addEventListener('mouseup', cancelPress);
-        textarea.addEventListener('mouseleave', cancelPress);
-        textarea.addEventListener('touchend', cancelPress);
-        textarea.addEventListener('touchmove', cancelPress);
+        // PCドラッグイベント
+        td.addEventListener('dragstart', (e) => {
+            AppState.dragSource = { r, c };
+            e.dataTransfer.setData('text/plain', ''); // Firefox対策
+            td.classList.add('dragging');
+        });
+        td.addEventListener('dragend', () => {
+            td.classList.remove('dragging');
+            document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+        });
+        td.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            td.classList.add('drag-over');
+        });
+        td.addEventListener('dragleave', () => td.classList.remove('drag-over'));
+        td.addEventListener('drop', (e) => {
+            e.preventDefault();
+            if (AppState.dragSource) {
+                moveCellData(AppState.dragSource.r, AppState.dragSource.c, r, c);
+                AppState.dragSource = null;
+            }
+        });
+
+        // スマホ用タップ（移動先選択）
+        td.addEventListener('click', () => {
+            if (AppState.dragSource && (AppState.dragSource.r !== r || AppState.dragSource.c !== c)) {
+                moveCellData(AppState.dragSource.r, AppState.dragSource.c, r, c);
+                AppState.dragSource = null;
+                renderTable();
+            }
+        });
+
+        ['mousedown', 'touchstart'].forEach(ev => textarea.addEventListener(ev, startPress, {passive: true}));
+        ['mouseup', 'mouseleave', 'touchend', 'touchmove'].forEach(ev => textarea.addEventListener(ev, cancelPress));
 
         td.appendChild(textarea);
+        td.appendChild(countSpan);
         return td;
     }
 
-    function applyColor(color) {
-        if (lastFocusedCell) {
-            const { r, c, element } = lastFocusedCell;
-            element.style.backgroundColor = color;
-            sheets[activeSheetIndex].colors[`${r}-${c}`] = color;
-            saveToLocalStorage();
-        }
+    // セル移動処理
+    function moveCellData(srcR, srcC, destR, destC) {
+        const sheet = AppState.currentSheet;
+        // データの入れ替え
+        const tempVal = sheet.data[srcR][srcC];
+        sheet.data[srcR][srcC] = sheet.data[destR][destC];
+        sheet.data[destR][destC] = tempVal;
+        
+        // 色の入れ替え
+        const srcKey = `${srcR}-${srcC}`;
+        const destKey = `${destR}-${destC}`;
+        const tempColor = sheet.colors[srcKey];
+        if (sheet.colors[destKey]) sheet.colors[srcKey] = sheet.colors[destKey]; else delete sheet.colors[srcKey];
+        if (tempColor) sheet.colors[destKey] = tempColor; else delete sheet.colors[destKey];
+        
+        DB.save();
+        renderTable();
+    }
+
+    /** --- UI操作系 --- **/
+    function updateCharCount(span, text) {
+        const count = text ? text.length : 0;
+        span.innerText = count;
+        span.style.display = count > 0 ? '' : 'none';
     }
 
     function autoResize(el) {
@@ -315,148 +323,311 @@
         el.style.height = el.scrollHeight + 'px';
     }
 
-    function renderTabs() {
-        const existingTabs = tabContainer.querySelectorAll('.tab');
-        existingTabs.forEach(t => t.remove());
-        sheets.forEach((sheet, index) => {
-            const tab = document.createElement('div');
-            tab.className = `tab ${index === activeSheetIndex ? 'active' : ''}`;
-            tab.innerHTML = `
-                <span onclick="switchSheet(${index})">${sheet.name}</span>
-                ${sheets.length > 1 ? `<span class="tab-close" onclick="deleteSheet(${index})">×</span>` : ''}
-            `;
-            tabContainer.insertBefore(tab, tabContainer.lastElementChild);
-        });
+    function applyColor(color) {
+        if (AppState.lastFocusedCell) {
+            const { r, c, element } = AppState.lastFocusedCell;
+            element.style.backgroundColor = color;
+            AppState.currentSheet.colors[`${r}-${c}`] = color;
+            DB.save();
+        }
     }
 
-    function addNewSheet() {
-        const newIdx = sheets.length + 1;
-        sheets.push({ name: `シート${newIdx}`, data: [], rowCount: 20, colCount: 10, colWidths: [], rowHeights: [], colors: {} });
-        activeSheetIndex = sheets.length - 1;
-        saveToLocalStorage();
+    /** --- コンテキストメニュー & 編集操作 --- **/
+    function showContextMenu(e, type, index) {
+        e.preventDefault();
+        DOM.contextMenu.innerHTML = '';
+        const items = [
+            { label: '前に挿入', action: () => modifyItems('insert', type, index) },
+            { label: '削除', action: () => modifyItems('delete', type, index) },
+            { label: '切り取り', action: () => modifyItems('cut', type, index) },
+            { label: '手前に貼り付け', action: () => modifyItems('paste', type, index), 
+              disabled: !AppState.clipboard.type || AppState.clipboard.type !== type }
+        ];
+
+        items.forEach(item => {
+            const div = document.createElement('div');
+            div.className = `context-menu-item ${item.disabled ? 'disabled' : ''}`;
+            div.innerText = item.label;
+            if (!item.disabled) div.onclick = () => { item.action(); hideContextMenu(); };
+            DOM.contextMenu.appendChild(div);
+        });
+
+        DOM.contextMenu.style.display = 'block';
+        DOM.contextMenu.style.left = e.clientX + 'px';
+        DOM.contextMenu.style.top = e.clientY + 'px';
+    }
+
+    function hideContextMenu() { DOM.contextMenu.style.display = 'none'; }
+
+    async function modifyItems(mode, type, index) {
+        const sheet = AppState.currentSheet;
+        if (mode === 'insert') {
+            if (type === 'row') {
+                sheet.data.splice(index, 0, []);
+                sheet.rowHeights.splice(index, 0, null);
+                shiftColors('row', index, 1);
+                sheet.rowCount++;
+            } else {
+                sheet.data.forEach(row => row.splice(index, 0, ""));
+                sheet.colWidths.splice(index, 0, null);
+                shiftColors('col', index, 1);
+                sheet.colCount++;
+            }
+        } else if (mode === 'delete') {
+            if (type === 'row' && sheet.rowCount > 1) {
+                sheet.data.splice(index, 1);
+                sheet.rowHeights.splice(index, 1);
+                deleteColors(type, index);
+                shiftColors('row', index + 1, -1);
+                sheet.rowCount--;
+            } else if (type === 'col' && sheet.colCount > 1) {
+                sheet.data.forEach(row => row.splice(index, 1));
+                sheet.colWidths.splice(index, 1);
+                deleteColors(type, index);
+                shiftColors('col', index + 1, -1);
+                sheet.colCount--;
+            }
+        } else if (mode === 'cut') {
+            AppState.clipboard = {
+                type, index,
+                data: type === 'row' ? Utils.deepCopy(sheet.data[index]) : sheet.data.map(r => r[index]),
+                heightOrWidth: type === 'row' ? sheet.rowHeights[index] : sheet.colWidths[index],
+                colors: extractColors(type, index)
+            };
+            await modifyItems('delete', type, index);
+            return;
+        } else if (mode === 'paste') {
+            if (type === 'row') {
+                sheet.data.splice(index, 0, AppState.clipboard.data);
+                sheet.rowHeights.splice(index, 0, AppState.clipboard.heightOrWidth);
+                shiftColors('row', index, 1);
+                applyExtractedColors('row', index, AppState.clipboard.colors);
+                sheet.rowCount++;
+            } else {
+                sheet.data.forEach((row, i) => row.splice(index, 0, AppState.clipboard.data[i] || ""));
+                sheet.colWidths.splice(index, 0, AppState.clipboard.heightOrWidth);
+                shiftColors('col', index, 1);
+                applyExtractedColors('col', index, AppState.clipboard.colors);
+                sheet.colCount++;
+            }
+            AppState.clipboard = { type: null, index: null, data: null };
+        }
+        DB.save();
         renderTable();
     }
 
+    /** --- カラー操作補助 --- **/
+    function shiftColors(type, startIndex, delta) {
+        const sheet = AppState.currentSheet;
+        const newColors = {};
+        Object.keys(sheet.colors).forEach(key => {
+            let [r, c] = key.split('-').map(Number);
+            if (type === 'row' && r >= startIndex) r += delta;
+            if (type === 'col' && c >= startIndex) c += delta;
+            if (r >= 0 && c >= 0) newColors[`${r}-${c}`] = sheet.colors[key];
+        });
+        sheet.colors = newColors;
+    }
+
+    function deleteColors(type, index) {
+        const sheet = AppState.currentSheet;
+        Object.keys(sheet.colors).forEach(key => {
+            const [r, c] = key.split('-').map(Number);
+            if ((type === 'row' && r === index) || (type === 'col' && c === index)) delete sheet.colors[key];
+        });
+    }
+
+    function extractColors(type, index) {
+        const sheet = AppState.currentSheet;
+        const extracted = {};
+        Object.keys(sheet.colors).forEach(key => {
+            const [r, c] = key.split('-').map(Number);
+            if (type === 'row' && r === index) extracted[c] = sheet.colors[key];
+            if (type === 'col' && c === index) extracted[r] = sheet.colors[key];
+        });
+        return extracted;
+    }
+
+    function applyExtractedColors(type, index, colorMap) {
+        if (!colorMap) return;
+        const sheet = AppState.currentSheet;
+        Object.keys(colorMap).forEach(key => {
+            const pos = Number(key);
+            const k = type === 'row' ? `${index}-${pos}` : `${pos}-${index}`;
+            sheet.colors[k] = colorMap[key];
+        });
+    }
+
+    /** --- シート管理 --- **/
+    function renderTabs() {
+        DOM.tabContainer.querySelectorAll('.tab').forEach(t => t.remove());
+        AppState.sheets.forEach((sheet, index) => {
+            const tab = document.createElement('div');
+            tab.className = `tab ${index === AppState.activeSheetIndex ? 'active' : ''}`;
+            
+            // シート名表示部分
+            const nameSpan = document.createElement('span');
+            nameSpan.innerText = sheet.name;
+            nameSpan.onclick = () => switchSheet(index);
+            // ダブルクリックで名前変更
+            nameSpan.ondblclick = () => renameSheet(index);
+            
+            tab.appendChild(nameSpan);
+
+            if (AppState.sheets.length > 1) {
+                const closeBtn = document.createElement('span');
+                closeBtn.className = 'tab-close';
+                closeBtn.innerHTML = '×';
+                closeBtn.onclick = (e) => { e.stopPropagation(); deleteSheet(index); };
+                tab.appendChild(closeBtn);
+            }
+            
+            DOM.tabContainer.insertBefore(tab, DOM.tabContainer.querySelector('#btn-add-sheet'));
+        });
+    }
+
+    function renameSheet(index) {
+        const newName = prompt("新しいシート名を入力してください:", AppState.sheets[index].name);
+        if (newName && newName.trim() !== "") {
+            AppState.sheets[index].name = newName.trim();
+            DB.save();
+            renderTabs();
+        }
+    }
+
     function switchSheet(index) {
-        activeSheetIndex = index;
-        lastFocusedCell = null;
-        saveToLocalStorage();
+        AppState.activeSheetIndex = index;
+        AppState.lastFocusedCell = null;
+        AppState.dragSource = null;
+        DB.save();
         renderTable();
     }
 
     function deleteSheet(index) {
-        if (sheets.length <= 1) return;
-        if (confirm(`${sheets[index].name} を削除しますか？`)) {
-            sheets.splice(index, 1);
-            if (activeSheetIndex >= sheets.length) activeSheetIndex = sheets.length - 1;
-            saveToLocalStorage();
+        if (AppState.sheets.length <= 1) return;
+        if (confirm(`${AppState.sheets[index].name} を削除しますか？`)) {
+            AppState.sheets.splice(index, 1);
+            if (AppState.activeSheetIndex >= AppState.sheets.length) AppState.activeSheetIndex = AppState.sheets.length - 1;
+            DB.save();
             renderTable();
         }
     }
 
-    function addRow() {
-        const sheet = sheets[activeSheetIndex];
-        createRow(sheet.rowCount++, null);
-        saveToLocalStorage();
-    }
-
-    function addCol() {
-        const sheet = sheets[activeSheetIndex];
-        createColHeader(sheet.colCount++, null);
-        Array.from(tableBody.rows).forEach((row, rIdx) => {
-            row.appendChild(createCell(rIdx, sheet.colCount - 1, "", "#ffffff"));
-        });
-        saveToLocalStorage();
-    }
-
-    const getX = e => e.touches ? e.touches[0].clientX : e.clientX;
-    const getY = e => e.touches ? e.touches[0].clientY : e.clientY;
+    /** --- リサイズ機能 --- **/
+    const getPos = e => ({ x: e.touches ? e.touches[0].clientX : e.clientX, y: e.touches ? e.touches[0].clientY : e.clientY });
 
     function initResizeCol(e) {
         if (e.cancelable) e.preventDefault();
         const th = e.target.parentElement;
         const colIdx = Array.from(th.parentElement.children).indexOf(th) - 1;
-        const startX = getX(e);
+        const start = getPos(e);
         const startWidth = th.offsetWidth;
+        
         const onMove = (ev) => {
-            const newWidth = startWidth + getX(ev) - startX;
+            const newWidth = startWidth + getPos(ev).x - start.x;
             if (newWidth > 40) {
-                th.style.width = newWidth + 'px';
-                th.style.minWidth = newWidth + 'px';
-                sheets[activeSheetIndex].colWidths[colIdx] = newWidth;
+                th.style.width = th.style.minWidth = newWidth + 'px';
+                AppState.currentSheet.colWidths[colIdx] = newWidth;
             }
         };
         const onEnd = () => {
-            saveToLocalStorage();
-            document.removeEventListener('mousemove', onMove);
-            document.removeEventListener('mouseup', onEnd);
-            document.removeEventListener('touchmove', onMove);
-            document.removeEventListener('touchend', onEnd);
+            DB.save();
+            document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onEnd);
+            document.removeEventListener('touchmove', onMove); document.removeEventListener('touchend', onEnd);
         };
-        document.addEventListener('mousemove', onMove);
-        document.addEventListener('mouseup', onEnd);
-        document.addEventListener('touchmove', onMove, {passive: false});
-        document.addEventListener('touchend', onEnd);
+        document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onEnd);
+        document.addEventListener('touchmove', onMove, {passive: false}); document.addEventListener('touchend', onEnd);
     }
 
     function initResizeRow(e) {
         if (e.cancelable) e.preventDefault();
         const tr = e.target.parentElement.parentElement;
         const rowIdx = Array.from(tr.parentElement.children).indexOf(tr);
-        const startY = getY(e);
+        const start = getPos(e);
         const startHeight = tr.offsetHeight;
+
         const onMove = (ev) => {
-            const newHeight = startHeight + getY(ev) - startY;
+            const newHeight = startHeight + getPos(ev).y - start.y;
             if (newHeight > 20) {
                 tr.style.height = newHeight + 'px';
-                sheets[activeSheetIndex].rowHeights[rowIdx] = newHeight;
+                AppState.currentSheet.rowHeights[rowIdx] = newHeight;
             }
         };
         const onEnd = () => {
-            saveToLocalStorage();
-            document.removeEventListener('mousemove', onMove);
-            document.removeEventListener('mouseup', onEnd);
-            document.removeEventListener('touchmove', onMove);
-            document.removeEventListener('touchend', onEnd);
+            DB.save();
+            document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onEnd);
+            document.removeEventListener('touchmove', onMove); document.removeEventListener('touchend', onEnd);
         };
-        document.addEventListener('mousemove', onMove);
-        document.addEventListener('mouseup', onEnd);
-        document.addEventListener('touchmove', onMove, {passive: false});
-        document.addEventListener('touchend', onEnd);
+        document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onEnd);
+        document.addEventListener('touchmove', onMove, {passive: false}); document.addEventListener('touchend', onEnd);
     }
 
+    /** --- 外部出力 --- **/
     function exportCSV() {
+        const sheet = AppState.currentSheet;
         let csv = "";
-        const sheet = sheets[activeSheetIndex];
         for (let i = 0; i < sheet.rowCount; i++) {
             let rowData = [];
             for (let j = 0; j < sheet.colCount; j++) {
                 let val = (sheet.data[i] && sheet.data[i][j]) ? sheet.data[i][j] : "";
-                val = val.replace(/"/g, '""');
-                rowData.push(`"${val}"`);
+                rowData.push(`"${val.replace(/"/g, '""')}"`);
             }
             csv += rowData.join(",") + "\r\n";
         }
-        const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
-        const blob = new Blob([bom, csv], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
+        const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csv], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
-        link.href = url;
-        link.download = `${sheet.name}_${new Date().getTime()}.csv`;
+        link.href = URL.createObjectURL(blob);
+        link.download = `${sheet.name}_${Date.now()}.csv`;
         link.click();
-        URL.revokeObjectURL(url);
     }
 
-    renderTable();
-
-    // --- Service Worker Registration ---
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('sw.js')
-            .then(reg => console.log('SW registered'))
-            .catch(err => console.log('SW error', err));
+    /** --- 初期化ルーチン --- **/
+    async function initApp() {
+        // カラーパレット生成
+        COLORS.forEach(color => {
+            const swatch = document.createElement('div');
+            swatch.className = 'color-swatch';
+            swatch.style.backgroundColor = color;
+            swatch.onclick = () => applyColor(color);
+            DOM.colorPalette.appendChild(swatch);
         });
+
+        // イベント登録
+        document.getElementById('btn-add-row').onclick = () => {
+            createRow(AppState.currentSheet.rowCount++, null);
+            DB.save();
+        };
+        document.getElementById('btn-add-col').onclick = () => {
+            const sheet = AppState.currentSheet;
+            createColHeader(sheet.colCount++, null);
+            Array.from(DOM.tableBody.rows).forEach((row, rIdx) => {
+                row.appendChild(createCell(rIdx, sheet.colCount - 1, "", "#ffffff"));
+            });
+            DB.save();
+        };
+        document.getElementById('btn-export').onclick = exportCSV;
+        document.getElementById('btn-add-sheet').onclick = () => {
+            AppState.sheets.push({ name: `シート${AppState.sheets.length + 1}`, data: [], rowCount: 20, colCount: 10, colWidths: [], rowHeights: [], colors: {} });
+            AppState.activeSheetIndex = AppState.sheets.length - 1;
+            DB.save();
+            renderTable();
+        };
+        document.addEventListener('click', hideContextMenu);
+
+        // 起動
+        try {
+            await DB.init();
+            await DB.load();
+        } catch (e) { console.error("DB Load Error", e); }
+        renderTable();
+
+        // SW
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').catch(console.error);
+        }
     }
+
+    initApp();
 </script>
 
 </body>
