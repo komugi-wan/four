@@ -51,64 +51,27 @@
         height: auto; min-height: 100%; background: inherit; border: 2px solid var(--accent-color); padding: 3px 7px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); overflow: hidden;
         }
 
-        /* 集中モード用のスタイル（スマホ・タブレット向け） */
-        @media screen and (max-width: 768px) {
-            td textarea:focus {
-                position: fixed !important;
-                top: 0 !important;
-                left: 0 !important;
-                width: 100vw !important;
-                height: 100vh !important;
-                z-index: 10000 !important;
-                background: #fff !important;
-                padding: 60px 20px 20px 20px !important;
-                font-size: 18px !important; /* スマホで入力しやすい文字サイズ */
-                box-shadow: none !important;
-                border: none !important;
-            }
-            .focus-header {
-                display: none;
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 50px;
-                background: var(--accent-color);
-                color: white;
-                z-index: 10001;
-                align-items: center;
-                justify-content: space-between;
-                padding: 0 15px;
-                box-sizing: border-box;
-                font-weight: bold;
-            }
-            body.is-focus-mode .focus-header {
-                display: flex;
-            }
-            .btn-done {
-                background: white;
-                color: var(--accent-color);
-                border: none;
-                padding: 5px 15px;
-                border-radius: 4px;
-                font-size: 14px;
-            }
+        /* 集中モード起動ボタン */
+        .focus-trigger {
+            position: absolute; top: -12px; right: 2px; background: var(--accent-color); color: white;
+            width: 24px; height: 24px; border-radius: 4px; display: none; align-items: center; justify-content: center;
+            font-size: 14px; cursor: pointer; z-index: 100; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
+        td textarea:focus + .focus-trigger { display: flex; }
+
+        /* 集中モード(全画面)オーバーレイ */
+        #focus-mode-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #fff;
+            z-index: 2000; display: none; flex-direction: column;
+        }
+        .focus-header { padding: 15px; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; background: var(--header-bg); }
+        #focus-textarea { flex-grow: 1; border: none; padding: 20px; font-size: 18px; outline: none; resize: none; width: 100%; box-sizing: border-box; }
 
         .char-count { position: absolute; bottom: 2px; right: 4px; font-size: 9px; color: #aaa;
         pointer-events: none; z-index: 70; background: rgba(255, 255, 255, 0.6); padding: 0 2px; border-radius: 2px; display: none;
         }
-        td:hover .char-count, td textarea:focus + .char-count { display: block;
+        td:hover .char-count, td textarea:focus + .focus-trigger + .char-count { display: block;
         }
-        /* 集中モード中の文字数カウント位置調整 */
-        body.is-focus-mode .char-count {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 10002;
-            font-size: 14px;
-        }
-
         .resizer-h { position: absolute; right: -5px; top: 0; width: 100%; height: 100%;
         cursor: col-resize; z-index: 50; touch-action: none; }
         .resizer-v { position: absolute; bottom: -5px;
@@ -151,11 +114,6 @@
 </head>
 <body>
 
-<div class="focus-header" id="focus-header">
-    <span id="focus-cell-address">セル編集</span>
-    <button class="btn-done" onclick="exitFocusMode()">完了</button>
-</div>
-
 <div class="toolbar">
     <button id="btn-add-row">行を追加 (+)</button>
     <button id="btn-add-col">列を追加 (+)</button>
@@ -177,6 +135,14 @@
 </div>
 
 <div id="context-menu" class="context-menu"></div>
+
+<div id="focus-mode-overlay">
+    <div class="focus-header">
+        <span id="focus-cell-label" style="font-weight: bold;">セル編集</span>
+        <button id="btn-close-focus" style="background: var(--accent-color); color: white; border: none;">完了</button>
+    </div>
+    <textarea id="focus-textarea" placeholder="入力を開始..."></textarea>
+</div>
 
 <script>
     /** --- 定数 & 設定 --- **/
@@ -206,8 +172,10 @@
         tabContainer: document.getElementById('sheet-tabs'),
         colorPalette: document.getElementById('color-palette'),
         contextMenu: document.getElementById('context-menu'),
-        focusHeader: document.getElementById('focus-header'),
-        focusAddress: document.getElementById('focus-cell-address')
+        focusOverlay: document.getElementById('focus-mode-overlay'),
+        focusTextarea: document.getElementById('focus-textarea'),
+        focusLabel: document.getElementById('focus-cell-label'),
+        btnCloseFocus: document.getElementById('btn-close-focus')
     };
 
     /** --- データベース操作 --- **/
@@ -319,50 +287,56 @@
         textarea.setAttribute('autocomplete', 'off');
         textarea.setAttribute('spellcheck', 'false');
         textarea.value = value;
+
+        // 集中モードトリガー
+        const trigger = document.createElement('div');
+        trigger.className = 'focus-trigger';
+        trigger.innerHTML = '✎';
+        trigger.onclick = (e) => {
+            e.stopPropagation();
+            openFocusMode(r, c, textarea);
+        };
         
         const countSpan = document.createElement('span');
         countSpan.className = 'char-count';
         updateCharCount(countSpan, value);
 
         textarea.addEventListener('input', function() {
-            if (!document.body.classList.contains('is-focus-mode')) {
-                autoResize(this);
-            }
+            autoResize(this);
             AppState.currentSheet.data[r][c] = this.value;
             updateCharCount(countSpan, this.value);
             DB.save();
         });
 
         textarea.addEventListener('focus', function() {
-            AppState.lastFocusedCell = { r, c, element: td, textarea: this };
-            
-            // モバイル判定（画面幅768px以下）で集中モード起動
-            if (window.innerWidth <= 768) {
-                document.body.classList.add('is-focus-mode');
-                DOM.focusAddress.innerText = `${Utils.getColName(c)}${r + 1} を編集内容`;
-            } else {
-                autoResize(this);
-            }
+            autoResize(this);
+            AppState.lastFocusedCell = { r, c, element: td, textarea: this, countSpan };
         });
 
-        textarea.addEventListener('blur', function() { 
-            if (!document.body.classList.contains('is-focus-mode')) {
-                this.style.height = '100%'; 
-            }
-        });
+        textarea.addEventListener('blur', function() { this.style.height = '100%'; });
         
         td.appendChild(textarea);
+        td.appendChild(trigger);
         td.appendChild(countSpan);
         return td;
     }
 
-    // 集中モードを終了する関数
-    function exitFocusMode() {
-        document.body.classList.remove('is-focus-mode');
-        if (AppState.lastFocusedCell && AppState.lastFocusedCell.textarea) {
-            AppState.lastFocusedCell.textarea.blur();
-            AppState.lastFocusedCell.textarea.style.height = '100%';
-        }
+    /** --- 集中モード機能 --- **/
+    function openFocusMode(r, c, originalTextarea) {
+        const colName = Utils.getColName(c);
+        DOM.focusLabel.innerText = `セル ${colName}${r + 1} を編集中`;
+        DOM.focusTextarea.value = originalTextarea.value;
+        DOM.focusOverlay.style.display = 'flex';
+        DOM.focusTextarea.focus();
+
+        // 完了時の処理
+        DOM.btnCloseFocus.onclick = () => {
+            originalTextarea.value = DOM.focusTextarea.value;
+            AppState.currentSheet.data[r][c] = DOM.focusTextarea.value;
+            updateCharCount(AppState.lastFocusedCell.countSpan, DOM.focusTextarea.value);
+            DOM.focusOverlay.style.display = 'none';
+            DB.save();
+        };
     }
 
     /** --- UI操作系 --- **/
@@ -373,7 +347,6 @@
     }
 
     function autoResize(el) {
-        if (document.body.classList.contains('is-focus-mode')) return;
         el.style.height = 'auto';
         el.style.height = el.scrollHeight + 'px';
     }
