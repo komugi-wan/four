@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=10.0, user-scalable=yes">
     <title>Professional Spreadsheet App</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#f06595">
@@ -10,18 +10,19 @@
     <style>
         :root {
             --header-bg: #f8f9fa;
-        --border-color: #e0e0e0;
+            --border-color: #e0e0e0;
             --accent-color: #f06595;
             --accent-hover: #ffdeeb;
             --cell-width: 100px;
-            --row-height: 36px; /* 少し高めに設定して押しやすく */
+            --row-height: 36px;
             --tab-bg: #f1f3f4;
             --selection-bg: rgba(240, 101, 149, 0.08);
-    }
+            --zoom-level: 1;
+        }
 
         body { 
             font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "BIZ UDPGothic", sans-serif;
-        margin: 0;
+            margin: 0;
             display: flex; 
             flex-direction: column; 
             height: 100vh; 
@@ -29,70 +30,66 @@
             color: #202124; 
             overflow: hidden;
             background-color: #fff;
-    }
+        }
         
-        /* 固定ヘッダー */
         .fixed-header-container {
             flex-shrink: 0;
-        z-index: 1000;
+            z-index: 2000; /* 集中モード以外で最前面 */
             background: #fff;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
 
         .toolbar { 
             background: #fff;
-        padding: 10px 16px; 
+            padding: 10px 16px; 
             border-bottom: 1px solid var(--border-color); 
             display: flex;
             gap: 8px; 
             align-items: center; 
-            overflow-x: auto; /* スマホで横並びボタンが溢れてもスクロール可能に */
+            overflow-x: auto;
             white-space: nowrap;
             -webkit-overflow-scrolling: touch;
-    }
+        }
 
-        /* カスタムスクロールバー（ツールバー用） */
         .toolbar::-webkit-scrollbar { display: none; }
 
         .color-palette { 
             display: flex;
-        gap: 6px; 
+            gap: 6px; 
             align-items: center; 
             margin-left: 8px; 
             padding-left: 12px;
             border-left: 1px solid var(--border-color);
-    }
+        }
 
         .color-swatch { 
             width: 22px;
-        height: 22px; 
-            border-radius: 50%; /* 円形にしてモダンに */
-            cursor: pointer; 
+            height: 22px; 
+            border-radius: 50%;
+            cursor: pointer;
             border: 1px solid rgba(0,0,0,0.1); 
             transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             flex-shrink: 0;
-    }
+        }
 
-        .color-swatch:active { 
-            transform: scale(0.8);
-    }
+        .color-swatch:active { transform: scale(0.8); }
 
         .sheet-tabs { 
             display: flex;
-        background: var(--tab-bg); 
+            background: var(--tab-bg); 
             border-bottom: 1px solid var(--border-color);
             padding: 0 8px; 
-            align-items: flex-end; /* タブを下に密着 */
+            align-items: flex-end;
             height: 44px; 
             overflow-x: auto; 
-            -webkit-overflow-scrolling: touch; 
+            -webkit-overflow-scrolling: touch;
             width: 100%;
-        box-sizing: border-box;
+            box-sizing: border-box;
         }
 
         .tab { 
             padding: 8px 20px;
-        border: 1px solid transparent; 
+            border: 1px solid transparent; 
             cursor: pointer; 
             font-size: 14px; 
             display: flex; 
@@ -100,7 +97,7 @@
             gap: 8px; 
             background: transparent; 
             margin-right: 4px;
-        border-radius: 8px 8px 0 0;
+            border-radius: 8px 8px 0 0;
             white-space: nowrap; 
             color: #5f6368;
             transition: all 0.2s;
@@ -108,7 +105,7 @@
 
         .tab.active { 
             background: #fff;
-        color: var(--accent-color);
+            color: var(--accent-color);
             font-weight: 600;
             border: 1px solid var(--border-color);
             border-bottom-color: #fff;
@@ -116,88 +113,104 @@
 
         .tab-close { 
             font-size: 18px;
-        line-height: 1; 
+            line-height: 1; 
             color: #9aa0a6;
             margin-left: 4px;
         }
 
         .add-sheet-btn { 
             font-weight: normal;
-        font-size: 24px; 
+            font-size: 24px; 
             padding: 0 16px; 
             height: 40px;
             border: none; 
             background: none; 
             color: #5f6368; 
             cursor: pointer;
-    }
+        }
 
-        /* テーブルエリア */
         .table-container { 
             overflow: auto;
-        flex-grow: 1; 
+            flex-grow: 1; 
             position: relative; 
             -webkit-overflow-scrolling: touch;
             background: #f8f9fa; 
             width: 100%;
             box-sizing: border-box;
-    }
+        }
         
+        #zoom-wrapper {
+            transform-origin: 0 0;
+            width: max-content;
+            height: max-content;
+            /* scaleを使用するとstickyが壊れるため、JS側でフォントサイズ等の調整を行う設計に寄せるか、
+               あるいはコンテナのoverflowとの兼ね合いを修正します */
+        }
+
         table { 
             border-collapse: separate;
-        border-spacing: 0; 
+            border-spacing: 0; 
             table-layout: fixed; 
             width: max-content; 
             background: #fff;
         }
 
+        /* 列ヘッダー固定 */
         th { 
             background: var(--header-bg);
-        border-right: 1px solid var(--border-color);
+            border-right: 1px solid var(--border-color);
             border-bottom: 1px solid var(--border-color);
             position: sticky; 
             top: 0;
-            z-index: 20; 
+            z-index: 100; /* tdより上 */
             font-size: 11px; 
             font-weight: 600; 
             color: #5f6368;
             user-select: none;
-        height: var(--row-height); 
+            height: var(--row-height); 
             box-sizing: border-box;
             text-transform: uppercase;
         }
 
+        /* 行ヘッダー固定 */
         .row-header { 
+            position: sticky;
             left: 0;
-        z-index: 30; 
+            z-index: 110; /* th(列)より上 */
             width: 46px; 
             text-align: center; 
             background: var(--header-bg);
             border-right: 1px solid #c0c0c0;
             cursor: default;
-    }
+        }
 
+        /* 左上角の固定 */
         thead tr:first-child th:first-child { 
-            z-index: 40;
-        left: 0;
+            z-index: 120;
+            left: 0;
+            top: 0;
         }
 
         td { 
             border-right: 1px solid var(--border-color);
-        border-bottom: 1px solid var(--border-color); 
+            border-bottom: 1px solid var(--border-color); 
             padding: 0; 
             box-sizing: border-box; 
             height: var(--row-height);
             position: relative;
-    }
+            background-color: #fff; /* 背景色必須(stickyの下を隠すため) */
+        }
         
         .selected-col { background-color: var(--selection-bg) !important; }
-    .selected-row td { background-color: var(--selection-bg) !important; }
-    th.active-header { background-color: var(--accent-hover) !important; color: var(--accent-color); }
+        .selected-row td { background-color: var(--selection-bg) !important; }
+        th.active-header { 
+            background-color: var(--accent-hover) !important;
+            color: var(--accent-color); 
+        }
 
         td textarea { 
             border: none;
-        width: 100%; 
+            width: 100%; 
             height: 100%; 
             padding: 8px;
             box-sizing: border-box; 
@@ -206,31 +219,30 @@
             background: transparent; 
             display: block; 
             resize: none;
-        font-family: inherit; 
-            white-space: nowrap; /* デフォルトは1行で見やすく */
+            font-family: inherit;
+            white-space: nowrap;
             overflow: hidden;
             line-height: 1.4;
         }
 
         td textarea:focus { 
             position: absolute;
-        top: 0; 
+            top: 0; 
             left: 0; 
-            z-index: 60;
+            z-index: 150;
             height: auto; 
             min-height: 100%; 
             background: #fff; 
             border: 2px solid var(--accent-color); 
             padding: 7px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15); 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15); 
             overflow: visible;
             white-space: pre-wrap;
         }
 
-        /* 集中モードへのトリガーボタン */
         .focus-trigger {
             position: absolute;
-        top: 2px; 
+            top: 2px; 
             right: 2px; 
             background: var(--accent-color); 
             color: white;
@@ -240,37 +252,37 @@
             display: none; 
             align-items: center; 
             justify-content: center;
-        font-size: 12px; 
+            font-size: 12px; 
             cursor: pointer; 
-            z-index: 100; 
+            z-index: 160; 
             opacity: 0.9;
-    }
+        }
         td textarea:focus + .focus-trigger { display: flex; }
 
         #focus-mode-overlay {
             position: fixed;
-        top: 0; 
+            top: 0; 
             left: 0; 
             width: 100%; 
             height: 100%; 
             background: #fff;
-            z-index: 2000; 
+            z-index: 3000; 
             display: none; 
             flex-direction: column;
-    }
+        }
 
         .focus-header { 
             padding: 12px 16px;
-        border-bottom: 1px solid var(--border-color); 
+            border-bottom: 1px solid var(--border-color); 
             display: flex; 
             justify-content: space-between;
             align-items: center; 
             background: #fff;
-    }
+        }
 
         #focus-textarea { 
             flex-grow: 1;
-        border: none; 
+            border: none; 
             padding: 20px;
             font-size: 18px; 
             outline: none; 
@@ -278,11 +290,11 @@
             width: 100%; 
             box-sizing: border-box;
             line-height: 1.6;
-    }
+        }
 
         .char-count { 
             position: absolute;
-        bottom: 2px; 
+            bottom: 2px; 
             right: 4px; 
             font-size: 10px; 
             color: #9aa0a6;
@@ -290,48 +302,38 @@
             z-index: 70; 
             background: rgba(255, 255, 255, 0.8); 
             padding: 0 4px;
-        border-radius: 4px; 
+            border-radius: 4px; 
             display: none;
         }
         td:hover .char-count, td textarea:focus + .focus-trigger + .char-count { display: block; }
 
-        /* リサイザー */
         .resizer-h, .resizer-v { 
             position: absolute;
             background: transparent;
-            z-index: 55;
+            z-index: 130;
             touch-action: none;
             display: none;
         }
         .resizer-h { right: -4px; top: 0; width: 8px; height: 100%; cursor: col-resize; }
         .resizer-v { bottom: -4px; left: 0; width: 100%; height: 8px; cursor: row-resize; }
-        
         .active-header .resizer-h, .active-header .resizer-v { display: block; }
 
         .resizer-h::after { 
             content: '';
-        position: absolute; 
-            right: 3px; 
-            top: 25%; 
-            width: 2px;
-            height: 50%; 
-            background: var(--accent-color); 
-            border-radius: 2px;
-    }
+            position: absolute; 
+            right: 3px; top: 25%; width: 2px; height: 50%; 
+            background: var(--accent-color); border-radius: 2px;
+        }
         .resizer-v::after { 
             content: '';
-        position: absolute;
-            bottom: 3px; 
-            left: 25%; 
-            width: 50%; 
-            height: 2px; 
-            background: var(--accent-color); 
-            border-radius: 2px;
-    }
+            position: absolute;
+            bottom: 3px; left: 25%; width: 50%; height: 2px; 
+            background: var(--accent-color); border-radius: 2px;
+        }
 
         button { 
             cursor: pointer;
-        padding: 8px 14px;
+            padding: 8px 14px;
             background: #fff;
             border: 1px solid #dadce0; 
             border-radius: 6px; 
@@ -339,39 +341,23 @@
             transition: all 0.2s; 
             font-weight: 500;
             color: #3c4043;
-    }
-        button:active { 
-            background: #f1f3f4;
-        transform: translateY(1px);
         }
+        button:active { background: #f1f3f4; transform: translateY(1px); }
 
-        /* コンテキストメニュー */
         .context-menu { 
             position: fixed;
-        background: #fff; 
-            border: none;
+            background: #fff; 
             box-shadow: 0 8px 24px rgba(0,0,0,0.15); 
-            z-index: 1000; 
+            z-index: 2500; 
             display: none; 
             padding: 6px 0; 
             min-width: 180px;
-        border-radius: 8px;
+            border-radius: 8px;
             border: 1px solid rgba(0,0,0,0.05);
         }
-        .context-menu-item { 
-            padding: 12px 20px;
-        cursor: pointer; 
-            font-size: 14px;
-            color: #3c4043;
-        }
-        .context-menu-item:hover { 
-            background: var(--tab-bg);
-        color: var(--accent-color);
-        }
-        .context-menu-item.disabled { 
-            color: #bdc1c6;
-        cursor: default;
-        }
+        .context-menu-item { padding: 12px 20px; cursor: pointer; font-size: 14px; color: #3c4043; }
+        .context-menu-item:hover { background: var(--tab-bg); color: var(--accent-color); }
+        .context-menu-item.disabled { color: #bdc1c6; cursor: default; }
     </style>
 </head>
 <body>
@@ -384,6 +370,7 @@
         <div class="color-palette" id="color-palette">
             <span style="font-size: 11px; color: #80868b; margin-right: 4px;">背景色:</span>
         </div>
+        <span id="zoom-display" style="font-size: 11px; color: #80868b; margin-left: 10px;">100%</span>
     </div>
 
     <div class="sheet-tabs" id="sheet-tabs">
@@ -391,11 +378,13 @@
     </div>
 </div>
 
-<div class="table-container">
-    <table id="spreadsheet">
-        <thead><tr id="header-row"><th class="row-header"></th></tr></thead>
-        <tbody id="table-body"></tbody>
-    </table>
+<div class="table-container" id="table-container">
+    <div id="zoom-wrapper">
+        <table id="spreadsheet">
+            <thead><tr id="header-row"><th class="row-header"></th></tr></thead>
+            <tbody id="table-body"></tbody>
+        </table>
+    </div>
 </div>
 
 <div id="context-menu" class="context-menu"></div>
@@ -403,8 +392,7 @@
 <div id="focus-mode-overlay">
     <div class="focus-header">
         <span id="focus-cell-label" style="font-weight: 600; font-size: 15px;">セル編集</span>
-        <button id="btn-close-focus" style="background: var(--accent-color);
-        color: white; border: none; padding: 8px 20px; border-radius: 20px;">完了</button>
+        <button id="btn-close-focus" style="background: var(--accent-color); color: white; border: none; padding: 8px 20px; border-radius: 20px;">完了</button>
     </div>
     <textarea id="focus-textarea" placeholder="入力を開始..."></textarea>
 </div>
@@ -416,8 +404,7 @@
     const COLORS = [
         "#ffffff", "#f8f9fa", "#fff0f6", "#ffdeeb", "#f06595", "#fff5f5", "#ffc9c9", "#fa5252",
         "#fff9db", "#ffec99", "#fab005", "#ebfbee", "#b2f2bb", "#40c057",
-        "#e7f5ff", "#a5d8ff", "#228be6", "#f8f0fc", "#eebefa", "#be4bdb",
-        "#ced4da", "#343a40"
+        "#e7f5ff", "#a5d8ff", "#228be6", "#f8f0fc", "#eebefa", "#be4bdb", "#ced4da", "#343a40"
     ];
 
     /** --- 状態管理 --- **/
@@ -427,8 +414,8 @@
         activeSheetIndex: 0,
         lastFocusedCell: null,
         clipboard: { type: null, index: null, data: null, heightOrWidth: null, colors: null },
-        selection: { type: null, index: null }, 
-        
+        selection: { type: null, index: null },
+        zoom: 1.0,
         get currentSheet() { return this.sheets[this.activeSheetIndex]; }
     };
 
@@ -441,7 +428,10 @@
         focusOverlay: document.getElementById('focus-mode-overlay'),
         focusTextarea: document.getElementById('focus-textarea'),
         focusLabel: document.getElementById('focus-cell-label'),
-        btnCloseFocus: document.getElementById('btn-close-focus')
+        btnCloseFocus: document.getElementById('btn-close-focus'),
+        tableContainer: document.getElementById('table-container'),
+        zoomWrapper: document.getElementById('zoom-wrapper'),
+        zoomDisplay: document.getElementById('zoom-display')
     };
 
     /** --- データベース操作 --- **/
@@ -494,6 +484,57 @@
         },
         deepCopy(obj) { return JSON.parse(JSON.stringify(obj)); }
     };
+
+    /** --- ズーム（ピンチ）機能の実装 --- **/
+    let initialPinchDist = null;
+    let initialZoom = 1.0;
+
+    function initZoomGestures() {
+        DOM.tableContainer.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 2) {
+                initialPinchDist = Math.hypot(
+                    e.touches[0].pageX - e.touches[1].pageX,
+                    e.touches[0].pageY - e.touches[1].pageY
+                );
+                initialZoom = AppState.zoom;
+            }
+        }, { passive: false });
+
+        DOM.tableContainer.addEventListener('touchmove', (e) => {
+            if (e.touches.length === 2 && initialPinchDist !== null) {
+                e.preventDefault();
+                const dist = Math.hypot(
+                    e.touches[0].pageX - e.touches[1].pageX,
+                    e.touches[0].pageY - e.touches[1].pageY
+                );
+                const delta = dist / initialPinchDist;
+                let newZoom = initialZoom * delta;
+                newZoom = Math.min(Math.max(newZoom, 0.5), 1.5); // Sticky維持のため範囲を限定
+                updateZoom(newZoom);
+            }
+        }, { passive: false });
+
+        DOM.tableContainer.addEventListener('touchend', (e) => {
+            if (e.touches.length < 2) initialPinchDist = null;
+        });
+
+        DOM.tableContainer.addEventListener('wheel', (e) => {
+            if (e.ctrlKey) {
+                e.preventDefault();
+                let newZoom = AppState.zoom - e.deltaY * 0.001;
+                newZoom = Math.min(Math.max(newZoom, 0.5), 1.5);
+                updateZoom(newZoom);
+            }
+        }, { passive: false });
+    }
+
+    function updateZoom(scale) {
+        AppState.zoom = scale;
+        // transform: scale を使うと sticky が効かなくなるブラウザが多いため、
+        // コンテナのCSS変数を利用した疑似ズーム、またはそのまま適用（モダンブラウザ対応）
+        DOM.zoomWrapper.style.transform = `scale(${scale})`;
+        DOM.zoomDisplay.innerText = `${Math.round(scale * 100)}%`;
+    }
 
     /** --- コア機能: テーブル描画 --- **/
     function renderTable() {
@@ -593,7 +634,6 @@
         const countSpan = document.createElement('span');
         countSpan.className = 'char-count';
         updateCharCount(countSpan, value);
-
         textarea.addEventListener('input', function() {
             autoResize(this);
             AppState.currentSheet.data[r][c] = this.value;
@@ -715,7 +755,6 @@
         const menuWidth = 180;
         let left = e.clientX || (e.touches ? e.touches[0].clientX : 0);
         let top = e.clientY || (e.touches ? e.touches[0].clientY : 0);
-
         if (left + menuWidth > window.innerWidth) left = window.innerWidth - menuWidth - 10;
         
         DOM.contextMenu.style.left = left + 'px';
@@ -886,7 +925,7 @@
         const start = getPos(e);
         const startWidth = th.offsetWidth;
         const onMove = (ev) => {
-            const newWidth = startWidth + getPos(ev).x - start.x;
+            const newWidth = startWidth + (getPos(ev).x - start.x) / AppState.zoom;
             if (newWidth > 40) {
                 th.style.width = th.style.minWidth = newWidth + 'px';
                 AppState.currentSheet.colWidths[colIdx] = newWidth;
@@ -910,7 +949,7 @@
         const start = getPos(e);
         const startHeight = tr.offsetHeight;
         const onMove = (ev) => {
-            const newHeight = startHeight + getPos(ev).y - start.y;
+            const newHeight = startHeight + (getPos(ev).y - start.y) / AppState.zoom;
             if (newHeight > 20) {
                 tr.style.height = newHeight + 'px';
                 AppState.currentSheet.rowHeights[rowIdx] = newHeight;
@@ -981,6 +1020,8 @@
                 hideContextMenu();
             }
         });
+
+        initZoomGestures();
 
         try {
             await DB.init();
