@@ -61,7 +61,8 @@
         }
 
         .color-swatch { 
-            width: 22px; height: 22px; 
+            width: 22px;
+            height: 22px; 
             border-radius: 50%;
             cursor: pointer;
             border: 1px solid rgba(0,0,0,0.1); 
@@ -106,7 +107,8 @@
         }
 
         .tab-close { font-size: 18px; color: #9aa0a6; margin-left: 4px; }
-        .add-sheet-btn { font-size: 24px; padding: 0 16px; height: 40px; border: none; background: none; color: #5f6368; cursor: pointer; }
+        .add-sheet-btn { font-size: 24px; padding: 0 16px; height: 40px; border: none;
+        background: none; color: #5f6368; cursor: pointer; }
 
         /* Spreadsheet Core */
         .table-container { 
@@ -129,7 +131,7 @@
             top: 0;
             z-index: 100;
             font-size: calc(11px * var(--zoom-level)); 
-            font-weight: 600; 
+            font-weight: 600;
             color: #5f6368;
             user-select: none;
             height: calc(var(--row-height) * var(--zoom-level)); 
@@ -162,25 +164,31 @@
         th.active-header { background-color: var(--accent-hover) !important; color: var(--accent-color); }
 
         td textarea { 
-            border: none; width: 100%; height: 100%; 
+            border: none;
+            width: 100%; height: 100%; 
             padding: calc(8px * var(--zoom-level));
             box-sizing: border-box; outline: none; 
             font-size: calc(14px * var(--zoom-level)); 
-            background: transparent; display: block; resize: none;
+            background: transparent; display: block;
+            resize: none;
             font-family: inherit; white-space: nowrap; overflow: hidden;
         }
 
         td textarea:focus { 
-            position: absolute; top: 0; left: 0; z-index: 150;
+            position: absolute;
+            top: 0; left: 0; z-index: 150;
             height: auto; min-height: 100%; background: #fff; 
             border: 2px solid var(--accent-color); 
             padding: calc(7px * var(--zoom-level));
             box-shadow: 0 4px 12px rgba(0,0,0,0.15); 
             overflow: visible; white-space: pre-wrap;
+            /* スマホの自動ズーム防止: フォーカス時はフォントサイズを16px以上に固定 */
+            font-size: 16px;
         }
 
         .focus-trigger {
-            position: absolute; top: 2px; right: 2px; 
+            position: absolute;
+            top: 2px; right: 2px; 
             background: var(--accent-color); color: white;
             width: 20px; height: 20px; border-radius: 4px; 
             display: none; align-items: center; justify-content: center;
@@ -189,37 +197,51 @@
         td textarea:focus + .focus-trigger { display: flex; }
 
         #focus-mode-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%; 
             background: #fff; z-index: 3000; display: none; flex-direction: column;
         }
 
-        .focus-header { padding: 12px 16px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
-        #focus-textarea { flex-grow: 1; border: none; padding: 20px; font-size: 18px; outline: none; resize: none; line-height: 1.6; }
+        .focus-header { padding: 12px 16px; border-bottom: 1px solid var(--border-color); display: flex;
+        justify-content: space-between; align-items: center; }
+        #focus-textarea { flex-grow: 1; border: none; padding: 20px;
+        font-size: 18px; outline: none; resize: none; line-height: 1.6; }
 
         .char-count { 
-            position: absolute; bottom: 2px; right: 4px; font-size: 10px; color: #9aa0a6;
+            position: absolute;
+            bottom: 2px; right: 4px; font-size: 10px; color: #9aa0a6;
             pointer-events: none; z-index: 70; background: rgba(255, 255, 255, 0.8); 
-            padding: 0 4px; border-radius: 4px; display: none;
+            padding: 0 4px;
+            border-radius: 4px; display: none;
         }
         td:hover .char-count, td textarea:focus + .focus-trigger + .char-count { display: block; }
 
         /* Resizers */
-        .resizer-h, .resizer-v { position: absolute; background: transparent; z-index: 130; touch-action: none; display: none; }
-        .resizer-h { right: -4px; top: 0; width: 8px; height: 100%; cursor: col-resize; }
-        .resizer-v { bottom: -4px; left: 0; width: 100%; height: 8px; cursor: row-resize; }
+        .resizer-h, .resizer-v { position: absolute;
+        background: transparent; z-index: 130; touch-action: none; display: none; }
+        .resizer-h { right: -4px;
+        top: 0; width: 8px; height: 100%; cursor: col-resize; }
+        .resizer-v { bottom: -4px;
+        left: 0; width: 100%; height: 8px; cursor: row-resize; }
         .active-header .resizer-h, .active-header .resizer-v { display: block; }
-        .resizer-h::after { content: ''; position: absolute; right: 3px; top: 25%; width: 2px; height: 50%; background: var(--accent-color); }
-        .resizer-v::after { content: ''; position: absolute; bottom: 3px; left: 25%; width: 50%; height: 2px; background: var(--accent-color); }
+        .resizer-h::after { content: ''; position: absolute; right: 3px; top: 25%; width: 2px;
+        height: 50%; background: var(--accent-color); }
+        .resizer-v::after { content: ''; position: absolute; bottom: 3px;
+        left: 25%; width: 50%; height: 2px; background: var(--accent-color); }
 
-        button { cursor: pointer; padding: 8px 14px; background: #fff; border: 1px solid #dadce0; border-radius: 6px; font-size: 13px; font-weight: 500; }
+        button { cursor: pointer;
+        padding: 8px 14px; background: #fff; border: 1px solid #dadce0; border-radius: 6px; font-size: 13px; font-weight: 500;
+        }
         button:active { background: #f1f3f4; }
 
         .context-menu { 
-            position: fixed; background: #fff; box-shadow: 0 8px 24px rgba(0,0,0,0.15); 
+            position: fixed;
+            background: #fff; box-shadow: 0 8px 24px rgba(0,0,0,0.15); 
             z-index: 2500; display: none; padding: 6px 0; min-width: 180px; border-radius: 8px;
             border: 1px solid rgba(0,0,0,0.05);
         }
-        .context-menu-item { padding: 12px 20px; cursor: pointer; font-size: 14px; }
+        .context-menu-item { padding: 12px 20px; cursor: pointer;
+        font-size: 14px; }
         .context-menu-item:hover { background: var(--tab-bg); color: var(--accent-color); }
         .context-menu-item.disabled { color: #bdc1c6; cursor: default; }
     </style>
@@ -253,7 +275,8 @@
 <div id="focus-mode-overlay">
     <div class="focus-header">
         <span id="focus-cell-label" style="font-weight:600;">セル編集</span>
-        <button id="btn-close-focus" style="background:var(--accent-color); color:white; border:none; border-radius:20px; padding:8px 20px;">完了</button>
+        <button id="btn-close-focus" style="background:var(--accent-color);
+        color:white; border:none; border-radius:20px; padding:8px 20px;">完了</button>
     </div>
     <textarea id="focus-textarea" placeholder="入力を開始..."></textarea>
 </div>
@@ -295,7 +318,8 @@
             return new Promise((resolve, reject) => {
                 const req = indexedDB.open(DB_CONFIG.name, DB_CONFIG.version);
                 req.onupgradeneeded = (e) => {
-                    if (!e.target.result.objectStoreNames.contains(DB_CONFIG.store)) e.target.result.createObjectStore(DB_CONFIG.store);
+                    if (!e.target.result.objectStoreNames.contains(DB_CONFIG.store)) 
+                        e.target.result.createObjectStore(DB_CONFIG.store);
                 };
                 req.onsuccess = (e) => { db = e.target.result; resolve(); };
                 req.onerror = reject;
@@ -342,7 +366,10 @@
 
         DOM.tableContainer.addEventListener('touchstart', (e) => {
             if (e.touches.length === 2) {
-                initialPinchDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
+                initialPinchDist = Math.hypot(
+                    e.touches[0].pageX - e.touches[1].pageX, 
+                    e.touches[0].pageY - e.touches[1].pageY
+                );
                 initialZoom = AppState.zoom;
             }
         }, { passive: false });
@@ -350,12 +377,19 @@
         DOM.tableContainer.addEventListener('touchmove', (e) => {
             if (e.touches.length === 2 && initialPinchDist !== null) {
                 e.preventDefault();
-                const dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
-                updateZoom(Math.min(Math.max(initialZoom * (dist / initialPinchDist), 0.5), 1.5));
+                const currentDist = Math.hypot(
+                    e.touches[0].pageX - e.touches[1].pageX, 
+                    e.touches[0].pageY - e.touches[1].pageY
+                );
+                const newZoom = initialZoom * (currentDist / initialPinchDist);
+                updateZoom(Math.min(Math.max(newZoom, 0.5), 1.5));
             }
         }, { passive: false });
 
-        DOM.tableContainer.addEventListener('touchend', () => initialPinchDist = null);
+        DOM.tableContainer.addEventListener('touchend', () => {
+            initialPinchDist = null;
+        });
+
         DOM.tableContainer.addEventListener('wheel', (e) => {
             if (e.ctrlKey) {
                 e.preventDefault();
@@ -387,7 +421,6 @@
         const w = (width || DEFAULT_COL_WIDTH) * AppState.zoom;
         th.style.width = th.style.minWidth = w + 'px';
         th.innerHTML = `<span>${Utils.getColName(index)}</span>`;
-        
         const handleHeaderClick = (e) => {
             if (e.target.classList.contains('resizer-h')) return;
             if (AppState.selection.type === 'col' && AppState.selection.index === index) showContextMenu(e, 'col', index);
@@ -446,7 +479,6 @@
         trigger.className = 'focus-trigger';
         trigger.innerHTML = '✎';
         trigger.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); openFocusMode(r, c, textarea); };
-        
         const countSpan = document.createElement('span');
         countSpan.className = 'char-count';
         updateCharCount(countSpan, value);
@@ -486,11 +518,10 @@
     }
 
     function updateCharCount(span, text) {
-    // 改行（\n および \r）を空文字に置き換えてから長さを測る
-    const count = text ? text.replace(/[\n\r]/g, "").length : 0;
-    span.innerText = count;
-    span.style.display = count > 0 ? '' : 'none';
-}
+        const count = text ? text.replace(/[\n\r]/g, "").length : 0;
+        span.innerText = count;
+        span.style.display = count > 0 ? '' : 'none';
+    }
 
     function autoResize(el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
 
@@ -521,7 +552,8 @@
 
     /** --- Context Menu & Operations --- **/
     function showContextMenu(e, type, index) {
-        e.preventDefault(); e.stopPropagation();
+        e.preventDefault();
+        e.stopPropagation();
         DOM.contextMenu.innerHTML = '';
         const items = [
             { label: '前に1つ挿入', action: () => modifyItems('insert', type, index) },
@@ -560,10 +592,12 @@
             }
         } else if (mode === 'delete') {
             if (type === 'row' && sheet.rowCount > 1) {
-                sheet.data.splice(index, 1); sheet.rowHeights.splice(index, 1);
+                sheet.data.splice(index, 1);
+                sheet.rowHeights.splice(index, 1);
                 deleteColors(type, index); shiftColors('row', index + 1, -1); sheet.rowCount--;
             } else if (type === 'col' && sheet.colCount > 1) {
-                sheet.data.forEach(r => r.splice(index, 1)); sheet.colWidths.splice(index, 1);
+                sheet.data.forEach(r => r.splice(index, 1));
+                sheet.colWidths.splice(index, 1);
                 deleteColors(type, index); shiftColors('col', index + 1, -1); sheet.colCount--;
             }
             clearSelection();
@@ -676,7 +710,8 @@
             th.style.width = th.style.minWidth = (w * AppState.zoom) + 'px';
             AppState.currentSheet.colWidths[idx] = w;
         };
-        const end = () => { DB.save(); document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', end); document.removeEventListener('touchmove', move); document.removeEventListener('touchend', end); };
+        const end = () => { DB.save();
+        document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', end); document.removeEventListener('touchmove', move); document.removeEventListener('touchend', end); };
         document.addEventListener('mousemove', move); document.addEventListener('mouseup', end);
         document.addEventListener('touchmove', move, {passive: false}); document.addEventListener('touchend', end);
     }
@@ -690,7 +725,8 @@
             tr.style.height = (h * AppState.zoom) + 'px';
             AppState.currentSheet.rowHeights[idx] = h;
         };
-        const end = () => { DB.save(); document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', end); document.removeEventListener('touchmove', move); document.removeEventListener('touchend', end); };
+        const end = () => { DB.save(); document.removeEventListener('mousemove', move);
+        document.removeEventListener('mouseup', end); document.removeEventListener('touchmove', move); document.removeEventListener('touchend', end); };
         document.addEventListener('mousemove', move); document.addEventListener('mouseup', end);
         document.addEventListener('touchmove', move, {passive: false}); document.addEventListener('touchend', end);
     }
@@ -722,7 +758,8 @@
 
         document.getElementById('btn-add-row').onclick = () => { createRow(AppState.currentSheet.rowCount++, null); DB.save(); };
         document.getElementById('btn-add-col').onclick = () => {
-            const s = AppState.currentSheet; createColHeader(s.colCount++, null);
+            const s = AppState.currentSheet;
+            createColHeader(s.colCount++, null);
             Array.from(DOM.tableBody.rows).forEach((r, idx) => r.appendChild(createCell(idx, s.colCount - 1, "", "#ffffff")));
             DB.save();
         };
@@ -738,7 +775,6 @@
                 clearSelection(); hideContextMenu();
             }
         });
-
         initZoomGestures();
         try { await DB.init(); await DB.load(); } catch (e) { console.error(e); }
         renderTable();
