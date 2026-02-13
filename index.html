@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=10.0, user-scalable=yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=0.1, maximum-scale=10.0, user-scalable=yes">
     <title>Professional Spreadsheet App</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#f06595">
@@ -31,7 +31,6 @@
             background-color: #fff;
         }
         
-        /* Layout */
         .fixed-header-container {
             flex-shrink: 0;
             z-index: 2000;
@@ -71,7 +70,6 @@
         }
         .color-swatch:active { transform: scale(0.8); }
 
-        /* Tabs */
         .sheet-tabs { 
             display: flex;
             background: var(--tab-bg); 
@@ -107,10 +105,8 @@
         }
 
         .tab-close { font-size: 18px; color: #9aa0a6; margin-left: 4px; }
-        .add-sheet-btn { font-size: 24px; padding: 0 16px; height: 40px; border: none;
-        background: none; color: #5f6368; cursor: pointer; }
+        .add-sheet-btn { font-size: 24px; padding: 0 16px; height: 40px; border: none; background: none; color: #5f6368; cursor: pointer; }
 
-        /* Spreadsheet Core */
         .table-container { 
             overflow: auto;
             flex-grow: 1; 
@@ -158,7 +154,6 @@
             background-color: #fff;
         }
         
-        /* Selection & Focus */
         .selected-col { background-color: var(--selection-bg) !important; }
         .selected-row td { background-color: var(--selection-bg) !important; }
         th.active-header { background-color: var(--accent-hover) !important; color: var(--accent-color); }
@@ -182,7 +177,6 @@
             padding: calc(7px * var(--zoom-level));
             box-shadow: 0 4px 12px rgba(0,0,0,0.15); 
             overflow: visible; white-space: pre-wrap;
-            /* スマホの自動ズーム防止: フォーカス時はフォントサイズを16px以上に固定 */
             font-size: 16px;
         }
 
@@ -202,36 +196,25 @@
             background: #fff; z-index: 3000; display: none; flex-direction: column;
         }
 
-        .focus-header { padding: 12px 16px; border-bottom: 1px solid var(--border-color); display: flex;
-        justify-content: space-between; align-items: center; }
-        #focus-textarea { flex-grow: 1; border: none; padding: 20px;
-        font-size: 18px; outline: none; resize: none; line-height: 1.6; }
+        .focus-header { padding: 12px 16px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        #focus-textarea { flex-grow: 1; border: none; padding: 20px; font-size: 18px; outline: none; resize: none; line-height: 1.6; }
 
         .char-count { 
             position: absolute;
             bottom: 2px; right: 4px; font-size: 10px; color: #9aa0a6;
             pointer-events: none; z-index: 70; background: rgba(255, 255, 255, 0.8); 
-            padding: 0 4px;
-            border-radius: 4px; display: none;
+            padding: 0 4px; border-radius: 4px; display: none;
         }
         td:hover .char-count, td textarea:focus + .focus-trigger + .char-count { display: block; }
 
-        /* Resizers */
-        .resizer-h, .resizer-v { position: absolute;
-        background: transparent; z-index: 130; touch-action: none; display: none; }
-        .resizer-h { right: -4px;
-        top: 0; width: 8px; height: 100%; cursor: col-resize; }
-        .resizer-v { bottom: -4px;
-        left: 0; width: 100%; height: 8px; cursor: row-resize; }
+        .resizer-h, .resizer-v { position: absolute; background: transparent; z-index: 130; touch-action: none; display: none; }
+        .resizer-h { right: -4px; top: 0; width: 8px; height: 100%; cursor: col-resize; }
+        .resizer-v { bottom: -4px; left: 0; width: 100%; height: 8px; cursor: row-resize; }
         .active-header .resizer-h, .active-header .resizer-v { display: block; }
-        .resizer-h::after { content: ''; position: absolute; right: 3px; top: 25%; width: 2px;
-        height: 50%; background: var(--accent-color); }
-        .resizer-v::after { content: ''; position: absolute; bottom: 3px;
-        left: 25%; width: 50%; height: 2px; background: var(--accent-color); }
+        .resizer-h::after { content: ''; position: absolute; right: 3px; top: 25%; width: 2px; height: 50%; background: var(--accent-color); }
+        .resizer-v::after { content: ''; position: absolute; bottom: 3px; left: 25%; width: 50%; height: 2px; background: var(--accent-color); }
 
-        button { cursor: pointer;
-        padding: 8px 14px; background: #fff; border: 1px solid #dadce0; border-radius: 6px; font-size: 13px; font-weight: 500;
-        }
+        button { cursor: pointer; padding: 8px 14px; background: #fff; border: 1px solid #dadce0; border-radius: 6px; font-size: 13px; font-weight: 500; }
         button:active { background: #f1f3f4; }
 
         .context-menu { 
@@ -240,8 +223,7 @@
             z-index: 2500; display: none; padding: 6px 0; min-width: 180px; border-radius: 8px;
             border: 1px solid rgba(0,0,0,0.05);
         }
-        .context-menu-item { padding: 12px 20px; cursor: pointer;
-        font-size: 14px; }
+        .context-menu-item { padding: 12px 20px; cursor: pointer; font-size: 14px; }
         .context-menu-item:hover { background: var(--tab-bg); color: var(--accent-color); }
         .context-menu-item.disabled { color: #bdc1c6; cursor: default; }
     </style>
@@ -275,14 +257,12 @@
 <div id="focus-mode-overlay">
     <div class="focus-header">
         <span id="focus-cell-label" style="font-weight:600;">セル編集</span>
-        <button id="btn-close-focus" style="background:var(--accent-color);
-        color:white; border:none; border-radius:20px; padding:8px 20px;">完了</button>
+        <button id="btn-close-focus" style="background:var(--accent-color); color:white; border:none; border-radius:20px; padding:8px 20px;">完了</button>
     </div>
     <textarea id="focus-textarea" placeholder="入力を開始..."></textarea>
 </div>
 
 <script>
-    /** --- Configuration & State --- **/
     const DB_CONFIG = { name: 'SpreadsheetDB', version: 1, store: 'settings' };
     const DEFAULT_COL_WIDTH = 100;
     const COLORS = ["#ffffff", "#f8f9fa", "#fff0f6", "#ffdeeb", "#f06595", "#fff5f5", "#ffc9c9", "#fa5252", "#fff9db", "#ffec99", "#fab005", "#ebfbee", "#b2f2bb", "#40c057", "#e7f5ff", "#a5d8ff", "#228be6", "#f8f0fc", "#eebefa", "#be4bdb", "#ced4da", "#343a40"];
@@ -312,14 +292,12 @@
         zoomDisplay: document.getElementById('zoom-display')
     };
 
-    /** --- Database Operations --- **/
     const DB = {
         init() {
             return new Promise((resolve, reject) => {
                 const req = indexedDB.open(DB_CONFIG.name, DB_CONFIG.version);
                 req.onupgradeneeded = (e) => {
-                    if (!e.target.result.objectStoreNames.contains(DB_CONFIG.store)) 
-                        e.target.result.createObjectStore(DB_CONFIG.store);
+                    if (!e.target.result.objectStoreNames.contains(DB_CONFIG.store)) e.target.result.createObjectStore(DB_CONFIG.store);
                 };
                 req.onsuccess = (e) => { db = e.target.result; resolve(); };
                 req.onerror = reject;
@@ -346,7 +324,6 @@
         })
     };
 
-    /** --- Utilities --- **/
     const Utils = {
         getColName(n) {
             let name = "";
@@ -362,38 +339,33 @@
     /** --- Zoom Management --- **/
     function initZoomGestures() {
         let initialPinchDist = null;
-        let initialZoom = 1.0;
+        let initialZoomAtStart = 1.0;
 
         DOM.tableContainer.addEventListener('touchstart', (e) => {
             if (e.touches.length === 2) {
-                initialPinchDist = Math.hypot(
-                    e.touches[0].pageX - e.touches[1].pageX, 
-                    e.touches[0].pageY - e.touches[1].pageY
-                );
-                initialZoom = AppState.zoom;
+                initialPinchDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
+                initialZoomAtStart = AppState.zoom;
             }
         }, { passive: false });
 
         DOM.tableContainer.addEventListener('touchmove', (e) => {
             if (e.touches.length === 2 && initialPinchDist !== null) {
                 e.preventDefault();
-                const currentDist = Math.hypot(
-                    e.touches[0].pageX - e.touches[1].pageX, 
-                    e.touches[0].pageY - e.touches[1].pageY
-                );
-                const newZoom = initialZoom * (currentDist / initialPinchDist);
-                updateZoom(Math.min(Math.max(newZoom, 0.5), 1.5));
+                const currentDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
+                const ratio = currentDist / initialPinchDist;
+                const newZoom = initialZoomAtStart * ratio;
+                // 最小値を 0.2 (20%) に変更
+                updateZoom(Math.min(Math.max(newZoom, 0.2), 2.0));
             }
         }, { passive: false });
 
-        DOM.tableContainer.addEventListener('touchend', () => {
-            initialPinchDist = null;
-        });
+        DOM.tableContainer.addEventListener('touchend', () => { initialPinchDist = null; });
 
         DOM.tableContainer.addEventListener('wheel', (e) => {
             if (e.ctrlKey) {
                 e.preventDefault();
-                updateZoom(Math.min(Math.max(AppState.zoom - e.deltaY * 0.001, 0.5), 1.5));
+                // 最小値を 0.2 (20%) に変更
+                updateZoom(Math.min(Math.max(AppState.zoom - e.deltaY * 0.002, 0.2), 2.0));
             }
         }, { passive: false });
     }
@@ -405,7 +377,6 @@
         renderTable();
     }
 
-    /** --- Rendering --- **/
     function renderTable() {
         const sheet = AppState.currentSheet;
         DOM.headerRow.innerHTML = '<th class="row-header"></th>';
@@ -421,14 +392,12 @@
         const w = (width || DEFAULT_COL_WIDTH) * AppState.zoom;
         th.style.width = th.style.minWidth = w + 'px';
         th.innerHTML = `<span>${Utils.getColName(index)}</span>`;
-        const handleHeaderClick = (e) => {
+        th.onclick = (e) => {
             if (e.target.classList.contains('resizer-h')) return;
             if (AppState.selection.type === 'col' && AppState.selection.index === index) showContextMenu(e, 'col', index);
             else selectHeader('col', index);
         };
-        th.onclick = handleHeaderClick;
         th.oncontextmenu = (e) => { e.preventDefault(); selectHeader('col', index); showContextMenu(e, 'col', index); };
-
         const resizer = document.createElement('div');
         resizer.className = 'resizer-h';
         resizer.addEventListener('mousedown', initResizeCol);
@@ -440,7 +409,6 @@
     function createRow(rowIndex, height) {
         const tr = document.createElement('tr');
         if (height) tr.style.height = (height * AppState.zoom) + 'px';
-        
         const th = document.createElement('th');
         th.className = 'row-header';
         th.innerText = rowIndex + 1;
@@ -450,31 +418,25 @@
             else selectHeader('row', rowIndex);
         };
         th.oncontextmenu = (e) => { e.preventDefault(); selectHeader('row', rowIndex); showContextMenu(e, 'row', rowIndex); };
-
         const resizer = document.createElement('div');
         resizer.className = 'resizer-v';
         resizer.addEventListener('mousedown', initResizeRow);
         resizer.addEventListener('touchstart', initResizeRow, {passive: false});
         th.appendChild(resizer);
         tr.appendChild(th);
-        
         const sheet = AppState.currentSheet;
         if (!sheet.data[rowIndex]) sheet.data[rowIndex] = [];
-        for (let i = 0; i < sheet.colCount; i++) {
-            tr.appendChild(createCell(rowIndex, i, sheet.data[rowIndex][i] || "", sheet.colors[`${rowIndex}-${i}`] || "#ffffff"));
-        }
+        for (let i = 0; i < sheet.colCount; i++) tr.appendChild(createCell(rowIndex, i, sheet.data[rowIndex][i] || "", sheet.colors[`${rowIndex}-${i}`] || "#ffffff"));
         DOM.tableBody.appendChild(tr);
     }
 
     function createCell(r, c, value, color) {
         const td = document.createElement('td');
         td.style.backgroundColor = color;
-        
         const textarea = document.createElement('textarea');
         textarea.setAttribute('autocomplete', 'off');
         textarea.setAttribute('spellcheck', 'false');
         textarea.value = value;
-
         const trigger = document.createElement('div');
         trigger.className = 'focus-trigger';
         trigger.innerHTML = '✎';
@@ -482,7 +444,6 @@
         const countSpan = document.createElement('span');
         countSpan.className = 'char-count';
         updateCharCount(countSpan, value);
-
         textarea.oninput = function() {
             autoResize(this);
             AppState.currentSheet.data[r][c] = this.value;
@@ -495,12 +456,10 @@
             AppState.lastFocusedCell = { r, c, element: td, textarea: this, countSpan };
         };
         textarea.onblur = function() { this.style.height = '100%'; };
-        
         td.append(textarea, trigger, countSpan);
         return td;
     }
 
-    /** --- Selection & UI Helpers --- **/
     function selectHeader(type, index) { AppState.selection = { type, index }; updateSelectionUI(); }
     function clearSelection() { AppState.selection = { type: null, index: null }; updateSelectionUI(); }
 
@@ -534,7 +493,6 @@
         }
     }
 
-    /** --- Focus Mode --- **/
     function openFocusMode(r, c, originalTextarea) {
         DOM.focusLabel.innerText = `${Utils.getColName(c)}${r + 1} の編集`;
         DOM.focusTextarea.value = originalTextarea.value;
@@ -550,10 +508,8 @@
         };
     }
 
-    /** --- Context Menu & Operations --- **/
     function showContextMenu(e, type, index) {
-        e.preventDefault();
-        e.stopPropagation();
+        e.preventDefault(); e.stopPropagation();
         DOM.contextMenu.innerHTML = '';
         const items = [
             { label: '前に1つ挿入', action: () => modifyItems('insert', type, index) },
@@ -580,24 +536,18 @@
         const sheet = AppState.currentSheet;
         if (mode === 'insert') {
             if (type === 'row') {
-                sheet.data.splice(index, 0, []);
-                sheet.rowHeights.splice(index, 0, null);
-                shiftColors('row', index, 1);
-                sheet.rowCount++;
+                sheet.data.splice(index, 0, []); sheet.rowHeights.splice(index, 0, null);
+                shiftColors('row', index, 1); sheet.rowCount++;
             } else {
-                sheet.data.forEach(r => r.splice(index, 0, ""));
-                sheet.colWidths.splice(index, 0, null);
-                shiftColors('col', index, 1);
-                sheet.colCount++;
+                sheet.data.forEach(r => r.splice(index, 0, "")); sheet.colWidths.splice(index, 0, null);
+                shiftColors('col', index, 1); sheet.colCount++;
             }
         } else if (mode === 'delete') {
             if (type === 'row' && sheet.rowCount > 1) {
-                sheet.data.splice(index, 1);
-                sheet.rowHeights.splice(index, 1);
+                sheet.data.splice(index, 1); sheet.rowHeights.splice(index, 1);
                 deleteColors(type, index); shiftColors('row', index + 1, -1); sheet.rowCount--;
             } else if (type === 'col' && sheet.colCount > 1) {
-                sheet.data.forEach(r => r.splice(index, 1));
-                sheet.colWidths.splice(index, 1);
+                sheet.data.forEach(r => r.splice(index, 1)); sheet.colWidths.splice(index, 1);
                 deleteColors(type, index); shiftColors('col', index + 1, -1); sheet.colCount--;
             }
             clearSelection();
@@ -614,14 +564,12 @@
             if (type === 'row') {
                 sheet.data.splice(index, 0, AppState.clipboard.data);
                 sheet.rowHeights.splice(index, 0, AppState.clipboard.heightOrWidth);
-                shiftColors('row', index, 1);
-                applyExtractedColors('row', index, AppState.clipboard.colors);
+                shiftColors('row', index, 1); applyExtractedColors('row', index, AppState.clipboard.colors);
                 sheet.rowCount++;
             } else {
                 sheet.data.forEach((r, i) => r.splice(index, 0, AppState.clipboard.data[i] || ""));
                 sheet.colWidths.splice(index, 0, AppState.clipboard.heightOrWidth);
-                shiftColors('col', index, 1);
-                applyExtractedColors('col', index, AppState.clipboard.colors);
+                shiftColors('col', index, 1); applyExtractedColors('col', index, AppState.clipboard.colors);
                 sheet.colCount++;
             }
             AppState.clipboard = { type: null, index: null, data: null };
@@ -629,10 +577,8 @@
         DB.save(); renderTable();
     }
 
-    /** --- Color Helpers --- **/
     function shiftColors(type, startIndex, delta) {
-        const sheet = AppState.currentSheet;
-        const next = {};
+        const sheet = AppState.currentSheet, next = {};
         Object.keys(sheet.colors).forEach(key => {
             let [r, c] = key.split('-').map(Number);
             if (type === 'row' && r >= startIndex) r += delta;
@@ -668,7 +614,6 @@
         });
     }
 
-    /** --- Sheet Management --- **/
     function renderTabs() {
         DOM.tabContainer.querySelectorAll('.tab').forEach(t => t.remove());
         AppState.sheets.forEach((sheet, idx) => {
@@ -699,7 +644,6 @@
         });
     }
 
-    /** --- Resizing --- **/
     const getPos = e => ({ x: e.touches ? e.touches[0].clientX : e.clientX, y: e.touches ? e.touches[0].clientY : e.clientY });
     function initResizeCol(e) {
         e.stopPropagation(); if (e.cancelable) e.preventDefault();
@@ -710,8 +654,7 @@
             th.style.width = th.style.minWidth = (w * AppState.zoom) + 'px';
             AppState.currentSheet.colWidths[idx] = w;
         };
-        const end = () => { DB.save();
-        document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', end); document.removeEventListener('touchmove', move); document.removeEventListener('touchend', end); };
+        const end = () => { DB.save(); document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', end); document.removeEventListener('touchmove', move); document.removeEventListener('touchend', end); };
         document.addEventListener('mousemove', move); document.addEventListener('mouseup', end);
         document.addEventListener('touchmove', move, {passive: false}); document.addEventListener('touchend', end);
     }
@@ -725,13 +668,11 @@
             tr.style.height = (h * AppState.zoom) + 'px';
             AppState.currentSheet.rowHeights[idx] = h;
         };
-        const end = () => { DB.save(); document.removeEventListener('mousemove', move);
-        document.removeEventListener('mouseup', end); document.removeEventListener('touchmove', move); document.removeEventListener('touchend', end); };
+        const end = () => { DB.save(); document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', end); document.removeEventListener('touchmove', move); document.removeEventListener('touchend', end); };
         document.addEventListener('mousemove', move); document.addEventListener('mouseup', end);
         document.addEventListener('touchmove', move, {passive: false}); document.addEventListener('touchend', end);
     }
 
-    /** --- Export --- **/
     function exportCSV() {
         const sheet = AppState.currentSheet;
         let csv = "";
@@ -747,7 +688,6 @@
         link.click();
     }
 
-    /** --- App Initialization --- **/
     async function initApp() {
         COLORS.forEach(c => {
             const s = document.createElement('div');
