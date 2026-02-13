@@ -10,137 +10,142 @@
     <style>
         :root {
             --header-bg: #f8f9fa;
-            --border-color: #ddd;
+        --border-color: #e0e0e0;
             --accent-color: #f06595;
             --accent-hover: #ffdeeb;
             --cell-width: 100px;
-            --row-height: 32px;
-            --tab-bg: #e8eaed;
-            --selection-bg: rgba(240, 101, 149, 0.1);
-        }
+            --row-height: 36px; /* 少し高めに設定して押しやすく */
+            --tab-bg: #f1f3f4;
+            --selection-bg: rgba(240, 101, 149, 0.08);
+    }
 
         body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "BIZ UDPGothic", sans-serif;
+        margin: 0;
             display: flex; 
             flex-direction: column; 
             height: 100vh; 
             width: 100vw;
-            color: #333; 
-            overflow: hidden; /* ページ全体のスクロールを禁止（固定ヘッダーのため） */
-        }
+            color: #202124; 
+            overflow: hidden;
+            background-color: #fff;
+    }
         
-        /* 固定ヘッダー部分 */
+        /* 固定ヘッダー */
         .fixed-header-container {
             flex-shrink: 0;
-            z-index: 1000;
+        z-index: 1000;
             background: #fff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
 
         .toolbar { 
-            background: #fff; 
-            padding: 12px; 
+            background: #fff;
+        padding: 10px 16px; 
             border-bottom: 1px solid var(--border-color); 
             display: flex;
-            gap: 10px; 
+            gap: 8px; 
             align-items: center; 
-            flex-wrap: wrap; 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05); 
-        }
+            overflow-x: auto; /* スマホで横並びボタンが溢れてもスクロール可能に */
+            white-space: nowrap;
+            -webkit-overflow-scrolling: touch;
+    }
+
+        /* カスタムスクロールバー（ツールバー用） */
+        .toolbar::-webkit-scrollbar { display: none; }
 
         .color-palette { 
-            display: flex; 
-            gap: 4px; 
+            display: flex;
+        gap: 6px; 
             align-items: center; 
-            margin-left: 10px; 
-            padding-left: 10px;
-            border-left: 1px solid #ccc; 
-        }
+            margin-left: 8px; 
+            padding-left: 12px;
+            border-left: 1px solid var(--border-color);
+    }
 
         .color-swatch { 
-            width: 20px; 
-            height: 20px; 
-            border-radius: 3px;
+            width: 22px;
+        height: 22px; 
+            border-radius: 50%; /* 円形にしてモダンに */
             cursor: pointer; 
-            border: 1px solid #ddd; 
-            transition: transform 0.1s; 
-        }
+            border: 1px solid rgba(0,0,0,0.1); 
+            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            flex-shrink: 0;
+    }
 
-        .color-swatch:hover { 
-            transform: scale(1.2);
-            border-color: #999; 
-        }
+        .color-swatch:active { 
+            transform: scale(0.8);
+    }
 
         .sheet-tabs { 
             display: flex;
-            background: var(--tab-bg); 
+        background: var(--tab-bg); 
             border-bottom: 1px solid var(--border-color);
-            padding: 0 10px; 
-            align-items: center; 
-            height: 40px; 
+            padding: 0 8px; 
+            align-items: flex-end; /* タブを下に密着 */
+            height: 44px; 
             overflow-x: auto; 
             -webkit-overflow-scrolling: touch; 
             width: 100%;
-            box-sizing: border-box;
+        box-sizing: border-box;
         }
 
         .tab { 
-            padding: 8px 16px;
-            border: 1px solid transparent; 
-            border-top: none;
+            padding: 8px 20px;
+        border: 1px solid transparent; 
             cursor: pointer; 
-            font-size: 13px; 
+            font-size: 14px; 
             display: flex; 
             align-items: center; 
             gap: 8px; 
-            background: #e8eaed; 
-            margin-right: 2px;
-            border-radius: 0 0 4px 4px;
+            background: transparent; 
+            margin-right: 4px;
+        border-radius: 8px 8px 0 0;
             white-space: nowrap; 
+            color: #5f6368;
+            transition: all 0.2s;
         }
 
         .tab.active { 
             background: #fff;
-            border-color: var(--border-color); 
-            font-weight: bold;
-            border-top: 3px solid var(--accent-color); 
+        color: var(--accent-color);
+            font-weight: 600;
+            border: 1px solid var(--border-color);
+            border-bottom-color: #fff;
         }
 
         .tab-close { 
-            font-size: 16px;
-            line-height: 1; 
-            color: #888;
-        }
-
-        .tab-close:hover { 
-            color: #f44336;
+            font-size: 18px;
+        line-height: 1; 
+            color: #9aa0a6;
+            margin-left: 4px;
         }
 
         .add-sheet-btn { 
-            font-weight: bold; 
-            font-size: 18px; 
-            padding: 0 12px; 
-            height: 30px;
+            font-weight: normal;
+        font-size: 24px; 
+            padding: 0 16px; 
+            height: 40px;
             border: none; 
             background: none; 
             color: #5f6368; 
-            flex-shrink: 0; 
-        }
+            cursor: pointer;
+    }
 
-        /* スクロール可能なテーブルエリア */
+        /* テーブルエリア */
         .table-container { 
             overflow: auto;
-            flex-grow: 1; 
+        flex-grow: 1; 
             position: relative; 
             -webkit-overflow-scrolling: touch;
-            background: #f0f0f0; 
+            background: #f8f9fa; 
             width: 100%;
             box-sizing: border-box;
-        }
+    }
         
         table { 
             border-collapse: separate;
-            border-spacing: 0; 
+        border-spacing: 0; 
             table-layout: fixed; 
             width: max-content; 
             background: #fff;
@@ -148,98 +153,103 @@
 
         th { 
             background: var(--header-bg);
-            border-right: 1px solid var(--border-color);
+        border-right: 1px solid var(--border-color);
             border-bottom: 1px solid var(--border-color);
             position: sticky; 
             top: 0;
             z-index: 20; 
-            font-size: 12px; 
+            font-size: 11px; 
             font-weight: 600; 
+            color: #5f6368;
             user-select: none;
-            height: var(--row-height); 
+        height: var(--row-height); 
             box-sizing: border-box;
+            text-transform: uppercase;
         }
 
         .row-header { 
             left: 0;
-            z-index: 30; 
-            width: 50px; 
+        z-index: 30; 
+            width: 46px; 
             text-align: center; 
             background: var(--header-bg);
-            border-right: 2px solid #ccc;
+            border-right: 1px solid #c0c0c0;
             cursor: default;
-        }
+    }
 
         thead tr:first-child th:first-child { 
             z-index: 40;
-            left: 0;
+        left: 0;
         }
 
         td { 
             border-right: 1px solid var(--border-color);
-            border-bottom: 1px solid var(--border-color); 
+        border-bottom: 1px solid var(--border-color); 
             padding: 0; 
             box-sizing: border-box; 
             height: var(--row-height);
             position: relative;
-        }
+    }
         
         .selected-col { background-color: var(--selection-bg) !important; }
-        .selected-row td { background-color: var(--selection-bg) !important; }
-        th.active-header { background-color: var(--accent-hover) !important; color: var(--accent-color); }
+    .selected-row td { background-color: var(--selection-bg) !important; }
+    th.active-header { background-color: var(--accent-hover) !important; color: var(--accent-color); }
 
         td textarea { 
             border: none;
-            width: 100%; 
+        width: 100%; 
             height: 100%; 
-            padding: 4px 8px;
+            padding: 8px;
             box-sizing: border-box; 
             outline: none; 
             font-size: 14px; 
             background: transparent; 
             display: block; 
             resize: none;
-            font-family: inherit; 
-            white-space: pre-wrap; 
+        font-family: inherit; 
+            white-space: nowrap; /* デフォルトは1行で見やすく */
             overflow: hidden;
+            line-height: 1.4;
         }
 
         td textarea:focus { 
             position: absolute;
-            top: 0; 
+        top: 0; 
             left: 0; 
             z-index: 60;
             height: auto; 
             min-height: 100%; 
             background: #fff; 
             border: 2px solid var(--accent-color); 
-            padding: 3px 7px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15); 
-            overflow: hidden;
+            padding: 7px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15); 
+            overflow: visible;
+            white-space: pre-wrap;
         }
 
+        /* 集中モードへのトリガーボタン */
         .focus-trigger {
             position: absolute;
-            top: -12px; 
+        top: 2px; 
             right: 2px; 
             background: var(--accent-color); 
             color: white;
-            width: 24px; 
-            height: 24px; 
+            width: 20px; 
+            height: 20px; 
             border-radius: 4px; 
             display: none; 
             align-items: center; 
             justify-content: center;
-            font-size: 14px; 
+        font-size: 12px; 
             cursor: pointer; 
             z-index: 100; 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
+            opacity: 0.9;
+    }
         td textarea:focus + .focus-trigger { display: flex; }
 
         #focus-mode-overlay {
             position: fixed;
-            top: 0; 
+        top: 0; 
             left: 0; 
             width: 100%; 
             height: 100%; 
@@ -247,128 +257,120 @@
             z-index: 2000; 
             display: none; 
             flex-direction: column;
-        }
+    }
 
         .focus-header { 
-            padding: 15px; 
-            border-bottom: 1px solid #ddd; 
+            padding: 12px 16px;
+        border-bottom: 1px solid var(--border-color); 
             display: flex; 
             justify-content: space-between;
             align-items: center; 
-            background: var(--header-bg); 
-        }
+            background: #fff;
+    }
 
         #focus-textarea { 
-            flex-grow: 1; 
-            border: none; 
+            flex-grow: 1;
+        border: none; 
             padding: 20px;
             font-size: 18px; 
             outline: none; 
             resize: none; 
             width: 100%; 
             box-sizing: border-box;
-        }
+            line-height: 1.6;
+    }
 
         .char-count { 
-            position: absolute; 
-            bottom: 2px; 
+            position: absolute;
+        bottom: 2px; 
             right: 4px; 
-            font-size: 9px; 
-            color: #aaa;
+            font-size: 10px; 
+            color: #9aa0a6;
             pointer-events: none; 
             z-index: 70; 
-            background: rgba(255, 255, 255, 0.6); 
-            padding: 0 2px; 
-            border-radius: 2px; 
+            background: rgba(255, 255, 255, 0.8); 
+            padding: 0 4px;
+        border-radius: 4px; 
             display: none;
         }
         td:hover .char-count, td textarea:focus + .focus-trigger + .char-count { display: block; }
 
-        .resizer-h { 
+        /* リサイザー */
+        .resizer-h, .resizer-v { 
             position: absolute;
-            right: -5px; 
-            top: 0; 
-            width: 10px; 
-            height: 100%;
-            cursor: col-resize; 
-            z-index: 55; 
-            touch-action: none; 
+            background: transparent;
+            z-index: 55;
+            touch-action: none;
             display: none;
         }
-        .resizer-v { 
-            position: absolute; 
-            bottom: -5px;
-            left: 0; 
-            width: 100%; 
-            height: 100%; 
-            max-height: 10px;
-            cursor: row-resize; 
-            z-index: 55; 
-            touch-action: none; 
-            display: none;
-        }
+        .resizer-h { right: -4px; top: 0; width: 8px; height: 100%; cursor: col-resize; }
+        .resizer-v { bottom: -4px; left: 0; width: 100%; height: 8px; cursor: row-resize; }
+        
         .active-header .resizer-h, .active-header .resizer-v { display: block; }
 
         .resizer-h::after { 
-            content: ''; 
-            position: absolute; 
-            right: 4px; 
-            top: 15%; 
+            content: '';
+        position: absolute; 
+            right: 3px; 
+            top: 25%; 
             width: 2px;
-            height: 70%; 
+            height: 50%; 
             background: var(--accent-color); 
-            border-radius: 2px; 
-        }
+            border-radius: 2px;
+    }
         .resizer-v::after { 
-            content: ''; 
-            position: absolute;
-            bottom: 4px; 
-            left: 15%; 
-            width: 70%; 
+            content: '';
+        position: absolute;
+            bottom: 3px; 
+            left: 25%; 
+            width: 50%; 
             height: 2px; 
             background: var(--accent-color); 
             border-radius: 2px;
-        }
+    }
 
         button { 
-            cursor: pointer; 
-            padding: 8px 16px;
+            cursor: pointer;
+        padding: 8px 14px;
             background: #fff;
-            border: 1px solid #ced4da; 
-            border-radius: 4px; 
-            font-size: 14px; 
+            border: 1px solid #dadce0; 
+            border-radius: 6px; 
+            font-size: 13px; 
             transition: all 0.2s; 
             font-weight: 500;
-        }
-        button:hover { 
-            background: var(--accent-hover); 
-            border-color: var(--accent-color); 
-            color: var(--accent-color);
+            color: #3c4043;
+    }
+        button:active { 
+            background: #f1f3f4;
+        transform: translateY(1px);
         }
 
+        /* コンテキストメニュー */
         .context-menu { 
-            position: fixed; 
-            background: #fff; 
-            border: 1px solid #ccc;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2); 
+            position: fixed;
+        background: #fff; 
+            border: none;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15); 
             z-index: 1000; 
             display: none; 
-            padding: 5px 0; 
-            min-width: 150px; 
-            border-radius: 4px;
+            padding: 6px 0; 
+            min-width: 180px;
+        border-radius: 8px;
+            border: 1px solid rgba(0,0,0,0.05);
         }
         .context-menu-item { 
-            padding: 10px 15px; 
-            cursor: pointer; 
+            padding: 12px 20px;
+        cursor: pointer; 
             font-size: 14px;
+            color: #3c4043;
         }
         .context-menu-item:hover { 
-            background: var(--accent-hover); 
-            color: var(--accent-color);
+            background: var(--tab-bg);
+        color: var(--accent-color);
         }
         .context-menu-item.disabled { 
-            color: #ccc; 
-            cursor: default;
+            color: #bdc1c6;
+        cursor: default;
         }
     </style>
 </head>
@@ -376,11 +378,11 @@
 
 <div class="fixed-header-container">
     <div class="toolbar">
-        <button id="btn-add-row">行を追加 (+)</button>
-        <button id="btn-add-col">列を追加 (+)</button>
-        <button id="btn-export">CSV書き出し</button>
+        <button id="btn-add-row">行を追加</button>
+        <button id="btn-add-col">列を追加</button>
+        <button id="btn-export">CSV出力</button>
         <div class="color-palette" id="color-palette">
-            <span style="font-size: 12px; color: #666; margin-right: 5px;">背景色:</span>
+            <span style="font-size: 11px; color: #80868b; margin-right: 4px;">背景色:</span>
         </div>
     </div>
 
@@ -400,8 +402,9 @@
 
 <div id="focus-mode-overlay">
     <div class="focus-header">
-        <span id="focus-cell-label" style="font-weight: bold;">セル編集</span>
-        <button id="btn-close-focus" style="background: var(--accent-color); color: white; border: none;">完了</button>
+        <span id="focus-cell-label" style="font-weight: 600; font-size: 15px;">セル編集</span>
+        <button id="btn-close-focus" style="background: var(--accent-color);
+        color: white; border: none; padding: 8px 20px; border-radius: 20px;">完了</button>
     </div>
     <textarea id="focus-textarea" placeholder="入力を開始..."></textarea>
 </div>
@@ -411,10 +414,10 @@
     const DB_CONFIG = { name: 'SpreadsheetDB', version: 1, store: 'settings' };
     const DEFAULT_COL_WIDTH = 100;
     const COLORS = [
-        "#fff0f6", "#ffdeeb", "#f06595", "#fff5f5", "#ffc9c9", "#fa5252",
+        "#ffffff", "#f8f9fa", "#fff0f6", "#ffdeeb", "#f06595", "#fff5f5", "#ffc9c9", "#fa5252",
         "#fff9db", "#ffec99", "#fab005", "#ebfbee", "#b2f2bb", "#40c057",
         "#e7f5ff", "#a5d8ff", "#228be6", "#f8f0fc", "#eebefa", "#be4bdb",
-        "#ffffff", "#ced4da", "#343a40"
+        "#ced4da", "#343a40"
     ];
 
     /** --- 状態管理 --- **/
@@ -517,7 +520,11 @@
                 selectHeader('col', index);
             }
         };
-        th.oncontextmenu = (e) => e.preventDefault();
+        th.oncontextmenu = (e) => {
+            e.preventDefault();
+            selectHeader('col', index);
+            showContextMenu(e, 'col', index);
+        };
 
         const resizer = document.createElement('div');
         resizer.className = 'resizer-h';
@@ -542,7 +549,11 @@
                 selectHeader('row', rowIndex);
             }
         };
-        th.oncontextmenu = (e) => e.preventDefault();
+        th.oncontextmenu = (e) => {
+            e.preventDefault();
+            selectHeader('row', rowIndex);
+            showContextMenu(e, 'row', rowIndex);
+        };
 
         const resizer = document.createElement('div');
         resizer.className = 'resizer-v';
@@ -582,6 +593,7 @@
         const countSpan = document.createElement('span');
         countSpan.className = 'char-count';
         updateCharCount(countSpan, value);
+
         textarea.addEventListener('input', function() {
             autoResize(this);
             AppState.currentSheet.data[r][c] = this.value;
@@ -636,7 +648,7 @@
     /** --- 集中モード機能 --- **/
     function openFocusMode(r, c, originalTextarea) {
         const colName = Utils.getColName(c);
-        DOM.focusLabel.innerText = `セル ${colName}${r + 1} を編集中`;
+        DOM.focusLabel.innerText = `${colName}${r + 1} の編集`;
         DOM.focusTextarea.value = originalTextarea.value;
         DOM.focusOverlay.style.display = 'flex';
         DOM.focusTextarea.focus();
@@ -650,7 +662,6 @@
             }
             DOM.focusOverlay.style.display = 'none';
             DB.save();
-            renderTable();
         };
     }
 
@@ -682,10 +693,10 @@
 
         DOM.contextMenu.innerHTML = '';
         const items = [
-            { label: '前に挿入', action: () => modifyItems('insert', type, index) },
-            { label: '削除', action: () => modifyItems('delete', type, index) },
+            { label: '前に1つ挿入', action: () => modifyItems('insert', type, index) },
+            { label: 'この項目を削除', action: () => modifyItems('delete', type, index) },
             { label: '切り取り', action: () => modifyItems('cut', type, index) },
-            { label: '手前に貼り付け', action: () => modifyItems('paste', type, index), 
+            { label: 'クリップボードを貼付', action: () => modifyItems('paste', type, index), 
               disabled: !AppState.clipboard.type || AppState.clipboard.type !== type }
         ];
         items.forEach(item => {
@@ -701,12 +712,14 @@
         });
         DOM.contextMenu.style.display = 'block';
         
-        const menuWidth = 150;
-        let left = e.clientX;
+        const menuWidth = 180;
+        let left = e.clientX || (e.touches ? e.touches[0].clientX : 0);
+        let top = e.clientY || (e.touches ? e.touches[0].clientY : 0);
+
         if (left + menuWidth > window.innerWidth) left = window.innerWidth - menuWidth - 10;
         
         DOM.contextMenu.style.left = left + 'px';
-        DOM.contextMenu.style.top = e.clientY + 'px';
+        DOM.contextMenu.style.top = top + 'px';
     }
 
     function hideContextMenu() { DOM.contextMenu.style.display = 'none'; }
@@ -837,7 +850,7 @@
     }
 
     function renameSheet(index) {
-        const newName = prompt("新しいシート名を入力してください:", AppState.sheets[index].name);
+        const newName = prompt("シート名の変更:", AppState.sheets[index].name);
         if (newName && newName.trim() !== "") {
             AppState.sheets[index].name = newName.trim();
             DB.save();
@@ -855,7 +868,7 @@
 
     function deleteSheet(index) {
         if (AppState.sheets.length <= 1) return;
-        if (confirm(`${AppState.sheets[index].name} を削除しますか？`)) {
+        if (confirm(`「${AppState.sheets[index].name}」を削除してもよろしいですか？`)) {
             AppState.sheets.splice(index, 1);
             if (AppState.activeSheetIndex >= AppState.sheets.length) AppState.activeSheetIndex = AppState.sheets.length - 1;
             DB.save();
@@ -968,11 +981,13 @@
                 hideContextMenu();
             }
         });
+
         try {
             await DB.init();
             await DB.load();
         } catch (e) { console.error("DB Load Error", e); }
         renderTable();
+
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js').catch(console.error);
         }
