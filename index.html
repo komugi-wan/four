@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Professional Spreadsheet App</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#f06595">
@@ -19,56 +19,135 @@
             --selection-bg: rgba(240, 101, 149, 0.1);
         }
 
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0;
-        display: flex; flex-direction: column; height: 100vh; color: #333; overflow: hidden;
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            margin: 0;
+            display: flex; 
+            flex-direction: column; 
+            height: 100vh; 
+            width: 100vw;
+            color: #333; 
+            overflow: hidden; /* ページ全体のスクロールを禁止（固定ヘッダーのため） */
         }
-        .toolbar { background: #fff; padding: 12px; border-bottom: 1px solid var(--border-color); display: flex;
-        gap: 10px; align-items: center; flex-wrap: wrap; box-shadow: 0 2px 4px rgba(0,0,0,0.05); z-index: 100;
-        }
-        .color-palette { display: flex; gap: 4px; align-items: center; margin-left: 10px; padding-left: 10px;
-        border-left: 1px solid #ccc; }
-        .color-swatch { width: 20px; height: 20px; border-radius: 3px;
-        cursor: pointer; border: 1px solid #ddd; transition: transform 0.1s; }
-        .color-swatch:hover { transform: scale(1.2);
-        border-color: #999; }
-
-        /* シートタブの配置変更（上部へ） */
-        .sheet-tabs { display: flex; background: var(--tab-bg); border-bottom: 1px solid var(--border-color);
-        padding: 0 10px; align-items: center; height: 40px; overflow-x: auto; -webkit-overflow-scrolling: touch; z-index: 90; }
-        .tab { padding: 8px 16px;
-        border: 1px solid transparent; border-top: none; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 8px; background: #e8eaed; margin-right: 2px;
-        border-radius: 0 0 4px 4px; white-space: nowrap; }
-        .tab.active { background: #fff;
-        border-color: var(--border-color); font-weight: bold; border-top: 3px solid var(--accent-color); }
-        .tab-close { font-size: 16px;
-        line-height: 1; color: #888; }
-        .tab-close:hover { color: #f44336;
-        }
-        .add-sheet-btn { font-weight: bold; font-size: 18px; padding: 0 12px; height: 30px;
-        border: none; background: none; color: #5f6368; flex-shrink: 0; }
-        .add-sheet-btn:hover { background: rgba(0,0,0,0.05); border-radius: 50%;
+        
+        /* 固定ヘッダー部分 */
+        .fixed-header-container {
+            flex-shrink: 0;
+            z-index: 1000;
+            background: #fff;
         }
 
-        /* スクロールコンテナの制御 */
+        .toolbar { 
+            background: #fff; 
+            padding: 12px; 
+            border-bottom: 1px solid var(--border-color); 
+            display: flex;
+            gap: 10px; 
+            align-items: center; 
+            flex-wrap: wrap; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05); 
+        }
+
+        .color-palette { 
+            display: flex; 
+            gap: 4px; 
+            align-items: center; 
+            margin-left: 10px; 
+            padding-left: 10px;
+            border-left: 1px solid #ccc; 
+        }
+
+        .color-swatch { 
+            width: 20px; 
+            height: 20px; 
+            border-radius: 3px;
+            cursor: pointer; 
+            border: 1px solid #ddd; 
+            transition: transform 0.1s; 
+        }
+
+        .color-swatch:hover { 
+            transform: scale(1.2);
+            border-color: #999; 
+        }
+
+        .sheet-tabs { 
+            display: flex;
+            background: var(--tab-bg); 
+            border-bottom: 1px solid var(--border-color);
+            padding: 0 10px; 
+            align-items: center; 
+            height: 40px; 
+            overflow-x: auto; 
+            -webkit-overflow-scrolling: touch; 
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .tab { 
+            padding: 8px 16px;
+            border: 1px solid transparent; 
+            border-top: none;
+            cursor: pointer; 
+            font-size: 13px; 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+            background: #e8eaed; 
+            margin-right: 2px;
+            border-radius: 0 0 4px 4px;
+            white-space: nowrap; 
+        }
+
+        .tab.active { 
+            background: #fff;
+            border-color: var(--border-color); 
+            font-weight: bold;
+            border-top: 3px solid var(--accent-color); 
+        }
+
+        .tab-close { 
+            font-size: 16px;
+            line-height: 1; 
+            color: #888;
+        }
+
+        .tab-close:hover { 
+            color: #f44336;
+        }
+
+        .add-sheet-btn { 
+            font-weight: bold; 
+            font-size: 18px; 
+            padding: 0 12px; 
+            height: 30px;
+            border: none; 
+            background: none; 
+            color: #5f6368; 
+            flex-shrink: 0; 
+        }
+
+        /* スクロール可能なテーブルエリア */
         .table-container { 
-            overflow: auto; 
+            overflow: auto;
             flex-grow: 1; 
             position: relative; 
             -webkit-overflow-scrolling: touch;
             background: #f0f0f0; 
+            width: 100%;
+            box-sizing: border-box;
         }
         
         table { 
-            border-collapse: separate; 
+            border-collapse: separate;
             border-spacing: 0; 
             table-layout: fixed; 
             width: max-content; 
             background: #fff;
         }
 
-        /* ヘッダーの固定制御 */
         th { 
-            background: var(--header-bg); 
+            background: var(--header-bg);
             border-right: 1px solid var(--border-color);
             border-bottom: 1px solid var(--border-color);
             position: sticky; 
@@ -76,124 +155,238 @@
             z-index: 20; 
             font-size: 12px; 
             font-weight: 600; 
-            user-select: none; 
+            user-select: none;
             height: var(--row-height); 
             box-sizing: border-box;
-            overflow: visible;
         }
 
-        /* 行番号ヘッダーの固定 (左端) */
         .row-header { 
-            left: 0; 
+            left: 0;
             z-index: 30; 
             width: 50px; 
             text-align: center; 
             background: var(--header-bg);
             border-right: 2px solid #ccc;
-            cursor: default; 
+            cursor: default;
         }
 
-        /* 左上角のセルの優先順位 */
         thead tr:first-child th:first-child { 
-            z-index: 40; 
+            z-index: 40;
             left: 0;
         }
 
         td { 
-            border-right: 1px solid var(--border-color); 
+            border-right: 1px solid var(--border-color);
             border-bottom: 1px solid var(--border-color); 
             padding: 0; 
             box-sizing: border-box; 
             height: var(--row-height);
-            position: relative; 
+            position: relative;
         }
         
-        /* 選択状態のスタイル */
         .selected-col { background-color: var(--selection-bg) !important; }
         .selected-row td { background-color: var(--selection-bg) !important; }
         th.active-header { background-color: var(--accent-hover) !important; color: var(--accent-color); }
 
-        td textarea { border: none;
-        width: 100%; height: 100%; padding: 4px 8px;
-        box-sizing: border-box; outline: none; font-size: 14px; background: transparent; display: block; resize: none;
-        font-family: inherit; white-space: pre-wrap; overflow: hidden;
+        td textarea { 
+            border: none;
+            width: 100%; 
+            height: 100%; 
+            padding: 4px 8px;
+            box-sizing: border-box; 
+            outline: none; 
+            font-size: 14px; 
+            background: transparent; 
+            display: block; 
+            resize: none;
+            font-family: inherit; 
+            white-space: pre-wrap; 
+            overflow: hidden;
         }
-        td textarea:focus { position: absolute;
-        top: 0; left: 0; z-index: 60;
-        height: auto; min-height: 100%; background: #fff; border: 2px solid var(--accent-color); padding: 3px 7px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15); overflow: hidden;
+
+        td textarea:focus { 
+            position: absolute;
+            top: 0; 
+            left: 0; 
+            z-index: 60;
+            height: auto; 
+            min-height: 100%; 
+            background: #fff; 
+            border: 2px solid var(--accent-color); 
+            padding: 3px 7px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15); 
+            overflow: hidden;
         }
 
         .focus-trigger {
             position: absolute;
-            top: -12px; right: 2px; background: var(--accent-color); color: white;
-            width: 24px; height: 24px; border-radius: 4px; display: none; align-items: center; justify-content: center;
-            font-size: 14px; cursor: pointer; z-index: 100; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            top: -12px; 
+            right: 2px; 
+            background: var(--accent-color); 
+            color: white;
+            width: 24px; 
+            height: 24px; 
+            border-radius: 4px; 
+            display: none; 
+            align-items: center; 
+            justify-content: center;
+            font-size: 14px; 
+            cursor: pointer; 
+            z-index: 100; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
-        td textarea:focus + .focus-trigger { display: flex;
-        }
+        td textarea:focus + .focus-trigger { display: flex; }
 
         #focus-mode-overlay {
             position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%; background: #fff;
-            z-index: 2000; display: none; flex-direction: column;
-        }
-        .focus-header { padding: 15px; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between;
-        align-items: center; background: var(--header-bg); }
-        #focus-textarea { flex-grow: 1; border: none; padding: 20px;
-        font-size: 18px; outline: none; resize: none; width: 100%; box-sizing: border-box;
-        }
-
-        .char-count { position: absolute; bottom: 2px; right: 4px; font-size: 9px; color: #aaa;
-        pointer-events: none; z-index: 70; background: rgba(255, 255, 255, 0.6); padding: 0 2px; border-radius: 2px; display: none;
-        }
-        td:hover .char-count, td textarea:focus + .focus-trigger + .char-count { display: block;
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: #fff;
+            z-index: 2000; 
+            display: none; 
+            flex-direction: column;
         }
 
-        /* リサイズハンドルの強化 */
-        .resizer-h { position: absolute; right: -5px; top: 0; width: 10px; height: 100%;
-        cursor: col-resize; z-index: 55; touch-action: none; display: none; }
-        .resizer-v { position: absolute; bottom: -5px;
-        left: 0; width: 100%; height: 10px; cursor: row-resize; z-index: 55; touch-action: none; display: none;
+        .focus-header { 
+            padding: 15px; 
+            border-bottom: 1px solid #ddd; 
+            display: flex; 
+            justify-content: space-between;
+            align-items: center; 
+            background: var(--header-bg); 
         }
-        /* 選択時のみハンドルを表示 */
+
+        #focus-textarea { 
+            flex-grow: 1; 
+            border: none; 
+            padding: 20px;
+            font-size: 18px; 
+            outline: none; 
+            resize: none; 
+            width: 100%; 
+            box-sizing: border-box;
+        }
+
+        .char-count { 
+            position: absolute; 
+            bottom: 2px; 
+            right: 4px; 
+            font-size: 9px; 
+            color: #aaa;
+            pointer-events: none; 
+            z-index: 70; 
+            background: rgba(255, 255, 255, 0.6); 
+            padding: 0 2px; 
+            border-radius: 2px; 
+            display: none;
+        }
+        td:hover .char-count, td textarea:focus + .focus-trigger + .char-count { display: block; }
+
+        .resizer-h { 
+            position: absolute;
+            right: -5px; 
+            top: 0; 
+            width: 10px; 
+            height: 100%;
+            cursor: col-resize; 
+            z-index: 55; 
+            touch-action: none; 
+            display: none;
+        }
+        .resizer-v { 
+            position: absolute; 
+            bottom: -5px;
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            max-height: 10px;
+            cursor: row-resize; 
+            z-index: 55; 
+            touch-action: none; 
+            display: none;
+        }
         .active-header .resizer-h, .active-header .resizer-v { display: block; }
 
-        .resizer-h::after { content: ''; position: absolute; right: 4px; top: 15%; width: 2px; height: 70%; 
-        background: var(--accent-color); border-radius: 2px; }
-        .resizer-v::after { content: ''; position: absolute; bottom: 4px; left: 15%; width: 70%; height: 2px; 
-        background: var(--accent-color); border-radius: 2px; }
+        .resizer-h::after { 
+            content: ''; 
+            position: absolute; 
+            right: 4px; 
+            top: 15%; 
+            width: 2px;
+            height: 70%; 
+            background: var(--accent-color); 
+            border-radius: 2px; 
+        }
+        .resizer-v::after { 
+            content: ''; 
+            position: absolute;
+            bottom: 4px; 
+            left: 15%; 
+            width: 70%; 
+            height: 2px; 
+            background: var(--accent-color); 
+            border-radius: 2px;
+        }
 
-        button { cursor: pointer; padding: 8px 16px;
-        background: #fff; border: 1px solid #ced4da; border-radius: 4px; font-size: 14px; transition: all 0.2s; font-weight: 500;
+        button { 
+            cursor: pointer; 
+            padding: 8px 16px;
+            background: #fff;
+            border: 1px solid #ced4da; 
+            border-radius: 4px; 
+            font-size: 14px; 
+            transition: all 0.2s; 
+            font-weight: 500;
         }
-        button:hover { background: var(--accent-hover); border-color: var(--accent-color); color: var(--accent-color);
+        button:hover { 
+            background: var(--accent-hover); 
+            border-color: var(--accent-color); 
+            color: var(--accent-color);
         }
 
-        .context-menu { position: fixed; background: #fff; border: 1px solid #ccc;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 1000; display: none; padding: 5px 0; min-width: 150px; border-radius: 4px;
+        .context-menu { 
+            position: fixed; 
+            background: #fff; 
+            border: 1px solid #ccc;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2); 
+            z-index: 1000; 
+            display: none; 
+            padding: 5px 0; 
+            min-width: 150px; 
+            border-radius: 4px;
         }
-        .context-menu-item { padding: 10px 15px; cursor: pointer; font-size: 14px;
+        .context-menu-item { 
+            padding: 10px 15px; 
+            cursor: pointer; 
+            font-size: 14px;
         }
-        .context-menu-item:hover { background: var(--accent-hover); color: var(--accent-color);
+        .context-menu-item:hover { 
+            background: var(--accent-hover); 
+            color: var(--accent-color);
         }
-        .context-menu-item.disabled { color: #ccc; cursor: default;
+        .context-menu-item.disabled { 
+            color: #ccc; 
+            cursor: default;
         }
     </style>
 </head>
 <body>
 
-<div class="toolbar">
-    <button id="btn-add-row">行を追加 (+)</button>
-    <button id="btn-add-col">列を追加 (+)</button>
-    <button id="btn-export">CSV書き出し</button>
-    <div class="color-palette" id="color-palette">
-        <span style="font-size: 12px; color: #666; margin-right: 5px;">背景色:</span>
+<div class="fixed-header-container">
+    <div class="toolbar">
+        <button id="btn-add-row">行を追加 (+)</button>
+        <button id="btn-add-col">列を追加 (+)</button>
+        <button id="btn-export">CSV書き出し</button>
+        <div class="color-palette" id="color-palette">
+            <span style="font-size: 12px; color: #666; margin-right: 5px;">背景色:</span>
+        </div>
     </div>
-</div>
 
-<div class="sheet-tabs" id="sheet-tabs">
-    <button class="add-sheet-btn" id="btn-add-sheet">+</button>
+    <div class="sheet-tabs" id="sheet-tabs">
+        <button class="add-sheet-btn" id="btn-add-sheet">+</button>
+    </div>
 </div>
 
 <div class="table-container">
@@ -316,7 +509,6 @@
         th.style.width = (width || DEFAULT_COL_WIDTH) + 'px';
         th.style.minWidth = (width || DEFAULT_COL_WIDTH) + 'px';
         th.innerHTML = `<span>${Utils.getColName(index)}</span>`;
-        
         th.onclick = (e) => {
             if (e.target.classList.contains('resizer-h')) return;
             if (AppState.selection.type === 'col' && AppState.selection.index === index) {
@@ -342,7 +534,6 @@
         const th = document.createElement('th');
         th.className = 'row-header';
         th.innerText = rowIndex + 1;
-        
         th.onclick = (e) => {
             if (e.target.classList.contains('resizer-v')) return;
             if (AppState.selection.type === 'row' && AppState.selection.index === rowIndex) {
@@ -391,7 +582,6 @@
         const countSpan = document.createElement('span');
         countSpan.className = 'char-count';
         updateCharCount(countSpan, value);
-
         textarea.addEventListener('input', function() {
             autoResize(this);
             AppState.currentSheet.data[r][c] = this.value;
@@ -426,12 +616,10 @@
         document.querySelectorAll('th, td, tr').forEach(el => {
             el.classList.remove('active-header', 'selected-col', 'selected-row');
         });
-
         if (AppState.selection.type === 'col') {
             const colIdx = AppState.selection.index;
             const ths = DOM.headerRow.querySelectorAll('th');
             if (ths[colIdx + 1]) ths[colIdx + 1].classList.add('active-header');
-            
             Array.from(DOM.tableBody.rows).forEach(row => {
                 if (row.cells[colIdx + 1]) row.cells[colIdx + 1].classList.add('selected-col');
             });
@@ -511,7 +699,6 @@
             };
             DOM.contextMenu.appendChild(div);
         });
-        
         DOM.contextMenu.style.display = 'block';
         
         const menuWidth = 150;
@@ -678,7 +865,6 @@
 
     /** --- リサイズ機能 --- **/
     const getPos = e => ({ x: e.touches ? e.touches[0].clientX : e.clientX, y: e.touches ? e.touches[0].clientY : e.clientY });
-    
     function initResizeCol(e) {
         e.stopPropagation();
         if (e.cancelable) e.preventDefault();
@@ -686,7 +872,6 @@
         const colIdx = Array.from(th.parentElement.children).indexOf(th) - 1;
         const start = getPos(e);
         const startWidth = th.offsetWidth;
-
         const onMove = (ev) => {
             const newWidth = startWidth + getPos(ev).x - start.x;
             if (newWidth > 40) {
@@ -711,7 +896,6 @@
         const rowIdx = Array.from(tr.parentElement.children).indexOf(tr);
         const start = getPos(e);
         const startHeight = tr.offsetHeight;
-
         const onMove = (ev) => {
             const newHeight = startHeight + getPos(ev).y - start.y;
             if (newHeight > 20) {
@@ -779,12 +963,11 @@
         };
         
         document.addEventListener('click', (e) => {
-            if (!e.target.closest('th') && !e.target.closest('td') && !e.target.closest('.toolbar') && !e.target.closest('.context-menu')) {
+            if (!e.target.closest('th') && !e.target.closest('td') && !e.target.closest('.toolbar') && !e.target.closest('.context-menu') && !e.target.closest('.fixed-header-container')) {
                 clearSelection();
                 hideContextMenu();
             }
         });
-
         try {
             await DB.init();
             await DB.load();
