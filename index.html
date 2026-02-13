@@ -105,7 +105,8 @@
         }
 
         .tab-close { font-size: 18px; color: #9aa0a6; margin-left: 4px; }
-        .add-sheet-btn { font-size: 24px; padding: 0 16px; height: 40px; border: none; background: none; color: #5f6368; cursor: pointer; }
+        .add-sheet-btn { font-size: 24px; padding: 0 16px; height: 40px; border: none;
+        background: none; color: #5f6368; cursor: pointer; }
 
         .table-container { 
             overflow: auto;
@@ -196,25 +197,35 @@
             background: #fff; z-index: 3000; display: none; flex-direction: column;
         }
 
-        .focus-header { padding: 12px 16px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
-        #focus-textarea { flex-grow: 1; border: none; padding: 20px; font-size: 18px; outline: none; resize: none; line-height: 1.6; }
+        .focus-header { padding: 12px 16px; border-bottom: 1px solid var(--border-color); display: flex;
+        justify-content: space-between; align-items: center; }
+        #focus-textarea { flex-grow: 1; border: none; padding: 20px;
+        font-size: 18px; outline: none; resize: none; line-height: 1.6; }
 
         .char-count { 
             position: absolute;
             bottom: 2px; right: 4px; font-size: 10px; color: #9aa0a6;
             pointer-events: none; z-index: 70; background: rgba(255, 255, 255, 0.8); 
-            padding: 0 4px; border-radius: 4px; display: none;
+            padding: 0 4px;
+            border-radius: 4px; display: none;
         }
         td:hover .char-count, td textarea:focus + .focus-trigger + .char-count { display: block; }
 
-        .resizer-h, .resizer-v { position: absolute; background: transparent; z-index: 130; touch-action: none; display: none; }
-        .resizer-h { right: -4px; top: 0; width: 8px; height: 100%; cursor: col-resize; }
-        .resizer-v { bottom: -4px; left: 0; width: 100%; height: 8px; cursor: row-resize; }
+        .resizer-h, .resizer-v { position: absolute; background: transparent; z-index: 130; touch-action: none;
+        display: none; }
+        .resizer-h { right: -4px; top: 0; width: 8px; height: 100%;
+        cursor: col-resize; }
+        .resizer-v { bottom: -4px; left: 0; width: 100%; height: 8px;
+        cursor: row-resize; }
         .active-header .resizer-h, .active-header .resizer-v { display: block; }
-        .resizer-h::after { content: ''; position: absolute; right: 3px; top: 25%; width: 2px; height: 50%; background: var(--accent-color); }
-        .resizer-v::after { content: ''; position: absolute; bottom: 3px; left: 25%; width: 50%; height: 2px; background: var(--accent-color); }
+        .resizer-h::after { content: ''; position: absolute; right: 3px; top: 25%; width: 2px;
+        height: 50%; background: var(--accent-color); }
+        .resizer-v::after { content: ''; position: absolute; bottom: 3px;
+        left: 25%; width: 50%; height: 2px; background: var(--accent-color); }
 
-        button { cursor: pointer; padding: 8px 14px; background: #fff; border: 1px solid #dadce0; border-radius: 6px; font-size: 13px; font-weight: 500; }
+        button { cursor: pointer;
+        padding: 8px 14px; background: #fff; border: 1px solid #dadce0; border-radius: 6px; font-size: 13px; font-weight: 500;
+        }
         button:active { background: #f1f3f4; }
 
         .context-menu { 
@@ -223,7 +234,8 @@
             z-index: 2500; display: none; padding: 6px 0; min-width: 180px; border-radius: 8px;
             border: 1px solid rgba(0,0,0,0.05);
         }
-        .context-menu-item { padding: 12px 20px; cursor: pointer; font-size: 14px; }
+        .context-menu-item { padding: 12px 20px; cursor: pointer;
+        font-size: 14px; }
         .context-menu-item:hover { background: var(--tab-bg); color: var(--accent-color); }
         .context-menu-item.disabled { color: #bdc1c6; cursor: default; }
     </style>
@@ -257,7 +269,8 @@
 <div id="focus-mode-overlay">
     <div class="focus-header">
         <span id="focus-cell-label" style="font-weight:600;">セル編集</span>
-        <button id="btn-close-focus" style="background:var(--accent-color); color:white; border:none; border-radius:20px; padding:8px 20px;">完了</button>
+        <button id="btn-close-focus" style="background:var(--accent-color);
+        color:white; border:none; border-radius:20px; padding:8px 20px;">完了</button>
     </div>
     <textarea id="focus-textarea" placeholder="入力を開始..."></textarea>
 </div>
@@ -340,9 +353,11 @@
     function initZoomGestures() {
         let initialPinchDist = null;
         let initialZoomAtStart = 1.0;
+        let isPinching = false;
 
         DOM.tableContainer.addEventListener('touchstart', (e) => {
             if (e.touches.length === 2) {
+                isPinching = true;
                 initialPinchDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
                 initialZoomAtStart = AppState.zoom;
             }
@@ -354,18 +369,30 @@
                 const currentDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
                 const ratio = currentDist / initialPinchDist;
                 const newZoom = initialZoomAtStart * ratio;
-                // 最小値を 0.2 (20%) に変更
-                updateZoom(Math.min(Math.max(newZoom, 0.2), 2.0));
+                
+                // 表示上の数値とCSS変数のみ更新し、重い描画処理は避ける
+                const clampedZoom = Math.min(Math.max(newZoom, 0.2), 5.0);
+                AppState.zoom = clampedZoom;
+                document.documentElement.style.setProperty('--zoom-level', clampedZoom);
+                DOM.zoomDisplay.innerText = `${Math.round(clampedZoom * 100)}%`;
             }
         }, { passive: false });
 
-        DOM.tableContainer.addEventListener('touchend', () => { initialPinchDist = null; });
+        DOM.tableContainer.addEventListener('touchend', () => { 
+            if (isPinching) {
+                isPinching = false;
+                initialPinchDist = null;
+                // 指を離した時だけ全体を再描画
+                renderTable();
+            }
+        });
 
         DOM.tableContainer.addEventListener('wheel', (e) => {
             if (e.ctrlKey) {
                 e.preventDefault();
-                // 最小値を 0.2 (20%) に変更
-                updateZoom(Math.min(Math.max(AppState.zoom - e.deltaY * 0.002, 0.2), 2.0));
+                // ホイール操作時も最大5.0まで拡大可能にする
+                const newZoom = Math.min(Math.max(AppState.zoom - e.deltaY * 0.002, 0.2), 5.0);
+                updateZoom(newZoom);
             }
         }, { passive: false });
     }
@@ -536,18 +563,22 @@
         const sheet = AppState.currentSheet;
         if (mode === 'insert') {
             if (type === 'row') {
-                sheet.data.splice(index, 0, []); sheet.rowHeights.splice(index, 0, null);
+                sheet.data.splice(index, 0, []);
+                sheet.rowHeights.splice(index, 0, null);
                 shiftColors('row', index, 1); sheet.rowCount++;
             } else {
-                sheet.data.forEach(r => r.splice(index, 0, "")); sheet.colWidths.splice(index, 0, null);
+                sheet.data.forEach(r => r.splice(index, 0, ""));
+                sheet.colWidths.splice(index, 0, null);
                 shiftColors('col', index, 1); sheet.colCount++;
             }
         } else if (mode === 'delete') {
             if (type === 'row' && sheet.rowCount > 1) {
-                sheet.data.splice(index, 1); sheet.rowHeights.splice(index, 1);
+                sheet.data.splice(index, 1);
+                sheet.rowHeights.splice(index, 1);
                 deleteColors(type, index); shiftColors('row', index + 1, -1); sheet.rowCount--;
             } else if (type === 'col' && sheet.colCount > 1) {
-                sheet.data.forEach(r => r.splice(index, 1)); sheet.colWidths.splice(index, 1);
+                sheet.data.forEach(r => r.splice(index, 1));
+                sheet.colWidths.splice(index, 1);
                 deleteColors(type, index); shiftColors('col', index + 1, -1); sheet.colCount--;
             }
             clearSelection();
@@ -645,6 +676,7 @@
     }
 
     const getPos = e => ({ x: e.touches ? e.touches[0].clientX : e.clientX, y: e.touches ? e.touches[0].clientY : e.clientY });
+
     function initResizeCol(e) {
         e.stopPropagation(); if (e.cancelable) e.preventDefault();
         const th = e.target.parentElement, idx = Array.from(th.parentElement.children).indexOf(th) - 1;
@@ -654,7 +686,8 @@
             th.style.width = th.style.minWidth = (w * AppState.zoom) + 'px';
             AppState.currentSheet.colWidths[idx] = w;
         };
-        const end = () => { DB.save(); document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', end); document.removeEventListener('touchmove', move); document.removeEventListener('touchend', end); };
+        const end = () => { DB.save();
+        document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', end); document.removeEventListener('touchmove', move); document.removeEventListener('touchend', end); };
         document.addEventListener('mousemove', move); document.addEventListener('mouseup', end);
         document.addEventListener('touchmove', move, {passive: false}); document.addEventListener('touchend', end);
     }
@@ -668,7 +701,8 @@
             tr.style.height = (h * AppState.zoom) + 'px';
             AppState.currentSheet.rowHeights[idx] = h;
         };
-        const end = () => { DB.save(); document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', end); document.removeEventListener('touchmove', move); document.removeEventListener('touchend', end); };
+        const end = () => { DB.save(); document.removeEventListener('mousemove', move);
+        document.removeEventListener('mouseup', end); document.removeEventListener('touchmove', move); document.removeEventListener('touchend', end); };
         document.addEventListener('mousemove', move); document.addEventListener('mouseup', end);
         document.addEventListener('touchmove', move, {passive: false}); document.addEventListener('touchend', end);
     }
