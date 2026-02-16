@@ -1,323 +1,484 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Grid Memo</title>
-<style>
-:root{
-  --pink:#d8a7b1;
-  --pink-light:#f3e6ea;
-  --border:#e5d6da;
-}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-body{
-  margin:0;
-  font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif;
-  background:#faf7f8;
-  color:#333;
-  touch-action:manipulation;
-}
-header{
-  position:fixed;
-  top:0;left:0;right:0;
-  height:56px;
-  background:var(--pink);
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  padding:0 12px;
-  color:#fff;
-  z-index:1000;
-}
-header input{
-  border:none;
-  background:rgba(255,255,255,0.2);
-  color:#fff;
-  padding:6px 8px;
-  border-radius:6px;
-  width:120px;
-}
-header button{
-  border:none;
-  background:#fff;
-  color:var(--pink);
-  padding:6px 10px;
-  border-radius:6px;
-  font-size:14px;
-}
-#container{
-  position:absolute;
-  top:56px;bottom:0;left:0;right:0;
-  overflow:auto;
-  -webkit-overflow-scrolling:touch;
-}
-table{
-  border-collapse:collapse;
-  background:#fff;
-}
-th,td{
-  border:1px solid var(--border);
-  font-size:16pt;
-  min-width:15ch;
-  max-width:15ch;
-  padding:4px;
-  vertical-align:top;
-}
-td{
-  max-height:calc(1.6em * 100);
-  overflow:hidden;
-  word-break:break-word;
-}
-th{
-  background:var(--pink-light);
-  position:sticky;
-  z-index:2;
-}
-thead th{
-  top:0;
-  z-index:3;
-}
-tbody th{
-  left:0;
-  z-index:3;
-}
-thead th:first-child{
-  left:0;
-  z-index:4;
-}
-#gridWrapper{
-  transform-origin:0 0;
-}
-#editorOverlay{
-  position:fixed;
-  left:0;right:0;bottom:-100%;
-  height:100%;
-  background:#fff;
-  display:flex;
-  flex-direction:column;
-  transition:bottom 0.3s ease;
-  z-index:2000;
-}
-#editorOverlay.active{bottom:0;}
-#editorOverlay textarea{
-  flex:1;
-  border:none;
-  padding:16px;
-  font-size:16pt;
-  outline:none;
-}
-#editorOverlay .footer{
-  padding:12px;
-  border-top:1px solid #ddd;
-  display:flex;
-  justify-content:space-between;
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Grid Memo</title>
+    <style>
+        :root {
+            --primary-color: #d4a5a5; /* くすみピンク */
+            --bg-color: #f9f6f6;
+            --text-color: #4a4a4a;
+            --border-color: #e0d5d5;
+            --header-height: 60px;
+            --cell-font-size: 16pt;
+            --cell-width: 15.5rem; /* 15文字程度が収まる幅 */
+            --sticky-size: 40px;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        /* --- UI Header --- */
+        header {
+            height: var(--header-height);
+            background: #fff;
+            display: flex;
+            align-items: center;
+            padding: 0 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            z-index: 100;
+            position: relative;
+        }
+
+        .tab-container {
+            flex: 1;
+            display: flex;
+            overflow-x: auto;
+            gap: 8px;
+            scrollbar-width: none;
+        }
+        .tab-container::-webkit-scrollbar { display: none; }
+
+        .tab {
+            padding: 6px 15px;
+            background: var(--bg-color);
+            border-radius: 20px;
+            white-space: nowrap;
+            font-size: 14px;
+            border: 1px solid var(--border-color);
+        }
+        .tab.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .btn-icon {
+            background: none;
+            border: none;
+            font-size: 20px;
+            color: var(--primary-color);
+            padding: 5px;
+            margin-left: 5px;
+        }
+
+        /* --- Grid Area --- */
+        #viewport {
+            width: 100%;
+            height: calc(100% - var(--header-height));
+            overflow: hidden; /* JavaScriptでスクロール制御 */
+            position: relative;
+            background: #eee;
+        }
+
+        #grid-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform-origin: 0 0;
+            will-change: transform;
+        }
+
+        .grid-table {
+            display: grid;
+            background: var(--border-color);
+            gap: 1px;
+            border: 1px solid var(--border-color);
+        }
+
+        .cell {
+            background: #fff;
+            padding: 10px;
+            font-size: var(--cell-font-size);
+            min-width: var(--cell-width);
+            min-height: 3em;
+            max-height: calc(var(--cell-font-size) * 1.5 * 100); /* 100行分 */
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 100;
+            -webkit-box-orient: vertical;
+            word-break: break-all;
+            line-height: 1.5;
+        }
+
+        /* 見出し固定用 */
+        .head-cell {
+            background: var(--bg-color);
+            color: #888;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: sticky;
+            z-index: 10;
+        }
+        .col-head { top: 0; height: var(--sticky-size); }
+        .row-head { left: 0; width: var(--sticky-size); min-width: var(--sticky-size); }
+        .corner-head { top: 0; left: 0; z-index: 20; }
+
+        /* --- Fullscreen Editor --- */
+        #editor-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: white;
+            z-index: 1000;
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+        }
+        #editor-overlay.active { transform: translateY(0); }
+
+        .editor-header {
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #eee;
+        }
+
+        #editor-textarea {
+            flex: 1;
+            border: none;
+            padding: 20px;
+            font-size: 18px;
+            outline: none;
+            resize: none;
+            line-height: 1.6;
+        }
+
+        .char-count { color: #999; font-size: 14px; }
+
+        /* --- Simple Modal --- */
+        #modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.4);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            width: 80%;
+        }
+        .modal-content input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+        }
+
+    </style>
 </head>
 <body>
 
 <header>
-  <div>
-    <button id="addSheet">＋</button>
-    <button id="deleteSheet">－</button>
-  </div>
-  <input id="sheetName" placeholder="シート名">
+    <div id="tabs" class="tab-container"></div>
+    <button class="btn-icon" onclick="app.addSheet()">＋</button>
+    <button class="btn-icon" onclick="app.showSheetSettings()">⚙️</button>
 </header>
 
-<div id="container">
-  <div id="gridWrapper"></div>
+<div id="viewport">
+    <div id="grid-container">
+        <div id="grid-inner" class="grid-table"></div>
+    </div>
 </div>
 
-<div id="editorOverlay">
-  <textarea id="fullEditor"></textarea>
-  <div class="footer">
-    <span id="charCount">0文字</span>
-    <button id="closeEditor">閉じる</button>
-  </div>
+<div id="editor-overlay">
+    <div class="editor-header">
+        <button onclick="app.closeEditor()" style="color:var(--primary-color); background:none; border:none; font-size:16px;">完了</button>
+        <div id="editor-count" class="char-count">0 文字</div>
+    </div>
+    <textarea id="editor-textarea" placeholder="ここに入力..."></textarea>
+</div>
+
+<div id="modal">
+    <div class="modal-content">
+        <h3 id="modal-title" style="margin-top:0">シート名</h3>
+        <input type="text" id="modal-input">
+        <div style="display:flex; justify-content: flex-end; gap: 10px;">
+            <button id="modal-delete" style="color:red; background:none; border:none;">削除</button>
+            <button onclick="app.closeModal()">キャンセル</button>
+            <button onclick="app.saveModal()" style="font-weight:bold">保存</button>
+        </div>
+    </div>
 </div>
 
 <script>
-/* ===============================
-   IndexedDB 設定
-================================ */
-const DB_NAME="GridMemoDB";
-const STORE="sheets";
+/**
+ * Data Management (IndexedDB)
+ */
+const DB_NAME = 'GridMemoDB';
+const DB_VERSION = 1;
 let db;
 
-function initDB(){
-  return new Promise((resolve,reject)=>{
-    const req=indexedDB.open(DB_NAME,1);
-    req.onupgradeneeded=e=>{
-      db=e.target.result;
-      db.createObjectStore(STORE,{keyPath:"id",autoIncrement:true});
-    };
-    req.onsuccess=e=>{db=e.target.result;resolve();};
-    req.onerror=reject;
-  });
-}
-function saveSheet(sheet){
-  const tx=db.transaction(STORE,"readwrite");
-  tx.objectStore(STORE).put(sheet);
-}
-function deleteSheetDB(id){
-  const tx=db.transaction(STORE,"readwrite");
-  tx.objectStore(STORE).delete(id);
-}
-function getAllSheets(){
-  return new Promise(resolve=>{
-    const tx=db.transaction(STORE,"readonly");
-    const req=tx.objectStore(STORE).getAll();
-    req.onsuccess=()=>resolve(req.result);
-  });
-}
-
-/* ===============================
-   シート管理
-================================ */
-let sheets=[];
-let currentSheet=null;
-
-async function loadSheets(){
-  sheets=await getAllSheets();
-  if(sheets.length===0){
-    const empty=createEmptySheet("Sheet1");
-    saveSheet(empty);
-    sheets=[empty];
-  }
-  selectSheet(sheets[0].id);
-}
-function createEmptySheet(name){
-  return {
-    id:Date.now(),
-    name,
-    cells:Array.from({length:50},()=>Array(12).fill(""))
-  };
-}
-function selectSheet(id){
-  currentSheet=sheets.find(s=>s.id===id);
-  render();
-  document.getElementById("sheetName").value=currentSheet.name;
-}
-document.getElementById("addSheet").onclick=()=>{
-  const newSheet=createEmptySheet("NewSheet");
-  sheets.push(newSheet);
-  saveSheet(newSheet);
-  selectSheet(newSheet.id);
-};
-document.getElementById("deleteSheet").onclick=()=>{
-  if(!currentSheet) return;
-  deleteSheetDB(currentSheet.id);
-  sheets=sheets.filter(s=>s.id!==currentSheet.id);
-  if(sheets.length===0){
-    const s=createEmptySheet("Sheet1");
-    sheets=[s];
-    saveSheet(s);
-  }
-  selectSheet(sheets[0].id);
-};
-document.getElementById("sheetName").oninput=e=>{
-  currentSheet.name=e.target.value;
-  saveSheet(currentSheet);
+const initDB = () => {
+    return new Promise((resolve) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+        request.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            db.createObjectStore('sheets', { keyPath: 'id' });
+        };
+        request.onsuccess = (e) => {
+            db = e.target.result;
+            resolve();
+        };
+    });
 };
 
-/* ===============================
-   グリッド描画
-================================ */
-function render(){
-  const wrapper=document.getElementById("gridWrapper");
-  wrapper.innerHTML="";
-  const table=document.createElement("table");
-  const thead=document.createElement("thead");
-  const tr=document.createElement("tr");
-  const corner=document.createElement("th");
-  tr.appendChild(corner);
-  for(let c=0;c<12;c++){
-    const th=document.createElement("th");
-    th.textContent=String.fromCharCode(65+c);
-    tr.appendChild(th);
-  }
-  thead.appendChild(tr);
-  table.appendChild(thead);
+/**
+ * Main Application Logic
+ */
+const app = {
+    sheets: [],
+    currentSheetId: null,
+    editingCell: null,
+    scale: 1.0,
+    offsetX: 0,
+    offsetY: 0,
+    
+    async init() {
+        await initDB();
+        await this.loadData();
+        if (this.sheets.length === 0) {
+            await this.addSheet("無題のシート");
+        } else {
+            this.currentSheetId = this.sheets[0].id;
+            this.renderTabs();
+            this.renderGrid();
+        }
+        this.initTouchEvents();
+    },
 
-  const tbody=document.createElement("tbody");
-  for(let r=0;r<50;r++){
-    const tr=document.createElement("tr");
-    const th=document.createElement("th");
-    th.textContent=r+1;
-    tr.appendChild(th);
-    for(let c=0;c<12;c++){
-      const td=document.createElement("td");
-      td.textContent=currentSheet.cells[r][c];
-      td.onclick=()=>openEditor(r,c);
-      tr.appendChild(td);
+    async loadData() {
+        return new Promise((resolve) => {
+            const tx = db.transaction('sheets', 'readonly');
+            const store = tx.objectStore('sheets');
+            const request = store.getAll();
+            request.onsuccess = () => {
+                this.sheets = request.result || [];
+                resolve();
+            };
+        });
+    },
+
+    async saveData() {
+        const tx = db.transaction('sheets', 'readwrite');
+        const store = tx.objectStore('sheets');
+        this.sheets.forEach(s => store.put(s));
+    },
+
+    async addSheet(name = "新しいシート") {
+        const newSheet = {
+            id: Date.now().toString(),
+            name: name,
+            data: {} // { "row-col": "text" }
+        };
+        this.sheets.push(newSheet);
+        this.currentSheetId = newSheet.id;
+        await this.saveData();
+        this.renderTabs();
+        this.renderGrid();
+    },
+
+    renderTabs() {
+        const container = document.getElementById('tabs');
+        container.innerHTML = '';
+        this.sheets.forEach(sheet => {
+            const div = document.createElement('div');
+            div.className = `tab ${sheet.id === this.currentSheetId ? 'active' : ''}`;
+            div.textContent = sheet.name;
+            div.onclick = () => {
+                this.currentSheetId = sheet.id;
+                this.renderTabs();
+                this.renderGrid();
+            };
+            container.appendChild(div);
+        });
+    },
+
+    renderGrid() {
+        const grid = document.getElementById('grid-inner');
+        const sheet = this.sheets.find(s => s.id === this.currentSheetId);
+        grid.style.gridTemplateColumns = `var(--sticky-size) repeat(12, 1fr)`;
+        grid.innerHTML = '';
+
+        // Corner
+        const corner = document.createElement('div');
+        corner.className = 'cell head-cell corner-head';
+        grid.appendChild(corner);
+
+        // Column Headers (A-L)
+        for (let c = 0; c < 12; c++) {
+            const head = document.createElement('div');
+            head.className = 'cell head-cell col-head';
+            head.textContent = String.fromCharCode(65 + c);
+            grid.appendChild(head);
+        }
+
+        // Rows
+        for (let r = 1; r <= 50; r++) {
+            const rowHead = document.createElement('div');
+            rowHead.className = 'cell head-cell row-head';
+            rowHead.textContent = r;
+            grid.appendChild(rowHead);
+
+            for (let c = 0; c < 12; c++) {
+                const cell = document.createElement('div');
+                const key = `${r}-${c}`;
+                cell.className = 'cell';
+                cell.textContent = sheet.data[key] || '';
+                cell.onclick = () => this.openEditor(key, cell.textContent);
+                grid.appendChild(cell);
+            }
+        }
+        this.updateTransform();
+    },
+
+    // --- Editor Logic ---
+    openEditor(key, content) {
+        this.editingCell = key;
+        const overlay = document.getElementById('editor-overlay');
+        const textarea = document.getElementById('editor-textarea');
+        textarea.value = content;
+        this.updateCharCount(content);
+        overlay.classList.add('active');
+        setTimeout(() => textarea.focus(), 350);
+
+        textarea.oninput = (e) => this.updateCharCount(e.target.value);
+    },
+
+    updateCharCount(val) {
+        document.getElementById('editor-count').textContent = `${val.length} 文字`;
+    },
+
+    closeEditor() {
+        const val = document.getElementById('editor-textarea').value;
+        const sheet = this.sheets.find(s => s.id === this.currentSheetId);
+        sheet.data[this.editingCell] = val;
+        
+        document.getElementById('editor-overlay').classList.remove('active');
+        this.saveData();
+        this.renderGrid();
+    },
+
+    // --- Touch & Pinch Logic ---
+    initTouchEvents() {
+        const viewport = document.getElementById('viewport');
+        let startDist = 0;
+        let startScale = 1;
+        let lastX = 0;
+        let lastY = 0;
+
+        viewport.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 2) {
+                startDist = Math.hypot(
+                    e.touches[0].pageX - e.touches[1].pageX,
+                    e.touches[0].pageY - e.touches[1].pageY
+                );
+                startScale = this.scale;
+            } else if (e.touches.length === 1) {
+                lastX = e.touches[0].pageX;
+                lastY = e.touches[0].pageY;
+            }
+        }, { passive: false });
+
+        viewport.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if (e.touches.length === 2) {
+                const dist = Math.hypot(
+                    e.touches[0].pageX - e.touches[1].pageX,
+                    e.touches[0].pageY - e.touches[1].pageY
+                );
+                const ratio = dist / startDist;
+                // 5列分程度（scale ~0.35）まで縮小可能
+                this.scale = Math.min(Math.max(startScale * ratio, 0.3), 3.0);
+            } else if (e.touches.length === 1) {
+                const dx = e.touches[0].pageX - lastX;
+                const dy = e.touches[0].pageY - lastY;
+                this.offsetX += dx;
+                this.offsetY += dy;
+                lastX = e.touches[0].pageX;
+                lastY = e.touches[0].pageY;
+            }
+            this.updateTransform();
+        }, { passive: false });
+    },
+
+    updateTransform() {
+        const container = document.getElementById('grid-container');
+        // 境界制限（簡易）
+        const minX = -3000 * this.scale; 
+        const minY = -5000 * this.scale;
+        this.offsetX = Math.min(0, Math.max(this.offsetX, minX));
+        this.offsetY = Math.min(0, Math.max(this.offsetY, minY));
+
+        container.style.transform = `translate(${this.offsetX}px, ${this.offsetY}px) scale(${this.scale})`;
+    },
+
+    // --- Settings / Modal ---
+    showSheetSettings() {
+        const sheet = this.sheets.find(s => s.id === this.currentSheetId);
+        document.getElementById('modal-title').textContent = "シート編集";
+        document.getElementById('modal-input').value = sheet.name;
+        document.getElementById('modal').style.display = 'flex';
+        document.getElementById('modal-delete').style.display = 'block';
+        document.getElementById('modal-delete').onclick = () => this.deleteSheet();
+    },
+
+    closeModal() {
+        document.getElementById('modal').style.display = 'none';
+    },
+
+    async saveModal() {
+        const newName = document.getElementById('modal-input').value;
+        const sheet = this.sheets.find(s => s.id === this.currentSheetId);
+        if (sheet) sheet.name = newName || "無題";
+        await this.saveData();
+        this.renderTabs();
+        this.closeModal();
+    },
+
+    async deleteSheet() {
+        if (this.sheets.length <= 1) return alert("最後のシートは削除できません");
+        if (!confirm("このシートを削除しますか？")) return;
+        
+        const tx = db.transaction('sheets', 'readwrite');
+        const store = tx.objectStore('sheets');
+        store.delete(this.currentSheetId);
+        
+        this.sheets = this.sheets.filter(s => s.id !== this.currentSheetId);
+        this.currentSheetId = this.sheets[0].id;
+        this.renderTabs();
+        this.renderGrid();
+        this.closeModal();
     }
-    tbody.appendChild(tr);
-  }
-  table.appendChild(tbody);
-  wrapper.appendChild(table);
-}
-
-/* ===============================
-   長文エディタ
-================================ */
-let editPos=null;
-function openEditor(r,c){
-  editPos={r,c};
-  const overlay=document.getElementById("editorOverlay");
-  const textarea=document.getElementById("fullEditor");
-  textarea.value=currentSheet.cells[r][c];
-  document.getElementById("charCount").textContent=textarea.value.length+"文字";
-  overlay.classList.add("active");
-  setTimeout(()=>textarea.focus(),100);
-}
-document.getElementById("fullEditor").oninput=e=>{
-  document.getElementById("charCount").textContent=e.target.value.length+"文字";
-};
-document.getElementById("closeEditor").onclick=()=>{
-  const overlay=document.getElementById("editorOverlay");
-  const textarea=document.getElementById("fullEditor");
-  if(editPos){
-    currentSheet.cells[editPos.r][editPos.c]=textarea.value;
-    saveSheet(currentSheet);
-    render();
-  }
-  overlay.classList.remove("active");
 };
 
-/* ===============================
-   ピンチズーム
-================================ */
-let scale=1;
-let startDist=0;
-let startScale=1;
-const wrapper=document.getElementById("gridWrapper");
-
-function getDistance(t1,t2){
-  return Math.hypot(t2.clientX-t1.clientX,t2.clientY-t1.clientY);
-}
-wrapper.addEventListener("touchstart",e=>{
-  if(e.touches.length===2){
-    startDist=getDistance(e.touches[0],e.touches[1]);
-    startScale=scale;
-  }
-},{passive:false});
-
-wrapper.addEventListener("touchmove",e=>{
-  if(e.touches.length===2){
-    e.preventDefault();
-    const dist=getDistance(e.touches[0],e.touches[1]);
-    scale=startScale*(dist/startDist);
-    scale=Math.min(Math.max(scale,0.4),3);
-    wrapper.style.transform=`scale(${scale})`;
-  }
-},{passive:false});
-
-/* ===============================
-   初期化
-================================ */
-initDB().then(loadSheets);
+window.onload = () => app.init();
 </script>
-
 </body>
 </html>
