@@ -1,11 +1,11 @@
 {
-  "name": "Professional Spreadsheet App",
-  "short_name": "Spreadsheet",
-  "description": "A lightweight professional spreadsheet with sheets and color support.",
-  "start_url": "index.html",
+  "name": "GridMemo Pro",
+  "short_name": "GridMemo",
+  "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#1a73e8",
+  "background_color": "#fdfaf9",
+  "theme_color": "#d4a3a3",
+  "orientation": "portrait",
   "icons": [
     {
       "src": "icon-192.png",
