@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=0.7, minimum-scale=0.3, maximum-scale=3.0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=0.1, maximum-scale=5.0, viewport-fit=cover">
     <meta name="theme-color" content="#ffffff">
     <meta name="description" content="GridMemo Pro - Offline capabale spreadsheet memo">
     
@@ -29,28 +29,26 @@
             --error: #ef4444;
             --success: #10b981;
             --warning: #f59e0b;
-            /* 【修正】1画面に5列程度収まるよう幅を調整 (スマホの横幅基準) */
-            --cell-width: 18vw; 
-            --cell-min-width: 80px;
-            --cell-max-height: 320px;
+            /* 修正: 15文字程度を維持しつつ、5行程度表示するためのサイズ調整 */
+            --cell-width: 220px; 
+            --cell-max-height: 250px;
             --header-base-height: 54px;
-            /* セーフエリア（ノッチ）対応のヘッダー高さ計算 */
             --header-height: calc(var(--header-base-height) + env(safe-area-inset-top));
         }
 
         * { 
-            box-sizing: border-box; 
+            box-sizing: border-box;
             -webkit-tap-highlight-color: transparent; 
         }
 
         body {
-            margin: 0; 
+            margin: 0;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             background: var(--bg); 
             color: var(--text);
             height: 100dvh; 
             display: flex; 
-            flex-direction: column; 
+            flex-direction: column;
             overflow: hidden; 
         }
 
@@ -58,17 +56,16 @@
            2. Header & Status
            ========================================= */
         header {
-            background: #fff; 
+            background: #fff;
             height: var(--header-height);
-            /* 上部にセーフエリア分のパディングを追加 */
-            padding: env(safe-area-inset-top) 16px 0 16px; 
+            padding: env(safe-area-inset-top) 16px 0 16px;
             border-bottom: 1px solid var(--border);
             display: flex; 
             justify-content: space-between; 
             align-items: center;
             box-shadow: 0 1px 2px rgba(0,0,0,0.05);
             flex-shrink: 0;
-            z-index: 50; /* スクロール時に重ならないよう確保 */
+            z-index: 50;
         }
 
         .header-left { display: flex; align-items: center; gap: 15px; }
@@ -82,7 +79,8 @@
         .dot.error { background: var(--error); box-shadow: 0 0 5px var(--error); }
 
         .btn-export {
-            font-size: 12px; padding: 6px 12px; border: 1px solid var(--border);
+            font-size: 12px;
+            padding: 6px 12px; border: 1px solid var(--border);
             background: #fff; border-radius: 6px; cursor: pointer; color: var(--sub-text);
             transition: all 0.2s;
         }
@@ -92,41 +90,50 @@
            3. Tabs (Mobile Optimized)
            ========================================= */
         .tabs-container {
-            display: flex; background: #fff; border-bottom: 1px solid var(--border);
+            display: flex;
+            background: #fff; border-bottom: 1px solid var(--border);
             align-items: center; padding-right: 10px; flex-shrink: 0;
         }
         .tabs {
-            display: flex; overflow-x: auto; scrollbar-width: none; flex: 1;
+            display: flex;
+            overflow-x: auto; scrollbar-width: none; flex: 1;
         }
         .tabs::-webkit-scrollbar { display: none; }
         
         .tab-wrapper { 
-            display: flex; align-items: center; border-bottom: 2px solid transparent; 
+            display: flex;
+            align-items: center; border-bottom: 2px solid transparent; 
         }
         .tab-wrapper.active {
-            color: var(--primary); font-weight: bold; border-bottom-color: var(--primary);
+            color: var(--primary);
+            font-weight: bold; border-bottom-color: var(--primary);
             background: rgba(37, 99, 235, 0.05);
         }
         .tab {
-            padding: 14px 16px; font-size: 14px; border: none; background: none;
+            padding: 14px 16px;
+            font-size: 14px; border: none; background: none;
             color: inherit; white-space: nowrap; cursor: pointer;
-            min-height: 44px; 
+            min-height: 44px;
         }
         
         .tab-ops {
-            display: none; gap: 4px; padding-right: 12px;
+            display: none;
+            gap: 4px; padding-right: 12px;
         }
         .tab-wrapper.active .tab-ops { display: flex; }
         
         .btn-op {
-            border: none; background: none; cursor: pointer; font-size: 14px; color: var(--sub-text);
+            border: none;
+            background: none; cursor: pointer; font-size: 14px; color: var(--sub-text);
             padding: 6px; border-radius: 4px; min-width: 32px; min-height: 32px;
-            display: flex; align-items: center; justify-content: center;
+            display: flex; align-items: center;
+            justify-content: center;
         }
         .btn-op:active { background: #e2e8f0; color: var(--text); }
         
         .btn-add-tab {
-            padding: 8px 16px; font-size: 20px; border: none; background: none;
+            padding: 8px 16px;
+            font-size: 20px; border: none; background: none;
             color: var(--primary); cursor: pointer; font-weight: bold; min-height: 44px;
         }
 
@@ -134,59 +141,39 @@
            4. Grid (Sticky & High Performance)
            ========================================= */
         .grid-wrapper {
-            flex: 1; overflow: auto; position: relative; background: #fff;
+            flex: 1;
+            overflow: auto; position: relative; background: #fff;
             -webkit-overflow-scrolling: touch; 
-            /* 下部のセーフエリア（iPhoneのバー）を考慮して余白を追加 */
             padding-bottom: env(safe-area-inset-bottom);
         }
-        table { 
-            border-collapse: separate; /* stickyとの相性のためseparateに変更 */
-            border-spacing: 0;
-            table-layout: fixed; 
-            width: max-content; 
-        }
+        table { border-collapse: collapse; table-layout: fixed; width: max-content; }
         
         th, td {
-            border-right: 1px solid var(--border);
-            border-bottom: 1px solid var(--border);
+            border: 1px solid var(--border);
             padding: 0;
-            vertical-align: top; font-size: 14px; line-height: 1.5;
-            background: #fff;
+            vertical-align: top; font-size: 14px; line-height: 1.4;
         }
 
         th {
-            background: #f1f5f9; position: sticky; top: 0; z-index: 20;
+            background: #f1f5f9;
+            position: sticky; top: 0; z-index: 20;
             height: 35px; color: var(--sub-text); font-weight: 600; font-size: 11px;
             text-align: center; line-height: 35px;
-            /* 【修正】列幅を動的な変数に変更 */
-            width: var(--cell-width);
-            min-width: var(--cell-min-width);
-        }
-        /* 行番号列の幅固定 */
-        td:first-child, th:first-child {
-            width: 40px;
-            min-width: 40px;
         }
         td:first-child {
-            background: #f1f5f9; position: sticky; left: 0; z-index: 19;
-            text-align: center; color: var(--sub-text); font-weight: bold;
+            background: #f1f5f9;
+            position: sticky; left: 0; z-index: 19;
+            width: 50px; text-align: center; color: var(--sub-text); font-weight: bold;
             padding: 10px 0;
-            border-left: 1px solid var(--border);
         }
-        th:first-child { 
-            z-index: 21; left: 0; 
-            border-left: 1px solid var(--border);
-            border-top: 1px solid var(--border);
-        }
-        /* 1行目の上枠線を追加 */
-        th { border-top: 1px solid var(--border); }
+        th:first-child { z-index: 21; left: 0; }
 
         .memo-cell {
-            /* 【修正】親のth/tdに合わせる */
-            width: 100%;
-            min-height: 60px;
+            width: var(--cell-width);
+            /* 修正: 5行程度表示させるための高さ調整 */
+            min-height: 100px;
             max-height: var(--cell-max-height);
-            padding: 8px;
+            padding: 10px;
             overflow: hidden;
             display: -webkit-box;
             -webkit-line-clamp: 15;
@@ -197,7 +184,6 @@
             transition: background 0.1s, box-shadow 0.1s;
         }
         .memo-cell:active { background: #f1f5f9; }
-        /* 編集中のスタイル追加 */
         .memo-cell:focus {
             background: #fff;
             outline: 2px solid var(--primary);
@@ -213,17 +199,19 @@
            5. Editor Overlay
            ========================================= */
         #editor-overlay {
-            position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6);
+            position: fixed;
+            inset: 0; background: rgba(15, 23, 42, 0.6);
             display: none; flex-direction: column; justify-content: flex-end; z-index: 1000;
             backdrop-filter: blur(4px);
-            opacity: 0; transition: opacity 0.2s ease;
+            opacity: 0;
+            transition: opacity 0.2s ease;
         }
         #editor-overlay.visible { display: flex; opacity: 1; }
 
         .editor-inner {
-            background: #fff; border-radius: 20px 20px 0 0;
-            /* キーボード領域 + セーフエリアを考慮 */
-            height: 85dvh; 
+            background: #fff;
+            border-radius: 20px 20px 0 0;
+            height: 85dvh;
             padding-bottom: env(safe-area-inset-bottom);
             display: flex; flex-direction: column;
             transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -231,21 +219,25 @@
         #editor-overlay.visible .editor-inner { transform: translateY(0); }
 
         .editor-header {
-            padding: 16px 20px; border-bottom: 1px solid var(--border);
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
             display: flex; justify-content: space-between; align-items: center;
         }
         .editor-info { display: flex; flex-direction: column; gap: 4px; }
         
         textarea {
-            flex: 1; border: none; padding: 20px; font-size: 16px;
+            flex: 1;
+            border: none; padding: 20px; font-size: 16px;
             outline: none; resize: none; line-height: 1.6;
-            -webkit-appearance: none; 
+            -webkit-appearance: none;
         }
         
         .btn-close { 
-            background: var(--primary); color: #fff; border: none; 
+            background: var(--primary);
+            color: #fff; border: none; 
             padding: 10px 24px; border-radius: 8px; font-weight: bold; cursor: pointer;
-            font-size: 14px; box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+            font-size: 14px;
+            box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
         }
         .btn-close:active { background: var(--primary-hover); transform: scale(0.98); }
 
@@ -253,12 +245,14 @@
            6. Utility
            ========================================= */
         .loading {
-            position: fixed; inset: 0; background: rgba(255,255,255,0.9); display: none;
+            position: fixed;
+            inset: 0; background: rgba(255,255,255,0.9); display: none;
             flex-direction: column; justify-content: center; align-items: center; z-index: 2000;
         }
         .loading.visible { display: flex; }
         .spinner {
-            width: 30px; height: 30px; border: 3px solid var(--border);
+            width: 30px;
+            height: 30px; border: 3px solid var(--border);
             border-top-color: var(--primary); border-radius: 50%;
             animation: spin 1s linear infinite; margin-bottom: 10px;
         }
@@ -306,20 +300,13 @@
 </div>
 
 <script>
-/**
- * GridMemo Pro v3.3 - PWA Edition
- * Updates:
- * - Columns increased to 12
- * - Interaction: 1st tap (Direct Edit) -> 2nd tap (Full Editor)
- */
-
 const CONFIG = {
     DB_NAME: 'GridMemoProDB_v4', 
     DB_VERSION: 1,
     STORE_MEMOS: 'memos',
     STORE_SHEETS: 'sheets',
     ROWS: 50,
-    COLS: 12, // 【修正】 8列 -> 12列
+    COLS: 12,
     DEBOUNCE_MS: 800
 };
 
@@ -438,7 +425,6 @@ class UIController {
         this.bindStaticEvents();
     }
     bindStaticEvents() {
-        // 【修正】クリック処理: セル要素自体を渡して判定に使用
         this.DOM.mainGrid.addEventListener('click', (e) => {
             const cell = e.target.closest('.memo-cell');
             if (cell) {
@@ -447,29 +433,22 @@ class UIController {
                 this.app.handleCellClick(r, c, cell.innerText, cell);
             }
         });
-
-        // 【追加】インライン編集用のInputイベント監視
         this.DOM.gridBody.addEventListener('input', (e) => {
             if (e.target.classList.contains('memo-cell')) {
                 const cell = e.target;
                 const r = parseInt(cell.dataset.row, 10);
                 const c = parseInt(cell.dataset.col, 10);
-                // インライン編集時はinnerTextを使用
                 this.app.handleInput(r, c, cell.innerText, 'inline');
             }
         });
-
-        // 【追加】フォーカスが外れたらcontenteditableを無効化（DOMをクリーンに保つため）
         this.DOM.gridBody.addEventListener('focusout', (e) => {
             if (e.target.classList.contains('memo-cell')) {
                 e.target.contentEditable = "false";
             }
         });
-
         document.getElementById('btn-close-editor').addEventListener('click', () => this.closeEditor());
         this.DOM.editArea.addEventListener('input', (e) => {
             this.updateCharCount(e.target.value.length);
-            // モーダル編集時はtextareaの値を使用
             const {r, c} = this.app.state.targetCell || {};
             if(r !== undefined) this.app.handleInput(r, c, e.target.value, 'modal');
         });
@@ -496,8 +475,8 @@ class UIController {
             wrapper.innerHTML = `<button class="tab">${name}</button><div class="tab-ops"><button class="btn-op btn-rename">✎</button><button class="btn-op btn-delete">×</button></div>`;
             wrapper.querySelector('.tab').onclick = () => this.app.switchSheet(name);
             if (isActive) {
-                wrapper.querySelector('.btn-rename').onclick = () => this.app.renameSheet(name);
-                wrapper.querySelector('.btn-delete').onclick = () => this.app.deleteSheet(name);
+                wrapper.querySelector('.btn-rename').onclick = (e) => { e.stopPropagation(); this.app.renameSheet(name); };
+                wrapper.querySelector('.btn-delete').onclick = (e) => { e.stopPropagation(); this.app.deleteSheet(name); };
             }
             this.DOM.tabBar.appendChild(wrapper);
         });
@@ -505,7 +484,6 @@ class UIController {
     initGridSkeleton() {
         const fragmentHead = document.createDocumentFragment();
         const headerRow = document.createElement('tr');
-        // 列数が増えても自動対応 (A, B... L...)
         headerRow.innerHTML = '<th></th>' + Array.from({length: CONFIG.COLS}, (_, i) => `<th>${String.fromCharCode(65+i)}</th>`).join('');
         fragmentHead.appendChild(headerRow);
         this.DOM.gridHead.appendChild(fragmentHead);
@@ -527,7 +505,6 @@ class UIController {
     }
     updateSingleCell(r, c, text) {
         const el = document.getElementById(`cell-${r}-${c}`);
-        // 編集中の要素がアクティブな場合(インライン編集)、外部からの更新でカーソル位置をリセットさせない
         if (el && document.activeElement !== el) {
             el.textContent = text;
         }
@@ -608,38 +585,21 @@ class GridMemoApp {
         } catch (e) { alert("削除失敗"); } finally { this.ui.showLoading(false); }
     }
 
-    /**
-     * 【修正】タップ時の挙動分岐
-     * 1回目 (非フォーカス時): インライン編集モードにする
-     * 2回目 (フォーカス時): 全文エディタモーダルを開く
-     */
     handleCellClick(r, c, text, cellElement) {
-        // すでにこのセルがフォーカスされているか確認
         const isFocused = (document.activeElement === cellElement);
-
         this.state.targetCell = { r, c };
-
         if (isFocused) {
-            // 2回目タップ: モーダルを開く
             this.ui.openEditor(r, c, text);
         } else {
-            // 1回目タップ: インライン編集開始
             cellElement.contentEditable = "true";
             cellElement.focus();
         }
     }
 
-    /**
-     * 【修正】入力ハンドリング
-     * source: 'inline' (セル直接) or 'modal' (モーダル)
-     */
     handleInput(r, c, text, source) {
-        // モーダルからの入力の場合はViewを更新
-        // インラインの場合はブラウザが更新しているので更新しない（カーソル飛び防止）
         if (source === 'modal') {
             this.ui.updateSingleCell(r, c, text);
         }
-
         this.ui.setStatus('saving');
         clearTimeout(this.state.saveTimer);
         this.state.saveTimer = setTimeout(() => {
@@ -653,16 +613,15 @@ class GridMemoApp {
         const data = await this.db.getAllDataForExport();
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a'); a.href = url; a.download = `GridMemoPro_${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(url);
+        const a = document.createElement('a');
+        a.href = url; a.download = `GridMemoPro_${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(url);
     }
 }
 
-// 起動 & Service Worker登録
 window.addEventListener('DOMContentLoaded', () => {
     const app = new GridMemoApp();
     app.bootstrap();
 });
-
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js')
