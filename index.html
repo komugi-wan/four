@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=0.7, minimum-scale=0.3, maximum-scale=3.0, viewport-fit=cover">
     <meta name="theme-color" content="#ffffff">
     <meta name="description" content="GridMemo Pro - Offline capabale spreadsheet memo">
     
@@ -29,7 +29,9 @@
             --error: #ef4444;
             --success: #10b981;
             --warning: #f59e0b;
-            --cell-width: 280px;
+            /* 【修正】1画面に5列程度収まるよう幅を調整 (スマホの横幅基準) */
+            --cell-width: 18vw; 
+            --cell-min-width: 80px;
             --cell-max-height: 320px;
             --header-base-height: 54px;
             /* セーフエリア（ノッチ）対応のヘッダー高さ計算 */
@@ -156,12 +158,14 @@
             background: #f1f5f9; position: sticky; top: 0; z-index: 20;
             height: 35px; color: var(--sub-text); font-weight: 600; font-size: 11px;
             text-align: center; line-height: 35px;
-            width: var(--cell-width); /* 列幅を固定 */
+            /* 【修正】列幅を動的な変数に変更 */
+            width: var(--cell-width);
+            min-width: var(--cell-min-width);
         }
         /* 行番号列の幅固定 */
         td:first-child, th:first-child {
-            width: 50px;
-            min-width: 50px;
+            width: 40px;
+            min-width: 40px;
         }
         td:first-child {
             background: #f1f5f9; position: sticky; left: 0; z-index: 19;
@@ -178,10 +182,11 @@
         th { border-top: 1px solid var(--border); }
 
         .memo-cell {
-            width: var(--cell-width);
+            /* 【修正】親のth/tdに合わせる */
+            width: 100%;
             min-height: 60px;
             max-height: var(--cell-max-height);
-            padding: 12px;
+            padding: 8px;
             overflow: hidden;
             display: -webkit-box;
             -webkit-line-clamp: 15;
