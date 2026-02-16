@@ -1,23 +1,43 @@
-const CACHE_NAME = 'spreadsheet-v1';
+const CACHE_NAME = 'gridmemo-pro-v1';
 const ASSETS = [
-  'index.html',
-  'manifest.json',
-  'icon-192.png',
-  'icon-512.png'
+    './',
+    './index.html',
+    './manifest.json',
+    // アイコンファイルがある場合はここに追加
+    // './icon-192.png',
+    // './icon-512.png'
 ];
 
-// インストール時にキャッシュ
+// インストール時：キャッシュを作成
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(ASSETS))
-  );
+    event.waitUntil(
+        caches.open(CACHE_NAME)
+            .then((cache) => cache.addAll(ASSETS))
+    );
 });
 
-// リクエスト時にキャッシュから応答（ネットワーク優先 or キャッシュ優先）
+// 有効化時：古いキャッシュを削除
+self.addEventListener('activate', (event) => {
+    event.waitUntil(
+        caches.keys().then((keys) => {
+            return Promise.all(
+                keys.map((key) => {
+                    if (key !== CACHE_NAME) return caches.delete(key);
+                })
+            );
+        })
+    );
+});
+
+// フェッチ時：キャッシュがあればそれを返す（オフライン対応）
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request)
-      .then((response) => response || fetch(event.request))
-  );
+    event.respondWith(
+        caches.match(event.request)
+            .then((response) => {
+                // キャッシュヒットならそれを返す
+                if (response) return response;
+                // なければネットワークへ
+                return fetch(event.request);
+            })
+    );
 });
