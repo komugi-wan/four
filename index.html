@@ -1,634 +1,381 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=0.1, maximum-scale=5.0, viewport-fit=cover">
-    <meta name="theme-color" content="#ffffff">
-    <meta name="description" content="GridMemo Pro - Offline capabale spreadsheet memo">
-    
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="GridMemo">
-    <link rel="apple-touch-icon" href="icon-192.png">
-    
-    <link rel="manifest" href="manifest.json">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Grid Memo App</title>
+<style>
+:root{
+  --cell-width: 15em;
+  --cell-min-height: 1.6em;
+  --font-size:16px;
+  --header-height:56px;
+}
 
-    <title>GridMemo Pro v3.3 - PWA Edition</title>
-    <style>
-        /* =========================================
-           1. CSS Variables & Reset
-           ========================================= */
-        :root {
-            --primary: #d4a3a3;
-            --primary-hover: #b98a8a;
-            --bg: #fdfaf9;
-            --cell-bg: #ffffff;
-            --border: #e2e8f0;
-            --text: #0f172a;
-            --sub-text: #64748b;
-            --error: #ef4444;
-            --success: #10b981;
-            --warning: #f59e0b;
-            /* 修正: 15文字程度を維持しつつ、5行程度表示するためのサイズ調整 */
-            --cell-width: 220px; 
-            --cell-max-height: 250px;
-            --header-base-height: 54px;
-            --header-height: calc(var(--header-base-height) + env(safe-area-inset-top));
-        }
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{
+  margin:0;
+  padding:0;
+  height:100%;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto;
+  font-size:var(--font-size);
+  overflow:hidden;
+  background:#fafafa;
+}
 
-        * { 
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent; 
-        }
+/* ===== Header ===== */
+header{
+  position:fixed;
+  top:0;
+  left:0;
+  right:0;
+  height:var(--header-height);
+  background:#ffffff;
+  border-bottom:1px solid #ddd;
+  display:flex;
+  align-items:center;
+  padding:6px;
+  z-index:1000;
+}
 
-        body {
-            margin: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background: var(--bg); 
-            color: var(--text);
-            height: 100dvh; 
-            display: flex; 
-            flex-direction: column;
-            overflow: hidden; 
-        }
+header button, header select, header input{
+  margin-right:6px;
+  font-size:14px;
+}
 
-        /* =========================================
-           2. Header & Status
-           ========================================= */
-        header {
-            background: #fff;
-            height: var(--header-height);
-            padding: env(safe-area-inset-top) 16px 0 16px;
-            border-bottom: 1px solid var(--border);
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-            flex-shrink: 0;
-            z-index: 50;
-        }
+header input{
+  flex:1;
+}
 
-        .header-left { display: flex; align-items: center; gap: 15px; }
-        .logo { font-weight: 800; font-size: 1.2rem; }
-        .logo span { color: var(--primary); }
+/* ===== Grid Area ===== */
+#grid-wrapper{
+  position:absolute;
+  top:var(--header-height);
+  bottom:0;
+  left:0;
+  right:0;
+  overflow:auto;
+  touch-action:none;
+  background:#fff;
+}
 
-        .status { font-size: 12px; color: var(--sub-text); display: flex; align-items: center; }
-        .dot { width: 8px; height: 8px; border-radius: 50%; background: #cbd5e1; margin-right: 6px; transition: background 0.3s;}
-        .dot.saved { background: var(--success); box-shadow: 0 0 5px var(--success); }
-        .dot.editing { background: var(--warning); }
-        .dot.error { background: var(--error); box-shadow: 0 0 5px var(--error); }
+#grid-container{
+  transform-origin:0 0;
+}
 
-        .btn-export {
-            font-size: 12px;
-            padding: 6px 12px; border: 1px solid var(--border);
-            background: #fff; border-radius: 6px; cursor: pointer; color: var(--sub-text);
-            transition: all 0.2s;
-        }
-        .btn-export:active { background: #f1f5f9; }
+table{
+  border-collapse:collapse;
+}
 
-        /* =========================================
-           3. Tabs (Mobile Optimized)
-           ========================================= */
-        .tabs-container {
-            display: flex;
-            background: #fff; border-bottom: 1px solid var(--border);
-            align-items: center; padding-right: 10px; flex-shrink: 0;
-        }
-        .tabs {
-            display: flex;
-            overflow-x: auto; scrollbar-width: none; flex: 1;
-        }
-        .tabs::-webkit-scrollbar { display: none; }
-        
-        .tab-wrapper { 
-            display: flex;
-            align-items: center; border-bottom: 2px solid transparent; 
-        }
-        .tab-wrapper.active {
-            color: var(--primary);
-            font-weight: bold; border-bottom-color: var(--primary);
-            background: rgba(37, 99, 235, 0.05);
-        }
-        .tab {
-            padding: 14px 16px;
-            font-size: 14px; border: none; background: none;
-            color: inherit; white-space: nowrap; cursor: pointer;
-            min-height: 44px;
-        }
-        
-        .tab-ops {
-            display: none;
-            gap: 4px; padding-right: 12px;
-        }
-        .tab-wrapper.active .tab-ops { display: flex; }
-        
-        .btn-op {
-            border: none;
-            background: none; cursor: pointer; font-size: 14px; color: var(--sub-text);
-            padding: 6px; border-radius: 4px; min-width: 32px; min-height: 32px;
-            display: flex; align-items: center;
-            justify-content: center;
-        }
-        .btn-op:active { background: #e2e8f0; color: var(--text); }
-        
-        .btn-add-tab {
-            padding: 8px 16px;
-            font-size: 20px; border: none; background: none;
-            color: var(--primary); cursor: pointer; font-weight: bold; min-height: 44px;
-        }
+th, td{
+  border:1px solid #ccc;
+  padding:4px;
+  min-height:var(--cell-min-height);
+  vertical-align:top;
+  font-size:var(--font-size);
+}
 
-        /* =========================================
-           4. Grid (Sticky & High Performance)
-           ========================================= */
-        .grid-wrapper {
-            flex: 1;
-            overflow: auto; position: relative; background: #fff;
-            -webkit-overflow-scrolling: touch; 
-            padding-bottom: env(safe-area-inset-bottom);
-        }
-        table { border-collapse: collapse; table-layout: fixed; width: max-content; }
-        
-        th, td {
-            border: 1px solid var(--border);
-            padding: 0;
-            vertical-align: top; font-size: 14px; line-height: 1.4;
-        }
+td{
+  width:var(--cell-width);
+  max-height:6em;
+  overflow:hidden;
+  word-break:break-word;
+}
 
-        th {
-            background: #f1f5f9;
-            position: sticky; top: 0; z-index: 20;
-            height: 35px; color: var(--sub-text); font-weight: 600; font-size: 11px;
-            text-align: center; line-height: 35px;
-        }
-        td:first-child {
-            background: #f1f5f9;
-            position: sticky; left: 0; z-index: 19;
-            width: 50px; text-align: center; color: var(--sub-text); font-weight: bold;
-            padding: 10px 0;
-        }
-        th:first-child { z-index: 21; left: 0; }
+th{
+  background:#f0f0f0;
+  text-align:center;
+  font-weight:bold;
+}
 
-        .memo-cell {
-            width: var(--cell-width);
-            /* 修正: 5行程度表示させるための高さ調整 */
-            min-height: 100px;
-            max-height: var(--cell-max-height);
-            padding: 10px;
-            overflow: hidden;
-            display: -webkit-box;
-            -webkit-line-clamp: 15;
-            -webkit-box-orient: vertical;
-            white-space: pre-wrap;
-            word-break: break-all;
-            cursor: pointer;
-            transition: background 0.1s, box-shadow 0.1s;
-        }
-        .memo-cell:active { background: #f1f5f9; }
-        .memo-cell:focus {
-            background: #fff;
-            outline: 2px solid var(--primary);
-            z-index: 10;
-            position: relative;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            cursor: text;
-        }
-        .memo-cell:empty::before { content: "-"; color: #cbd5e1; pointer-events: none; }
-        .memo-cell:focus:empty::before { content: ""; }
+/* Sticky */
+thead th{
+  position:sticky;
+  top:0;
+  z-index:10;
+}
 
-        /* =========================================
-           5. Editor Overlay
-           ========================================= */
-        #editor-overlay {
-            position: fixed;
-            inset: 0; background: rgba(15, 23, 42, 0.6);
-            display: none; flex-direction: column; justify-content: flex-end; z-index: 1000;
-            backdrop-filter: blur(4px);
-            opacity: 0;
-            transition: opacity 0.2s ease;
-        }
-        #editor-overlay.visible { display: flex; opacity: 1; }
+tbody th{
+  position:sticky;
+  left:0;
+  z-index:5;
+}
 
-        .editor-inner {
-            background: #fff;
-            border-radius: 20px 20px 0 0;
-            height: 85dvh;
-            padding-bottom: env(safe-area-inset-bottom);
-            display: flex; flex-direction: column;
-            transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-        #editor-overlay.visible .editor-inner { transform: translateY(0); }
+thead th:first-child{
+  left:0;
+  z-index:15;
+}
 
-        .editor-header {
-            padding: 16px 20px;
-            border-bottom: 1px solid var(--border);
-            display: flex; justify-content: space-between; align-items: center;
-        }
-        .editor-info { display: flex; flex-direction: column; gap: 4px; }
-        
-        textarea {
-            flex: 1;
-            border: none; padding: 20px; font-size: 16px;
-            outline: none; resize: none; line-height: 1.6;
-            -webkit-appearance: none;
-        }
-        
-        .btn-close { 
-            background: var(--primary);
-            color: #fff; border: none; 
-            padding: 10px 24px; border-radius: 8px; font-weight: bold; cursor: pointer;
-            font-size: 14px;
-            box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
-        }
-        .btn-close:active { background: var(--primary-hover); transform: scale(0.98); }
+/* ===== Modal Editor ===== */
+#editor-overlay{
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:-100%;
+  height:100%;
+  background:#fff;
+  transition:bottom 0.3s ease;
+  z-index:2000;
+  display:flex;
+  flex-direction:column;
+}
 
-        /* =========================================
-           6. Utility
-           ========================================= */
-        .loading {
-            position: fixed;
-            inset: 0; background: rgba(255,255,255,0.9); display: none;
-            flex-direction: column; justify-content: center; align-items: center; z-index: 2000;
-        }
-        .loading.visible { display: flex; }
-        .spinner {
-            width: 30px;
-            height: 30px; border: 3px solid var(--border);
-            border-top-color: var(--primary); border-radius: 50%;
-            animation: spin 1s linear infinite; margin-bottom: 10px;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-    </style>
+#editor-overlay.active{
+  bottom:0;
+}
+
+#editor-header{
+  padding:10px;
+  border-bottom:1px solid #ccc;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+#editor-text{
+  flex:1;
+  padding:10px;
+  font-size:16px;
+  border:none;
+  outline:none;
+  resize:none;
+}
+
+#char-count{
+  font-size:12px;
+  color:#666;
+}
+
+button{
+  padding:6px 10px;
+}
+
+</style>
 </head>
 <body>
 
-<div id="loading" class="loading visible">
-    <div class="spinner"></div>
-    <div style="color: var(--sub-text); font-size: 14px;">Loading...</div>
-</div>
-
 <header>
-    <div class="header-left">
-        <div class="logo">GridMemo <span>Pro</span></div>
-        <div class="status"><span id="dot" class="dot"></span><span id="status-text">Ready</span></div>
-    </div>
-    <button class="btn-export" id="btn-export">Export</button>
+  <button id="addSheet">＋</button>
+  <button id="deleteSheet">－</button>
+  <select id="sheetSelect"></select>
+  <input id="sheetName" placeholder="シート名">
 </header>
 
-<div class="tabs-container">
-    <div class="tabs" id="tab-bar"></div>
-    <button class="btn-add-tab" id="btn-add-tab" title="シートを追加">+</button>
-</div>
-
-<div class="grid-wrapper" id="scroll-container">
-    <table id="main-grid">
-        <thead id="grid-head"></thead>
-        <tbody id="grid-body"></tbody>
-    </table>
+<div id="grid-wrapper">
+  <div id="grid-container"></div>
 </div>
 
 <div id="editor-overlay">
-    <div class="editor-inner">
-        <div class="editor-header">
-            <div class="editor-info">
-                <span id="editor-title" style="font-weight: bold; font-size: 14px;"></span>
-                <div id="char-count" style="font-size: 11px; color: var(--sub-text);">0 文字</div>
-            </div>
-            <button class="btn-close" id="btn-close-editor">完了</button>
-        </div>
-        <textarea id="edit-area" maxlength="3000" placeholder="メモを入力..."></textarea>
+  <div id="editor-header">
+    <span id="cell-label"></span>
+    <div>
+      <span id="char-count">0文字</span>
+      <button id="saveCell">保存</button>
     </div>
+  </div>
+  <textarea id="editor-text"></textarea>
 </div>
 
 <script>
-const CONFIG = {
-    DB_NAME: 'GridMemoProDB_v4', 
-    DB_VERSION: 1,
-    STORE_MEMOS: 'memos',
-    STORE_SHEETS: 'sheets',
-    ROWS: 50,
-    COLS: 12,
-    DEBOUNCE_MS: 800
+const ROWS = 50;
+const COLS = 12;
+const COL_LABELS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".slice(0,COLS).split("");
+
+let db;
+let currentSheetId = null;
+let scale = 1;
+let startDist = null;
+let startScale = 1;
+let editingCell = null;
+
+/* ===== IndexedDB ===== */
+const request = indexedDB.open("GridMemoDB",1);
+request.onupgradeneeded = e=>{
+  db = e.target.result;
+  const store = db.createObjectStore("sheets",{keyPath:"id",autoIncrement:true});
+};
+request.onsuccess = e=>{
+  db = e.target.result;
+  init();
 };
 
-class DatabaseService {
-    constructor() { this.db = null; }
-    async init() {
-        return new Promise((resolve, reject) => {
-            const req = indexedDB.open(CONFIG.DB_NAME, CONFIG.DB_VERSION);
-            req.onupgradeneeded = (e) => {
-                const db = e.target.result;
-                if (!db.objectStoreNames.contains(CONFIG.STORE_MEMOS)) db.createObjectStore(CONFIG.STORE_MEMOS, { keyPath: 'id' });
-                if (!db.objectStoreNames.contains(CONFIG.STORE_SHEETS)) db.createObjectStore(CONFIG.STORE_SHEETS, { keyPath: 'name' });
-            };
-            req.onsuccess = (e) => { this.db = e.target.result; resolve(); };
-            req.onerror = () => reject('DB初期化エラー');
-        });
-    }
-    async getSheets() {
-        return new Promise((resolve) => {
-            const tx = this.db.transaction(CONFIG.STORE_SHEETS, 'readonly');
-            const req = tx.objectStore(CONFIG.STORE_SHEETS).getAll();
-            req.onsuccess = () => {
-                let sheets = req.result.sort((a, b) => a.order - b.order).map(s => s.name);
-                if (sheets.length === 0) sheets = ['Main Sheet'];
-                resolve(sheets);
-            };
-        });
-    }
-    async saveSheetsOrder(sheetsArray) {
-        return new Promise((resolve, reject) => {
-            const tx = this.db.transaction(CONFIG.STORE_SHEETS, 'readwrite');
-            const store = tx.objectStore(CONFIG.STORE_SHEETS);
-            store.clear().onsuccess = () => {
-                sheetsArray.forEach((name, index) => { store.put({ name, order: index }); });
-            };
-            tx.oncomplete = resolve; tx.onerror = reject;
-        });
-    }
-    async renameSheet(oldName, newName) {
-        return new Promise((resolve, reject) => {
-            const tx = this.db.transaction([CONFIG.STORE_SHEETS, CONFIG.STORE_MEMOS], 'readwrite');
-            tx.oncomplete = resolve; tx.onerror = () => reject(tx.error);
-            const memoStore = tx.objectStore(CONFIG.STORE_MEMOS);
-            const range = IDBKeyRange.bound(`${oldName}-`, `${oldName}-\uffff`);
-            memoStore.openCursor(range).onsuccess = (e) => {
-                const cursor = e.target.result;
-                if (cursor) {
-                    const item = cursor.value;
-                    const newId = item.id.replace(oldName, newName);
-                    memoStore.put({ ...item, id: newId });
-                    cursor.delete();
-                    cursor.continue();
-                }
-            };
-        });
-    }
-    async deleteSheet(sheetName) {
-        return new Promise((resolve, reject) => {
-            const tx = this.db.transaction([CONFIG.STORE_SHEETS, CONFIG.STORE_MEMOS], 'readwrite');
-            tx.oncomplete = resolve; tx.onerror = reject;
-            tx.objectStore(CONFIG.STORE_SHEETS).delete(sheetName);
-            const range = IDBKeyRange.bound(`${sheetName}-`, `${sheetName}-\uffff`);
-            tx.objectStore(CONFIG.STORE_MEMOS).openCursor(range).onsuccess = (e) => {
-                const cursor = e.target.result;
-                if (cursor) { cursor.delete(); cursor.continue(); }
-            };
-        });
-    }
-    async getSheetMemos(sheetName) {
-        return new Promise((resolve) => {
-            const tx = this.db.transaction(CONFIG.STORE_MEMOS, 'readonly');
-            const range = IDBKeyRange.bound(`${sheetName}-`, `${sheetName}-\uffff`);
-            const req = tx.objectStore(CONFIG.STORE_MEMOS).getAll(range);
-            req.onsuccess = () => {
-                const map = {};
-                req.result.forEach(item => map[item.id] = item.text);
-                resolve(map);
-            };
-        });
-    }
-    async saveMemo(id, text) {
-        return new Promise((resolve, reject) => {
-            const tx = this.db.transaction(CONFIG.STORE_MEMOS, 'readwrite');
-            const store = tx.objectStore(CONFIG.STORE_MEMOS);
-            if (text.trim() === "") { store.delete(id); } else { store.put({ id, text, updatedAt: Date.now() }); }
-            tx.oncomplete = resolve; tx.onerror = reject;
-        });
-    }
-    async getAllDataForExport() {
-        return new Promise((resolve) => {
-            const tx = this.db.transaction([CONFIG.STORE_SHEETS, CONFIG.STORE_MEMOS], 'readonly');
-            let data = { sheets: [], memos: [] };
-            tx.objectStore(CONFIG.STORE_SHEETS).getAll().onsuccess = e => data.sheets = e.target.result;
-            tx.objectStore(CONFIG.STORE_MEMOS).getAll().onsuccess = e => data.memos = e.target.result;
-            tx.oncomplete = () => resolve(data);
-        });
-    }
+function getAllSheets(){
+  return new Promise(resolve=>{
+    const tx=db.transaction("sheets","readonly");
+    const store=tx.objectStore("sheets");
+    const req=store.getAll();
+    req.onsuccess=()=>resolve(req.result);
+  });
 }
 
-class UIController {
-    constructor(appContext) {
-        this.app = appContext;
-        this.DOM = {
-            loading: document.getElementById('loading'),
-            tabBar: document.getElementById('tab-bar'),
-            gridHead: document.getElementById('grid-head'),
-            gridBody: document.getElementById('grid-body'),
-            mainGrid: document.getElementById('main-grid'),
-            overlay: document.getElementById('editor-overlay'),
-            editArea: document.getElementById('edit-area'),
-            editorTitle: document.getElementById('editor-title'),
-            charCount: document.getElementById('char-count'),
-            dot: document.getElementById('dot'),
-            statusText: document.getElementById('status-text'),
-        };
-        this.bindStaticEvents();
-    }
-    bindStaticEvents() {
-        this.DOM.mainGrid.addEventListener('click', (e) => {
-            const cell = e.target.closest('.memo-cell');
-            if (cell) {
-                const r = parseInt(cell.dataset.row, 10);
-                const c = parseInt(cell.dataset.col, 10);
-                this.app.handleCellClick(r, c, cell.innerText, cell);
-            }
-        });
-        this.DOM.gridBody.addEventListener('input', (e) => {
-            if (e.target.classList.contains('memo-cell')) {
-                const cell = e.target;
-                const r = parseInt(cell.dataset.row, 10);
-                const c = parseInt(cell.dataset.col, 10);
-                this.app.handleInput(r, c, cell.innerText, 'inline');
-            }
-        });
-        this.DOM.gridBody.addEventListener('focusout', (e) => {
-            if (e.target.classList.contains('memo-cell')) {
-                e.target.contentEditable = "false";
-            }
-        });
-        document.getElementById('btn-close-editor').addEventListener('click', () => this.closeEditor());
-        this.DOM.editArea.addEventListener('input', (e) => {
-            this.updateCharCount(e.target.value.length);
-            const {r, c} = this.app.state.targetCell || {};
-            if(r !== undefined) this.app.handleInput(r, c, e.target.value, 'modal');
-        });
-        this.DOM.overlay.addEventListener('click', (e) => {
-            if (e.target === this.DOM.overlay) this.closeEditor();
-        });
-        document.getElementById('btn-add-tab').addEventListener('click', () => this.app.addSheet());
-        document.getElementById('btn-export').addEventListener('click', () => this.app.exportData());
-    }
-    showLoading(show) { this.DOM.loading.classList.toggle('visible', show); }
-    setStatus(type) {
-        this.DOM.dot.className = 'dot';
-        const msgs = { 'saving': { class: 'editing', text: 'Saving...' }, 'saved': { class: 'saved', text: 'Saved' }, 'error': { class: 'error', text: 'Error!' }, 'ready': { class: '', text: 'Ready' } };
-        const st = msgs[type] || msgs['ready'];
-        if(st.class) this.DOM.dot.classList.add(st.class);
-        this.DOM.statusText.textContent = st.text;
-    }
-    renderTabs(sheets, currentSheet) {
-        this.DOM.tabBar.innerHTML = '';
-        sheets.forEach(name => {
-            const isActive = name === currentSheet;
-            const wrapper = document.createElement('div');
-            wrapper.className = `tab-wrapper ${isActive ? 'active' : ''}`;
-            wrapper.innerHTML = `<button class="tab">${name}</button><div class="tab-ops"><button class="btn-op btn-rename">✎</button><button class="btn-op btn-delete">×</button></div>`;
-            wrapper.querySelector('.tab').onclick = () => this.app.switchSheet(name);
-            if (isActive) {
-                wrapper.querySelector('.btn-rename').onclick = (e) => { e.stopPropagation(); this.app.renameSheet(name); };
-                wrapper.querySelector('.btn-delete').onclick = (e) => { e.stopPropagation(); this.app.deleteSheet(name); };
-            }
-            this.DOM.tabBar.appendChild(wrapper);
-        });
-    }
-    initGridSkeleton() {
-        const fragmentHead = document.createDocumentFragment();
-        const headerRow = document.createElement('tr');
-        headerRow.innerHTML = '<th></th>' + Array.from({length: CONFIG.COLS}, (_, i) => `<th>${String.fromCharCode(65+i)}</th>`).join('');
-        fragmentHead.appendChild(headerRow);
-        this.DOM.gridHead.appendChild(fragmentHead);
-        const fragmentBody = document.createDocumentFragment();
-        for(let r=1; r<=CONFIG.ROWS; r++) {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `<td>${r}</td>` + Array.from({length: CONFIG.COLS}, (_, c) => `<td><div class="memo-cell" id="cell-${r}-${c}" data-row="${r}" data-col="${c}"></div></td>`).join('');
-            fragmentBody.appendChild(tr);
-        }
-        this.DOM.gridBody.appendChild(fragmentBody);
-    }
-    updateGridData(dataMap) {
-        for(let r=1; r<=CONFIG.ROWS; r++) {
-            for(let c=0; c<CONFIG.COLS; c++) {
-                const el = document.getElementById(`cell-${r}-${c}`);
-                if (el) el.textContent = dataMap[`${this.app.state.currentSheet}-${r}-${c}`] || '';
-            }
-        }
-    }
-    updateSingleCell(r, c, text) {
-        const el = document.getElementById(`cell-${r}-${c}`);
-        if (el && document.activeElement !== el) {
-            el.textContent = text;
-        }
-    }
-    openEditor(r, c, initialText) {
-        const colLetter = String.fromCharCode(65 + c);
-        this.DOM.editorTitle.textContent = `${this.app.state.currentSheet} [${colLetter}${r}]`;
-        this.DOM.editArea.value = initialText;
-        this.updateCharCount(initialText.length);
-        this.DOM.overlay.classList.add('visible');
-        setTimeout(() => this.DOM.editArea.focus(), 100);
-    }
-    closeEditor() {
-        this.DOM.overlay.classList.remove('visible');
-        this.DOM.editArea.blur();
-    }
-    updateCharCount(len) { this.DOM.charCount.textContent = `${len} 文字`; }
+function saveSheet(sheet){
+  const tx=db.transaction("sheets","readwrite");
+  tx.objectStore("sheets").put(sheet);
 }
 
-class GridMemoApp {
-    constructor() {
-        this.db = new DatabaseService();
-        this.ui = new UIController(this);
-        this.state = { sheets: [], currentSheet: '', targetCell: null, saveTimer: null, isProcessing: false };
-    }
-    async bootstrap() {
-        try {
-            await this.db.init();
-            this.state.sheets = await this.db.getSheets();
-            this.state.currentSheet = this.state.sheets[0];
-            this.ui.renderTabs(this.state.sheets, this.state.currentSheet);
-            this.ui.initGridSkeleton();
-            await this.loadCurrentSheetData();
-        } catch (e) { console.error(e); alert("初期化エラー"); } finally { this.ui.showLoading(false); }
-    }
-    async loadCurrentSheetData() {
-        const dataMap = await this.db.getSheetMemos(this.state.currentSheet);
-        this.ui.updateGridData(dataMap);
-    }
-    async switchSheet(name) {
-        if (this.state.currentSheet === name || this.state.isProcessing) return;
-        this.state.isProcessing = true; this.ui.showLoading(true);
-        this.state.currentSheet = name;
-        this.ui.renderTabs(this.state.sheets, this.state.currentSheet);
-        await this.loadCurrentSheetData();
-        this.ui.showLoading(false); this.state.isProcessing = false;
-    }
-    async addSheet() {
-        const name = prompt("新しいシート名:");
-        if (!name || !name.trim() || this.state.sheets.includes(name)) return;
-        this.state.sheets.push(name.trim());
-        await this.db.saveSheetsOrder(this.state.sheets);
-        this.switchSheet(name.trim());
-    }
-    async renameSheet(oldName) {
-        const newName = prompt("新しいシート名:", oldName);
-        if (!newName || !newName.trim() || newName === oldName || this.state.sheets.includes(newName)) return;
-        this.ui.showLoading(true);
-        try {
-            await this.db.renameSheet(oldName, newName.trim());
-            const idx = this.state.sheets.indexOf(oldName);
-            this.state.sheets[idx] = newName.trim();
-            await this.db.saveSheetsOrder(this.state.sheets);
-            this.state.currentSheet = newName.trim();
-            this.ui.renderTabs(this.state.sheets, this.state.currentSheet);
-            await this.loadCurrentSheetData();
-        } catch (e) { alert("変更失敗"); } finally { this.ui.showLoading(false); }
-    }
-    async deleteSheet(name) {
-        if (this.state.sheets.length <= 1) return alert("削除不可");
-        if (!confirm(`シート「${name}」を削除しますか？`)) return;
-        this.ui.showLoading(true);
-        try {
-            await this.db.deleteSheet(name);
-            this.state.sheets = this.state.sheets.filter(s => s !== name);
-            await this.db.saveSheetsOrder(this.state.sheets);
-            await this.switchSheet(this.state.sheets[0]);
-        } catch (e) { alert("削除失敗"); } finally { this.ui.showLoading(false); }
-    }
-
-    handleCellClick(r, c, text, cellElement) {
-        const isFocused = (document.activeElement === cellElement);
-        this.state.targetCell = { r, c };
-        if (isFocused) {
-            this.ui.openEditor(r, c, text);
-        } else {
-            cellElement.contentEditable = "true";
-            cellElement.focus();
-        }
-    }
-
-    handleInput(r, c, text, source) {
-        if (source === 'modal') {
-            this.ui.updateSingleCell(r, c, text);
-        }
-        this.ui.setStatus('saving');
-        clearTimeout(this.state.saveTimer);
-        this.state.saveTimer = setTimeout(() => {
-            this.db.saveMemo(`${this.state.currentSheet}-${r}-${c}`, text)
-                .then(() => this.ui.setStatus('saved'))
-                .catch(() => this.ui.setStatus('error'));
-        }, CONFIG.DEBOUNCE_MS);
-    }
-
-    async exportData() {
-        const data = await this.db.getAllDataForExport();
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = `GridMemoPro_${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(url);
-    }
+function deleteSheetDB(id){
+  const tx=db.transaction("sheets","readwrite");
+  tx.objectStore("sheets").delete(id);
 }
 
-window.addEventListener('DOMContentLoaded', () => {
-    const app = new GridMemoApp();
-    app.bootstrap();
+/* ===== Init ===== */
+async function init(){
+  let sheets = await getAllSheets();
+  if(sheets.length===0){
+    const defaultSheet={name:"Sheet1",cells:{}};
+    saveSheet(defaultSheet);
+    setTimeout(init,100);
+    return;
+  }
+  populateSheetSelect(sheets);
+  loadSheet(sheets[0].id);
+}
+
+function populateSheetSelect(sheets){
+  const select=document.getElementById("sheetSelect");
+  select.innerHTML="";
+  sheets.forEach(sheet=>{
+    const opt=document.createElement("option");
+    opt.value=sheet.id;
+    opt.textContent=sheet.name;
+    select.appendChild(opt);
+  });
+}
+
+/* ===== Load Sheet ===== */
+async function loadSheet(id){
+  currentSheetId = Number(id);
+  const tx=db.transaction("sheets","readonly");
+  const sheet=await new Promise(resolve=>{
+    const req=tx.objectStore("sheets").get(currentSheetId);
+    req.onsuccess=()=>resolve(req.result);
+  });
+  document.getElementById("sheetName").value=sheet.name;
+  renderGrid(sheet.cells||{});
+}
+
+function renderGrid(cells){
+  const container=document.getElementById("grid-container");
+  container.innerHTML="";
+  const table=document.createElement("table");
+
+  const thead=document.createElement("thead");
+  const tr=document.createElement("tr");
+  const corner=document.createElement("th");
+  tr.appendChild(corner);
+  COL_LABELS.forEach(label=>{
+    const th=document.createElement("th");
+    th.textContent=label;
+    tr.appendChild(th);
+  });
+  thead.appendChild(tr);
+  table.appendChild(thead);
+
+  const tbody=document.createElement("tbody");
+  for(let r=1;r<=ROWS;r++){
+    const row=document.createElement("tr");
+    const th=document.createElement("th");
+    th.textContent=r;
+    row.appendChild(th);
+    for(let c=0;c<COLS;c++){
+      const key=r+"-"+c;
+      const td=document.createElement("td");
+      td.dataset.key=key;
+      td.textContent=cells[key]||"";
+      td.onclick=()=>openEditor(r,c,cells[key]||"");
+      row.appendChild(td);
+    }
+    tbody.appendChild(row);
+  }
+  table.appendChild(tbody);
+  container.appendChild(table);
+}
+
+/* ===== Editor ===== */
+function openEditor(r,c,value){
+  editingCell={r,c};
+  document.getElementById("editor-text").value=value;
+  document.getElementById("char-count").textContent=value.length+"文字";
+  document.getElementById("cell-label").textContent=COL_LABELS[c]+r;
+  document.getElementById("editor-overlay").classList.add("active");
+}
+
+document.getElementById("editor-text").addEventListener("input",e=>{
+  document.getElementById("char-count").textContent=e.target.value.length+"文字";
 });
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('SW registered:', reg))
-            .catch(err => console.error('SW error:', err));
-    });
+
+document.getElementById("saveCell").onclick=async ()=>{
+  const text=document.getElementById("editor-text").value;
+  const tx=db.transaction("sheets","readwrite");
+  const store=tx.objectStore("sheets");
+  const sheet=await new Promise(resolve=>{
+    const req=store.get(currentSheetId);
+    req.onsuccess=()=>resolve(req.result);
+  });
+  const key=editingCell.r+"-"+editingCell.c;
+  sheet.cells=sheet.cells||{};
+  sheet.cells[key]=text;
+  store.put(sheet);
+  document.getElementById("editor-overlay").classList.remove("active");
+  loadSheet(currentSheetId);
+};
+
+/* ===== Sheet Controls ===== */
+document.getElementById("sheetSelect").onchange=e=>{
+  loadSheet(e.target.value);
+};
+
+document.getElementById("sheetName").onchange=async e=>{
+  const tx=db.transaction("sheets","readwrite");
+  const store=tx.objectStore("sheets");
+  const sheet=await new Promise(resolve=>{
+    const req=store.get(currentSheetId);
+    req.onsuccess=()=>resolve(req.result);
+  });
+  sheet.name=e.target.value;
+  store.put(sheet);
+  init();
+};
+
+document.getElementById("addSheet").onclick=()=>{
+  saveSheet({name:"NewSheet",cells:{}});
+  setTimeout(init,100);
+};
+
+document.getElementById("deleteSheet").onclick=()=>{
+  if(confirm("削除しますか？")){
+    deleteSheetDB(currentSheetId);
+    setTimeout(init,100);
+  }
+};
+
+/* ===== Pinch Zoom ===== */
+const wrapper=document.getElementById("grid-wrapper");
+const container=document.getElementById("grid-container");
+
+wrapper.addEventListener("touchstart",e=>{
+  if(e.touches.length===2){
+    startDist=getDist(e);
+    startScale=scale;
+  }
+});
+
+wrapper.addEventListener("touchmove",e=>{
+  if(e.touches.length===2){
+    e.preventDefault();
+    const dist=getDist(e);
+    scale=startScale*(dist/startDist);
+    scale=Math.max(0.4,Math.min(scale,2));
+    container.style.transform=`scale(${scale})`;
+  }
+},{passive:false});
+
+function getDist(e){
+  const dx=e.touches[0].clientX-e.touches[1].clientX;
+  const dy=e.touches[0].clientY-e.touches[1].clientY;
+  return Math.sqrt(dx*dx+dy*dy);
 }
+
 </script>
 </body>
 </html>
