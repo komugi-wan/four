@@ -1,356 +1,388 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Grid Memo Pro</title>
-    <style>
-        :root {
-            --header-height: 100px;
-            --cell-width: 15em;
-            --base-font-size: 16px;
-            --zoom-level: 1;
-            --accent-color: #007AFF;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Grid Memo</title>
+<style>
+/* =========================
+   Base Design (Dusty Pink)
+========================= */
+:root{
+  --pink:#c48a9a;
+  --pink-light:#e8c7cf;
+  --pink-bg:#f6eef1;
+  --border:#e2d6da;
+  --text:#4a3f44;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  background:var(--pink-bg);
+  color:var(--text);
+  overflow:hidden;
+  touch-action:manipulation;
+}
 
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; font-family: sans-serif; background: #f4f4f4; }
+/* =========================
+   Header
+========================= */
+header{
+  height:56px;
+  background:var(--pink);
+  color:white;
+  display:flex;
+  align-items:center;
+  padding:0 10px;
+  justify-content:space-between;
+}
+header input{
+  background:transparent;
+  border:none;
+  color:white;
+  font-size:16px;
+  font-weight:600;
+  width:120px;
+}
+header button{
+  background:var(--pink-light);
+  border:none;
+  padding:6px 10px;
+  border-radius:8px;
+  font-size:14px;
+  color:var(--text);
+}
 
-        /* --- Header Section --- */
-        header {
-            height: var(--header-height);
-            background: #fff;
-            border-bottom: 1px solid #ccc;
-            padding: 10px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            position: relative;
-            z-index: 100;
-        }
-        .header-top { display: flex; justify-content: space-between; align-items: center; }
-        .header-bottom { display: flex; gap: 10px; align-items: center; }
-        
-        button { padding: 6px 12px; border-radius: 6px; border: 1px solid #ccc; background: #eee; font-size: 14px; }
-        .btn-add { background: var(--accent-color); color: white; border: none; }
-        .btn-del { background: #ff3b30; color: white; border: none; }
-        select { flex: 1; padding: 5px; font-size: 16px; border-radius: 6px; }
-        input#sheet-name-input { border: 1px solid #ddd; padding: 4px; border-radius: 4px; width: 120px; }
+/* =========================
+   Layout
+========================= */
+#app{
+  position:absolute;
+  top:56px;
+  bottom:0;
+  left:0;
+  right:0;
+  display:flex;
+  flex-direction:column;
+}
 
-        /* --- Grid Section --- */
-        #viewport {
-            height: calc(100% - var(--header-height));
-            overflow: auto;
-            position: relative;
-            touch-action: none; /* JSで制御するため */
-        }
+/* Fixed headers */
+#columnHeaders{
+  display:flex;
+  background:white;
+  border-bottom:1px solid var(--border);
+}
+#rowHeaders{
+  background:white;
+  border-right:1px solid var(--border);
+}
+.corner{
+  width:80px;
+  border-right:1px solid var(--border);
+}
+.colHeader,.rowHeader{
+  width:160px;
+  min-width:160px;
+  font-size:14px;
+  text-align:center;
+  padding:6px 4px;
+  border-right:1px solid var(--border);
+  border-bottom:1px solid var(--border);
+  background:white;
+}
 
-        #grid-container {
-            display: grid;
-            grid-template-columns: 40px repeat(12, var(--cell-width));
-            transform-origin: 0 0;
-            will-change: transform;
-            background: #ddd;
-            gap: 1px;
-        }
+/* Scroll area */
+#scrollWrapper{
+  flex:1;
+  display:flex;
+  overflow:hidden;
+}
+#gridScroll{
+  flex:1;
+  overflow:auto;
+  -webkit-overflow-scrolling:touch;
+}
+#gridContainer{
+  transform-origin:0 0;
+}
 
-        .cell {
-            background: #fff;
-            min-height: 2em;
-            max-height: 100em;
-            padding: 8px;
-            font-size: var(--base-font-size);
-            word-break: break-all;
-            display: flex;
-            align-items: flex-start;
-            overflow: hidden;
-        }
+/* Grid */
+.row{
+  display:flex;
+}
+.cell{
+  width:160px; /* approx 15 chars */
+  min-height:40px;
+  max-height:160px; /* approx 100 chars */
+  padding:6px;
+  font-size:16pt;
+  border-right:1px solid var(--border);
+  border-bottom:1px solid var(--border);
+  overflow:hidden;
+  word-break:break-word;
+}
 
-        /* Labels (Sticky) */
-        .label {
-            background: #f8f8f8;
-            font-weight: bold;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            position: sticky;
-            z-index: 10;
-        }
-        .col-label { top: 0; height: 30px; border-bottom: 2px solid #ccc; }
-        .row-label { left: 0; width: 40px; border-right: 2px solid #ccc; }
-        .corner { top: 0; left: 0; z-index: 20; }
-
-        /* --- Modal Editor --- */
-        #editor-modal {
-            position: fixed;
-            bottom: -100%;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: white;
-            z-index: 1000;
-            transition: bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            display: flex;
-            flex-direction: column;
-        }
-        #editor-modal.active { bottom: 0; }
-        .modal-header {
-            padding: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid #eee;
-        }
-        #editor-textarea {
-            flex: 1;
-            width: 100%;
-            padding: 15px;
-            font-size: 18px;
-            border: none;
-            outline: none;
-            resize: none;
-        }
-        .char-count { color: #666; font-size: 14px; }
-    </style>
+/* =========================
+   Long Text Editor
+========================= */
+#editorOverlay{
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:-100%;
+  height:100%;
+  background:white;
+  display:flex;
+  flex-direction:column;
+  transition:bottom .3s ease;
+}
+#editorOverlay.active{
+  bottom:0;
+}
+#editorHeader{
+  height:56px;
+  background:var(--pink);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 12px;
+  color:white;
+}
+#editorOverlay textarea{
+  flex:1;
+  border:none;
+  padding:16px;
+  font-size:16pt;
+  outline:none;
+  resize:none;
+}
+#charCount{
+  font-size:14px;
+}
+</style>
 </head>
 <body>
 
 <header>
-    <div class="header-top">
-        <input type="text" id="sheet-name-input" placeholder="Sheet Name">
-        <div>
-            <button class="btn-add" onclick="addNewSheet()">＋追加</button>
-            <button class="btn-del" onclick="deleteCurrentSheet()">削除</button>
-        </div>
-    </div>
-    <div class="header-bottom">
-        <select id="sheet-selector" onchange="switchSheet(this.value)"></select>
-    </div>
+  <div>
+    <input id="sheetName" value="Sheet 1">
+  </div>
+  <div>
+    <button id="addSheet">＋</button>
+    <button id="deleteSheet">－</button>
+  </div>
 </header>
 
-<div id="viewport">
-    <div id="grid-container">
-        </div>
+<div id="app">
+  <div id="columnHeaders">
+    <div class="corner"></div>
+  </div>
+  <div id="scrollWrapper">
+    <div id="rowHeaders"></div>
+    <div id="gridScroll">
+      <div id="gridContainer"></div>
+    </div>
+  </div>
 </div>
 
-<div id="editor-modal">
-    <div class="modal-header">
-        <span class="char-count" id="char-count">0 文字</span>
-        <div>
-            <button onclick="closeEditor()">キャンセル</button>
-            <button class="btn-add" onclick="saveCell()">完了</button>
-        </div>
-    </div>
-    <textarea id="editor-textarea" placeholder="メモを入力..."></textarea>
+<!-- Long Text Editor -->
+<div id="editorOverlay">
+  <div id="editorHeader">
+    <div>メモ</div>
+    <div id="charCount">0</div>
+    <button id="closeEditor">保存</button>
+  </div>
+  <textarea id="editorTextarea"></textarea>
 </div>
 
 <script>
-    /** --- データベース関連 (IndexedDB) --- **/
-    let db;
-    const DB_NAME = "GridMemoDB";
-    const STORE_SHEETS = "sheets";
-    const STORE_DATA = "cellData";
+/* =========================
+   Constants
+========================= */
+const ROWS=50;
+const COLS=12;
+let currentSheetId=null;
+let scale=1;
+let db;
 
-    const initDB = () => {
-        return new Promise((resolve) => {
-            const request = indexedDB.open(DB_NAME, 1);
-            request.onupgradeneeded = (e) => {
-                const db = e.target.result;
-                db.createObjectStore(STORE_SHEETS, { keyPath: "id", autoIncrement: true });
-                db.createObjectStore(STORE_DATA, { keyPath: "key" }); // key = sheetId-row-col
-            };
-            request.onsuccess = (e) => {
-                db = e.target.result;
-                resolve();
-            };
-        });
-    };
+/* =========================
+   IndexedDB Setup
+========================= */
+const request=indexedDB.open("GridMemoDB",1);
+request.onupgradeneeded=e=>{
+  db=e.target.result;
+  db.createObjectStore("sheets",{keyPath:"id",autoIncrement:true});
+};
+request.onsuccess=e=>{
+  db=e.target.result;
+  init();
+};
 
-    /** --- グローバル状態 --- **/
-    let currentSheetId = null;
-    let editingCell = null; // {row, col}
-    let zoom = 1;
-    let startDist = 0;
-    let startZoom = 1;
+/* =========================
+   Initialize
+========================= */
+function init(){
+  loadSheets();
+  createHeaders();
+  setupPinch();
+}
 
-    /** --- UI制御 --- **/
-    const grid = document.getElementById('grid-container');
-    const viewport = document.getElementById('viewport');
-
-    async function initApp() {
-        await initDB();
-        const sheets = await getAllSheets();
-        if (sheets.length === 0) {
-            await addNewSheet("シート1");
-        } else {
-            renderSheetList(sheets);
-            await switchSheet(sheets[0].id);
-        }
-        setupTouchEvents();
+/* =========================
+   Sheet Management
+========================= */
+function loadSheets(){
+  const tx=db.transaction("sheets","readonly");
+  const store=tx.objectStore("sheets");
+  const req=store.getAll();
+  req.onsuccess=()=>{
+    if(req.result.length===0){
+      createSheet("Sheet 1");
+    }else{
+      loadSheet(req.result[0]);
     }
+  };
+}
 
-    async function addNewSheet(name = "新規シート") {
-        const tx = db.transaction(STORE_SHEETS, "readwrite");
-        const id = await new Promise(r => {
-            const req = tx.objectStore(STORE_SHEETS).add({ name });
-            req.onsuccess = () => r(req.result);
-        });
-        const sheets = await getAllSheets();
-        renderSheetList(sheets);
-        await switchSheet(id);
+function createSheet(name){
+  const tx=db.transaction("sheets","readwrite");
+  tx.objectStore("sheets").add({name,cells:{}});
+  tx.oncomplete=loadSheets;
+}
+
+function loadSheet(sheet){
+  currentSheetId=sheet.id;
+  document.getElementById("sheetName").value=sheet.name;
+  renderGrid(sheet.cells);
+}
+
+function deleteCurrentSheet(){
+  if(!currentSheetId) return;
+  const tx=db.transaction("sheets","readwrite");
+  tx.objectStore("sheets").delete(currentSheetId);
+  tx.oncomplete=loadSheets;
+}
+
+document.getElementById("addSheet").onclick=()=>{
+  createSheet("New Sheet");
+};
+document.getElementById("deleteSheet").onclick=deleteCurrentSheet;
+
+document.getElementById("sheetName").onchange=e=>{
+  const tx=db.transaction("sheets","readwrite");
+  const store=tx.objectStore("sheets");
+  const req=store.get(currentSheetId);
+  req.onsuccess=()=>{
+    const data=req.result;
+    data.name=e.target.value;
+    store.put(data);
+  };
+};
+
+/* =========================
+   Grid Rendering
+========================= */
+function createHeaders(){
+  const colH=document.getElementById("columnHeaders");
+  for(let c=0;c<COLS;c++){
+    const div=document.createElement("div");
+    div.className="colHeader";
+    div.textContent=String.fromCharCode(65+c);
+    colH.appendChild(div);
+  }
+  const rowH=document.getElementById("rowHeaders");
+  for(let r=0;r<ROWS;r++){
+    const div=document.createElement("div");
+    div.className="rowHeader";
+    div.textContent=r+1;
+    rowH.appendChild(div);
+  }
+}
+
+function renderGrid(cells){
+  const container=document.getElementById("gridContainer");
+  container.innerHTML="";
+  for(let r=0;r<ROWS;r++){
+    const row=document.createElement("div");
+    row.className="row";
+    for(let c=0;c<COLS;c++){
+      const key=r+"-"+c;
+      const cell=document.createElement("div");
+      cell.className="cell";
+      cell.textContent=cells[key]||"";
+      cell.onclick=()=>openEditor(r,c,cell.textContent);
+      row.appendChild(cell);
     }
+    container.appendChild(row);
+  }
+}
 
-    async function deleteCurrentSheet() {
-        if (!confirm("このシートを削除しますか？")) return;
-        const tx = db.transaction([STORE_SHEETS, STORE_DATA], "readwrite");
-        tx.objectStore(STORE_SHEETS).delete(currentSheetId);
-        // 本来は紐づくセルデータも消すべきだが、簡易化のため割愛
-        const sheets = await getAllSheets();
-        if (sheets.length > 0) await switchSheet(sheets[0].id);
-        else await addNewSheet();
-        renderSheetList(sheets);
+/* =========================
+   Cell Editing
+========================= */
+let editTarget=null;
+function openEditor(r,c,value){
+  editTarget={r,c};
+  const overlay=document.getElementById("editorOverlay");
+  const textarea=document.getElementById("editorTextarea");
+  textarea.value=value||"";
+  document.getElementById("charCount").textContent=textarea.value.length;
+  overlay.classList.add("active");
+  textarea.focus();
+}
+
+document.getElementById("editorTextarea").oninput=e=>{
+  document.getElementById("charCount").textContent=e.target.value.length;
+};
+
+document.getElementById("closeEditor").onclick=()=>{
+  const value=document.getElementById("editorTextarea").value;
+  saveCell(editTarget.r,editTarget.c,value);
+  document.getElementById("editorOverlay").classList.remove("active");
+};
+
+function saveCell(r,c,value){
+  const tx=db.transaction("sheets","readwrite");
+  const store=tx.objectStore("sheets");
+  const req=store.get(currentSheetId);
+  req.onsuccess=()=>{
+    const data=req.result;
+    data.cells[r+"-"+c]=value;
+    store.put(data);
+    loadSheet(data);
+  };
+}
+
+/* =========================
+   Pinch Zoom (Grid Only)
+========================= */
+function setupPinch(){
+  const grid=document.getElementById("gridContainer");
+  let startDist=0;
+  let startScale=1;
+
+  grid.addEventListener("touchstart",e=>{
+    if(e.touches.length===2){
+      startDist=getDist(e);
+      startScale=scale;
     }
+  },{passive:false});
 
-    async function switchSheet(id) {
-        currentSheetId = parseInt(id);
-        const sheets = await getAllSheets();
-        const current = sheets.find(s => s.id === currentSheetId);
-        document.getElementById('sheet-name-input').value = current.name;
-        document.getElementById('sheet-selector').value = currentSheetId;
-        renderGrid();
+  grid.addEventListener("touchmove",e=>{
+    if(e.touches.length===2){
+      e.preventDefault();
+      const newDist=getDist(e);
+      scale=Math.min(2,Math.max(0.3,startScale*(newDist/startDist)));
+      grid.style.transform="scale("+scale+")";
     }
+  },{passive:false});
+}
 
-    async function renderGrid() {
-        grid.innerHTML = '';
-        // Corner
-        const corner = document.createElement('div');
-        corner.className = 'cell label corner';
-        grid.appendChild(corner);
-
-        // Col Headers (A-L)
-        for (let i = 0; i < 12; i++) {
-            const div = document.createElement('div');
-            div.className = 'cell label col-label';
-            div.textContent = String.fromCharCode(65 + i);
-            grid.appendChild(div);
-        }
-
-        // Rows
-        for (let r = 1; r <= 50; r++) {
-            const rowLabel = document.createElement('div');
-            rowLabel.className = 'cell label row-label';
-            rowLabel.textContent = r;
-            grid.appendChild(rowLabel);
-
-            for (let c = 0; c < 12; c++) {
-                const cell = document.createElement('div');
-                cell.className = 'cell';
-                cell.id = `cell-${r}-${c}`;
-                cell.onclick = () => openEditor(r, c);
-                grid.appendChild(cell);
-                loadCellValue(r, c);
-            }
-        }
-    }
-
-    /** --- セル編集・保存 --- **/
-    async function openEditor(r, c) {
-        editingCell = { r, c };
-        const data = await getCellValue(r, c);
-        const modal = document.getElementById('editor-modal');
-        const textarea = document.getElementById('editor-textarea');
-        textarea.value = data || "";
-        updateCharCount();
-        modal.classList.add('active');
-        textarea.focus();
-    }
-
-    function closeEditor() {
-        document.getElementById('editor-modal').classList.remove('active');
-    }
-
-    async function saveCell() {
-        const text = document.getElementById('editor-textarea').value;
-        const key = `${currentSheetId}-${editingCell.r}-${editingCell.c}`;
-        const tx = db.transaction(STORE_DATA, "readwrite");
-        tx.objectStore(STORE_DATA).put({ key, text });
-        document.getElementById(`cell-${editingCell.r}-${editingCell.c}`).textContent = text;
-        closeEditor();
-    }
-
-    async function loadCellValue(r, c) {
-        const val = await getCellValue(r, c);
-        if (val) document.getElementById(`cell-${r}-${c}`).textContent = val;
-    }
-
-    function getCellValue(r, c) {
-        return new Promise(res => {
-            const key = `${currentSheetId}-${r}-${c}`;
-            const req = db.transaction(STORE_DATA).objectStore(STORE_DATA).get(key);
-            req.onsuccess = () => res(req.result ? req.result.text : "");
-        });
-    }
-
-    /** --- ズーム & スクロール制御 --- **/
-    function setupTouchEvents() {
-        viewport.addEventListener('touchstart', (e) => {
-            if (e.touches.length === 2) {
-                startDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
-                startZoom = zoom;
-            }
-        });
-
-        viewport.addEventListener('touchmove', (e) => {
-            if (e.touches.length === 2) {
-                e.preventDefault();
-                const dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
-                const factor = dist / startDist;
-                zoom = Math.min(Math.max(startZoom * factor, 0.2), 3); // 0.2で約5列表示
-                applyZoom();
-            } else {
-                // 通常スクロール
-                viewport.scrollLeft -= e.movementX || 0;
-                viewport.scrollTop -= e.movementY || 0;
-            }
-        }, { passive: false });
-    }
-
-    function applyZoom() {
-        grid.style.transform = `scale(${zoom})`;
-        // Sticky位置の補正はCSSのtransform-originにより概ね自動で行われるが、
-        // 描画エリアのサイズを更新してスクロール可能範囲を維持する
-        grid.style.width = `calc(100% * ${1/zoom})`; 
-    }
-
-    /** --- 補助関数 --- **/
-    async function getAllSheets() {
-        return new Promise(r => {
-            const req = db.transaction(STORE_SHEETS).objectStore(STORE_SHEETS).getAll();
-            req.onsuccess = () => r(req.result);
-        });
-    }
-
-    function renderSheetList(sheets) {
-        const sel = document.getElementById('sheet-selector');
-        sel.innerHTML = sheets.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
-    }
-
-    function updateCharCount() {
-        const len = document.getElementById('editor-textarea').value.length;
-        document.getElementById('char-count').textContent = `${len} 文字`;
-    }
-
-    document.getElementById('editor-textarea').oninput = updateCharCount;
-    document.getElementById('sheet-name-input').onchange = async (e) => {
-        const name = e.target.value;
-        const tx = db.transaction(STORE_SHEETS, "readwrite");
-        tx.objectStore(STORE_SHEETS).put({ id: currentSheetId, name });
-        const sheets = await getAllSheets();
-        renderSheetList(sheets);
-        document.getElementById('sheet-selector').value = currentSheetId;
-    };
-
-    window.onload = initApp;
+function getDist(e){
+  const dx=e.touches[0].clientX-e.touches[1].clientX;
+  const dy=e.touches[0].clientY-e.touches[1].clientY;
+  return Math.sqrt(dx*dx+dy*dy);
+}
 </script>
 </body>
 </html>
