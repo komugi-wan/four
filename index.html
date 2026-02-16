@@ -2,761 +2,648 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=0.1, maximum-scale=10.0, user-scalable=yes">
-    <title>Professional Spreadsheet App</title>
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#f06595">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#ffffff">
+    <meta name="description" content="GridMemo Pro - Offline capabale spreadsheet memo">
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="GridMemo">
     <link rel="apple-touch-icon" href="icon-192.png">
+    
+    <link rel="manifest" href="manifest.json">
+
+    <title>GridMemo Pro v3.3 - PWA Edition</title>
     <style>
+        /* =========================================
+           1. CSS Variables & Reset
+           ========================================= */
         :root {
-            --header-bg: #f8f9fa;
-            --border-color: #e0e0e0;
-            --accent-color: #f06595;
-            --accent-hover: #ffdeeb;
-            --selection-bg: rgba(240, 101, 149, 0.08);
-            --row-height: 36px;
-            --tab-bg: #f1f3f4;
-            --zoom-level: 1;
+            --primary: #d4a3a3;
+            --primary-hover: #b98a8a;
+            --bg: #fdfaf9;
+            --cell-bg: #ffffff;
+            --border: #e2e8f0;
+            --text: #0f172a;
+            --sub-text: #64748b;
+            --error: #ef4444;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --cell-width: 280px;
+            --cell-max-height: 320px;
+            --header-base-height: 54px;
+            /* セーフエリア（ノッチ）対応のヘッダー高さ計算 */
+            --header-height: calc(var(--header-base-height) + env(safe-area-inset-top));
         }
 
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "BIZ UDPGothic", sans-serif;
-            margin: 0;
+        * { 
+            box-sizing: border-box; 
+            -webkit-tap-highlight-color: transparent; 
+        }
+
+        body {
+            margin: 0; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: var(--bg); 
+            color: var(--text);
+            height: 100dvh; 
             display: flex; 
             flex-direction: column; 
-            height: 100vh; 
-            width: 100vw;
-            color: #202124; 
-            overflow: hidden;
-            background-color: #fff;
-        }
-        
-        .fixed-header-container {
-            flex-shrink: 0;
-            z-index: 2000;
-            background: #fff;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            overflow: hidden; 
         }
 
-        .toolbar { 
-            background: #fff;
-            padding: 10px 16px; 
-            border-bottom: 1px solid var(--border-color); 
-            display: flex;
-            gap: 8px; 
-            align-items: center; 
-            overflow-x: auto;
-            white-space: nowrap;
-        }
-        .toolbar::-webkit-scrollbar { display: none; }
-
-        .color-palette { 
-            display: flex;
-            gap: 6px; 
-            align-items: center; 
-            margin-left: 8px; 
-            padding-left: 12px;
-            border-left: 1px solid var(--border-color);
-        }
-
-        .color-swatch { 
-            width: 22px;
-            height: 22px; 
-            border-radius: 50%;
-            cursor: pointer;
-            border: 1px solid rgba(0,0,0,0.1); 
-            transition: transform 0.2s;
-            flex-shrink: 0;
-        }
-        .color-swatch:active { transform: scale(0.8); }
-
-        .sheet-tabs { 
-            display: flex;
-            background: var(--tab-bg); 
-            border-bottom: 1px solid var(--border-color);
-            padding: 0 8px; 
-            align-items: flex-end;
-            height: 44px; 
-            overflow-x: auto;
-        }
-
-        .tab { 
-            padding: 8px 20px;
-            cursor: pointer; 
-            font-size: 14px; 
+        /* =========================================
+           2. Header & Status
+           ========================================= */
+        header {
+            background: #fff; 
+            height: var(--header-height);
+            /* 上部にセーフエリア分のパディングを追加 */
+            padding: env(safe-area-inset-top) 16px 0 16px; 
+            border-bottom: 1px solid var(--border);
             display: flex; 
-            align-items: center; 
-            gap: 8px; 
-            background: transparent; 
-            margin-right: 4px;
-            border-radius: 8px 8px 0 0;
-            white-space: nowrap; 
-            color: #5f6368;
-            border: 1px solid transparent;
+            justify-content: space-between; 
+            align-items: center;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            flex-shrink: 0;
+            z-index: 50; /* スクロール時に重ならないよう確保 */
+        }
+
+        .header-left { display: flex; align-items: center; gap: 15px; }
+        .logo { font-weight: 800; font-size: 1.2rem; }
+        .logo span { color: var(--primary); }
+
+        .status { font-size: 12px; color: var(--sub-text); display: flex; align-items: center; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; background: #cbd5e1; margin-right: 6px; transition: background 0.3s;}
+        .dot.saved { background: var(--success); box-shadow: 0 0 5px var(--success); }
+        .dot.editing { background: var(--warning); }
+        .dot.error { background: var(--error); box-shadow: 0 0 5px var(--error); }
+
+        .btn-export {
+            font-size: 12px; padding: 6px 12px; border: 1px solid var(--border);
+            background: #fff; border-radius: 6px; cursor: pointer; color: var(--sub-text);
             transition: all 0.2s;
         }
+        .btn-export:active { background: #f1f5f9; }
 
-        .tab.active { 
+        /* =========================================
+           3. Tabs (Mobile Optimized)
+           ========================================= */
+        .tabs-container {
+            display: flex; background: #fff; border-bottom: 1px solid var(--border);
+            align-items: center; padding-right: 10px; flex-shrink: 0;
+        }
+        .tabs {
+            display: flex; overflow-x: auto; scrollbar-width: none; flex: 1;
+        }
+        .tabs::-webkit-scrollbar { display: none; }
+        
+        .tab-wrapper { 
+            display: flex; align-items: center; border-bottom: 2px solid transparent; 
+        }
+        .tab-wrapper.active {
+            color: var(--primary); font-weight: bold; border-bottom-color: var(--primary);
+            background: rgba(37, 99, 235, 0.05);
+        }
+        .tab {
+            padding: 14px 16px; font-size: 14px; border: none; background: none;
+            color: inherit; white-space: nowrap; cursor: pointer;
+            min-height: 44px; 
+        }
+        
+        .tab-ops {
+            display: none; gap: 4px; padding-right: 12px;
+        }
+        .tab-wrapper.active .tab-ops { display: flex; }
+        
+        .btn-op {
+            border: none; background: none; cursor: pointer; font-size: 14px; color: var(--sub-text);
+            padding: 6px; border-radius: 4px; min-width: 32px; min-height: 32px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .btn-op:active { background: #e2e8f0; color: var(--text); }
+        
+        .btn-add-tab {
+            padding: 8px 16px; font-size: 20px; border: none; background: none;
+            color: var(--primary); cursor: pointer; font-weight: bold; min-height: 44px;
+        }
+
+        /* =========================================
+           4. Grid (Sticky & High Performance)
+           ========================================= */
+        .grid-wrapper {
+            flex: 1; overflow: auto; position: relative; background: #fff;
+            -webkit-overflow-scrolling: touch; 
+            /* 下部のセーフエリア（iPhoneのバー）を考慮して余白を追加 */
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        table { border-collapse: collapse; table-layout: fixed; width: max-content; }
+        
+        th, td {
+            border: 1px solid var(--border); padding: 0;
+            vertical-align: top; font-size: 14px; line-height: 1.5;
+        }
+
+        th {
+            background: #f1f5f9; position: sticky; top: 0; z-index: 20;
+            height: 35px; color: var(--sub-text); font-weight: 600; font-size: 11px;
+            text-align: center; line-height: 35px;
+        }
+        td:first-child {
+            background: #f1f5f9; position: sticky; left: 0; z-index: 19;
+            width: 50px; text-align: center; color: var(--sub-text); font-weight: bold;
+            padding: 10px 0;
+        }
+        th:first-child { z-index: 21; left: 0; }
+
+        .memo-cell {
+            width: var(--cell-width);
+            min-height: 60px;
+            max-height: var(--cell-max-height);
+            padding: 12px;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 15;
+            -webkit-box-orient: vertical;
+            white-space: pre-wrap;
+            word-break: break-all;
+            cursor: pointer;
+            transition: background 0.1s, box-shadow 0.1s;
+        }
+        .memo-cell:active { background: #f1f5f9; }
+        /* 編集中のスタイル追加 */
+        .memo-cell:focus {
             background: #fff;
-            color: var(--accent-color);
-            font-weight: 600;
-            border: 1px solid var(--border-color);
-            border-bottom-color: #fff;
-        }
-
-        .tab-close { font-size: 18px; color: #9aa0a6; margin-left: 4px; }
-        .add-sheet-btn { font-size: 24px; padding: 0 16px; height: 40px; border: none;
-        background: none; color: #5f6368; cursor: pointer; }
-
-        .table-container { 
-            overflow: auto;
-            flex-grow: 1; 
-            position: relative; 
-            background: #f8f9fa; 
-            width: 100%;
-        }
-        
-        #zoom-wrapper { width: max-content; height: max-content; }
-
-        table { border-collapse: separate; border-spacing: 0; table-layout: fixed; background: #fff; }
-
-        th { 
-            background: var(--header-bg);
-            border-right: 1px solid var(--border-color);
-            border-bottom: 1px solid var(--border-color);
-            position: sticky; 
-            top: 0;
-            z-index: 100;
-            font-size: calc(11px * var(--zoom-level)); 
-            font-weight: 600;
-            color: #5f6368;
-            user-select: none;
-            height: calc(var(--row-height) * var(--zoom-level)); 
-            box-sizing: border-box;
-        }
-
-        .row-header { 
-            position: sticky;
-            left: 0;
-            z-index: 110;
-            width: calc(46px * var(--zoom-level));
-            text-align: center; 
-            border-right: 1px solid #c0c0c0;
-        }
-
-        thead tr:first-child th:first-child { z-index: 120; left: 0; top: 0; }
-
-        td { 
-            border-right: 1px solid var(--border-color);
-            border-bottom: 1px solid var(--border-color); 
-            padding: 0; 
-            height: calc(var(--row-height) * var(--zoom-level));
+            outline: 2px solid var(--primary);
+            z-index: 10;
             position: relative;
-            background-color: #fff;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            cursor: text;
+        }
+        .memo-cell:empty::before { content: "-"; color: #cbd5e1; pointer-events: none; }
+        .memo-cell:focus:empty::before { content: ""; }
+
+        /* =========================================
+           5. Editor Overlay
+           ========================================= */
+        #editor-overlay {
+            position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6);
+            display: none; flex-direction: column; justify-content: flex-end; z-index: 1000;
+            backdrop-filter: blur(4px);
+            opacity: 0; transition: opacity 0.2s ease;
+        }
+        #editor-overlay.visible { display: flex; opacity: 1; }
+
+        .editor-inner {
+            background: #fff; border-radius: 20px 20px 0 0;
+            /* キーボード領域 + セーフエリアを考慮 */
+            height: 85dvh; 
+            padding-bottom: env(safe-area-inset-bottom);
+            display: flex; flex-direction: column;
+            transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        #editor-overlay.visible .editor-inner { transform: translateY(0); }
+
+        .editor-header {
+            padding: 16px 20px; border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .editor-info { display: flex; flex-direction: column; gap: 4px; }
+        
+        textarea {
+            flex: 1; border: none; padding: 20px; font-size: 16px;
+            outline: none; resize: none; line-height: 1.6;
+            -webkit-appearance: none; 
         }
         
-        .selected-col { background-color: var(--selection-bg) !important; }
-        .selected-row td { background-color: var(--selection-bg) !important; }
-        th.active-header { background-color: var(--accent-hover) !important; color: var(--accent-color); }
-
-        td textarea { 
-            border: none;
-            width: 100%; height: 100%; 
-            padding: calc(8px * var(--zoom-level));
-            box-sizing: border-box; outline: none; 
-            font-size: calc(14px * var(--zoom-level)); 
-            background: transparent; display: block;
-            resize: none;
-            font-family: inherit; white-space: nowrap; overflow: hidden;
+        .btn-close { 
+            background: var(--primary); color: #fff; border: none; 
+            padding: 10px 24px; border-radius: 8px; font-weight: bold; cursor: pointer;
+            font-size: 14px; box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
         }
+        .btn-close:active { background: var(--primary-hover); transform: scale(0.98); }
 
-        td textarea:focus { 
-            position: absolute;
-            top: 0; left: 0; z-index: 150;
-            height: auto; min-height: 100%; background: #fff; 
-            border: 2px solid var(--accent-color); 
-            padding: calc(7px * var(--zoom-level));
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15); 
-            overflow: visible; white-space: pre-wrap;
-            font-size: 16px;
+        /* =========================================
+           6. Utility
+           ========================================= */
+        .loading {
+            position: fixed; inset: 0; background: rgba(255,255,255,0.9); display: none;
+            flex-direction: column; justify-content: center; align-items: center; z-index: 2000;
         }
-
-        .focus-trigger {
-            position: absolute;
-            top: 2px; right: 2px; 
-            background: var(--accent-color); color: white;
-            width: 20px; height: 20px; border-radius: 4px; 
-            display: none; align-items: center; justify-content: center;
-            font-size: 12px; cursor: pointer; z-index: 160;
+        .loading.visible { display: flex; }
+        .spinner {
+            width: 30px; height: 30px; border: 3px solid var(--border);
+            border-top-color: var(--primary); border-radius: 50%;
+            animation: spin 1s linear infinite; margin-bottom: 10px;
         }
-        td textarea:focus + .focus-trigger { display: flex; }
-
-        #focus-mode-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%; 
-            background: #fff; z-index: 3000; display: none; flex-direction: column;
-        }
-
-        .focus-header { padding: 12px 16px; border-bottom: 1px solid var(--border-color); display: flex;
-        justify-content: space-between; align-items: center; }
-        #focus-textarea { flex-grow: 1; border: none; padding: 20px;
-        font-size: 18px; outline: none; resize: none; line-height: 1.6; }
-
-        .char-count { 
-            position: absolute;
-            bottom: 2px; right: 4px; font-size: 10px; color: #9aa0a6;
-            pointer-events: none; z-index: 70; background: rgba(255, 255, 255, 0.8); 
-            padding: 0 4px;
-            border-radius: 4px; display: none;
-        }
-        td:hover .char-count, td textarea:focus + .focus-trigger + .char-count { display: block; }
-
-        .resizer-h, .resizer-v { position: absolute; background: transparent; z-index: 130; touch-action: none;
-        display: none; }
-        .resizer-h { right: -4px; top: 0; width: 8px; height: 100%;
-        cursor: col-resize; }
-        .resizer-v { bottom: -4px; left: 0; width: 100%; height: 8px;
-        cursor: row-resize; }
-        .active-header .resizer-h, .active-header .resizer-v { display: block; }
-        .resizer-h::after { content: ''; position: absolute; right: 3px; top: 25%; width: 2px;
-        height: 50%; background: var(--accent-color); }
-        .resizer-v::after { content: ''; position: absolute; bottom: 3px;
-        left: 25%; width: 50%; height: 2px; background: var(--accent-color); }
-
-        button { cursor: pointer;
-        padding: 8px 14px; background: #fff; border: 1px solid #dadce0; border-radius: 6px; font-size: 13px; font-weight: 500;
-        }
-        button:active { background: #f1f3f4; }
-
-        .context-menu { 
-            position: fixed;
-            background: #fff; box-shadow: 0 8px 24px rgba(0,0,0,0.15); 
-            z-index: 2500; display: none; padding: 6px 0; min-width: 180px; border-radius: 8px;
-            border: 1px solid rgba(0,0,0,0.05);
-        }
-        .context-menu-item { padding: 12px 20px; cursor: pointer;
-        font-size: 14px; }
-        .context-menu-item:hover { background: var(--tab-bg); color: var(--accent-color); }
-        .context-menu-item.disabled { color: #bdc1c6; cursor: default; }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
-<div class="fixed-header-container">
-    <div class="toolbar">
-        <button id="btn-add-row">行を追加</button>
-        <button id="btn-add-col">列を追加</button>
-        <button id="btn-export">CSV出力</button>
-        <div class="color-palette" id="color-palette"><span style="font-size: 11px; color: #80868b; margin-right: 4px;">背景色:</span></div>
-        <span id="zoom-display" style="font-size: 11px; color: #80868b; margin-left: 10px;">100%</span>
-    </div>
-    <div class="sheet-tabs" id="sheet-tabs">
-        <button class="add-sheet-btn" id="btn-add-sheet">+</button>
-    </div>
+<div id="loading" class="loading visible">
+    <div class="spinner"></div>
+    <div style="color: var(--sub-text); font-size: 14px;">Loading...</div>
 </div>
 
-<div class="table-container" id="table-container">
-    <div id="zoom-wrapper">
-        <table id="spreadsheet">
-            <thead><tr id="header-row"><th class="row-header"></th></tr></thead>
-            <tbody id="table-body"></tbody>
-        </table>
+<header>
+    <div class="header-left">
+        <div class="logo">GridMemo <span>Pro</span></div>
+        <div class="status"><span id="dot" class="dot"></span><span id="status-text">Ready</span></div>
     </div>
+    <button class="btn-export" id="btn-export">Export</button>
+</header>
+
+<div class="tabs-container">
+    <div class="tabs" id="tab-bar"></div>
+    <button class="btn-add-tab" id="btn-add-tab" title="シートを追加">+</button>
 </div>
 
-<div id="context-menu" class="context-menu"></div>
+<div class="grid-wrapper" id="scroll-container">
+    <table id="main-grid">
+        <thead id="grid-head"></thead>
+        <tbody id="grid-body"></tbody>
+    </table>
+</div>
 
-<div id="focus-mode-overlay">
-    <div class="focus-header">
-        <span id="focus-cell-label" style="font-weight:600;">セル編集</span>
-        <button id="btn-close-focus" style="background:var(--accent-color);
-        color:white; border:none; border-radius:20px; padding:8px 20px;">完了</button>
+<div id="editor-overlay">
+    <div class="editor-inner">
+        <div class="editor-header">
+            <div class="editor-info">
+                <span id="editor-title" style="font-weight: bold; font-size: 14px;"></span>
+                <div id="char-count" style="font-size: 11px; color: var(--sub-text);">0 文字</div>
+            </div>
+            <button class="btn-close" id="btn-close-editor">完了</button>
+        </div>
+        <textarea id="edit-area" maxlength="3000" placeholder="メモを入力..."></textarea>
     </div>
-    <textarea id="focus-textarea" placeholder="入力を開始..."></textarea>
 </div>
 
 <script>
-    const DB_CONFIG = { name: 'SpreadsheetDB', version: 1, store: 'settings' };
-    const DEFAULT_COL_WIDTH = 100;
-    const COLORS = ["#ffffff", "#f8f9fa", "#fff0f6", "#ffdeeb", "#f06595", "#fff5f5", "#ffc9c9", "#fa5252", "#fff9db", "#ffec99", "#fab005", "#ebfbee", "#b2f2bb", "#40c057", "#e7f5ff", "#a5d8ff", "#228be6", "#f8f0fc", "#eebefa", "#be4bdb", "#ced4da", "#343a40"];
+/**
+ * GridMemo Pro v3.3 - PWA Edition
+ * Updates:
+ * - Columns increased to 12
+ * - Interaction: 1st tap (Direct Edit) -> 2nd tap (Full Editor)
+ */
 
-    let db;
-    const AppState = {
-        sheets: [{ name: "シート1", data: [], rowCount: 20, colCount: 10, colWidths: [], rowHeights: [], colors: {} }],
-        activeSheetIndex: 0,
-        lastFocusedCell: null,
-        clipboard: { type: null, index: null, data: null, heightOrWidth: null, colors: null },
-        selection: { type: null, index: null },
-        zoom: 1.0,
-        get currentSheet() { return this.sheets[this.activeSheetIndex]; }
-    };
+const CONFIG = {
+    DB_NAME: 'GridMemoProDB_v4', 
+    DB_VERSION: 1,
+    STORE_MEMOS: 'memos',
+    STORE_SHEETS: 'sheets',
+    ROWS: 50,
+    COLS: 12, // 【修正】 8列 -> 12列
+    DEBOUNCE_MS: 800
+};
 
-    const DOM = {
-        headerRow: document.getElementById('header-row'),
-        tableBody: document.getElementById('table-body'),
-        tabContainer: document.getElementById('sheet-tabs'),
-        colorPalette: document.getElementById('color-palette'),
-        contextMenu: document.getElementById('context-menu'),
-        focusOverlay: document.getElementById('focus-mode-overlay'),
-        focusTextarea: document.getElementById('focus-textarea'),
-        focusLabel: document.getElementById('focus-cell-label'),
-        btnCloseFocus: document.getElementById('btn-close-focus'),
-        tableContainer: document.getElementById('table-container'),
-        zoomDisplay: document.getElementById('zoom-display')
-    };
-
-    const DB = {
-        init() {
-            return new Promise((resolve, reject) => {
-                const req = indexedDB.open(DB_CONFIG.name, DB_CONFIG.version);
-                req.onupgradeneeded = (e) => {
-                    if (!e.target.result.objectStoreNames.contains(DB_CONFIG.store)) e.target.result.createObjectStore(DB_CONFIG.store);
-                };
-                req.onsuccess = (e) => { db = e.target.result; resolve(); };
-                req.onerror = reject;
-            });
-        },
-        async save() {
-            if (!db) return;
-            const tx = db.transaction([DB_CONFIG.store], 'readwrite');
-            tx.objectStore(DB_CONFIG.store).put(AppState.sheets, 'sheets_data');
-            tx.objectStore(DB_CONFIG.store).put(AppState.activeSheetIndex, 'active_tab_index');
-        },
-        async load() {
-            if (!db) return;
-            const tx = db.transaction([DB_CONFIG.store], 'readonly');
-            const store = tx.objectStore(DB_CONFIG.store);
-            const data = await this._get(store, 'sheets_data');
-            const index = await this._get(store, 'active_tab_index');
-            if (data) AppState.sheets = data;
-            if (index !== undefined) AppState.activeSheetIndex = index;
-        },
-        _get: (store, key) => new Promise(res => {
-            const req = store.get(key);
-            req.onsuccess = () => res(req.result);
-        })
-    };
-
-    const Utils = {
-        getColName(n) {
-            let name = "";
-            while (n >= 0) {
-                name = String.fromCharCode((n % 26) + 65) + name;
-                n = Math.floor(n / 26) - 1;
-            }
-            return name;
-        },
-        deepCopy: (obj) => JSON.parse(JSON.stringify(obj))
-    };
-
-    /** --- Zoom Management --- **/
-    function initZoomGestures() {
-        let initialPinchDist = null;
-        let initialZoomAtStart = 1.0;
-        let isPinching = false;
-
-        DOM.tableContainer.addEventListener('touchstart', (e) => {
-            if (e.touches.length === 2) {
-                isPinching = true;
-                initialPinchDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
-                initialZoomAtStart = AppState.zoom;
-            }
-        }, { passive: false });
-
-        DOM.tableContainer.addEventListener('touchmove', (e) => {
-            if (e.touches.length === 2 && initialPinchDist !== null) {
-                e.preventDefault();
-                const currentDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
-                const ratio = currentDist / initialPinchDist;
-                const newZoom = initialZoomAtStart * ratio;
-                
-                // 表示上の数値とCSS変数のみ更新し、重い描画処理は避ける
-                const clampedZoom = Math.min(Math.max(newZoom, 0.2), 5.0);
-                AppState.zoom = clampedZoom;
-                document.documentElement.style.setProperty('--zoom-level', clampedZoom);
-                DOM.zoomDisplay.innerText = `${Math.round(clampedZoom * 100)}%`;
-            }
-        }, { passive: false });
-
-        DOM.tableContainer.addEventListener('touchend', () => { 
-            if (isPinching) {
-                isPinching = false;
-                initialPinchDist = null;
-                // 指を離した時だけ全体を再描画
-                renderTable();
-            }
-        });
-
-        DOM.tableContainer.addEventListener('wheel', (e) => {
-            if (e.ctrlKey) {
-                e.preventDefault();
-                // ホイール操作時も最大5.0まで拡大可能にする
-                const newZoom = Math.min(Math.max(AppState.zoom - e.deltaY * 0.002, 0.2), 5.0);
-                updateZoom(newZoom);
-            }
-        }, { passive: false });
-    }
-
-    function updateZoom(scale) {
-        AppState.zoom = scale;
-        document.documentElement.style.setProperty('--zoom-level', scale);
-        DOM.zoomDisplay.innerText = `${Math.round(scale * 100)}%`;
-        renderTable();
-    }
-
-    function renderTable() {
-        const sheet = AppState.currentSheet;
-        DOM.headerRow.innerHTML = '<th class="row-header"></th>';
-        DOM.tableBody.innerHTML = '';
-        for (let i = 0; i < sheet.colCount; i++) createColHeader(i, sheet.colWidths[i]);
-        for (let i = 0; i < sheet.rowCount; i++) createRow(i, sheet.rowHeights[i]);
-        renderTabs();
-        updateSelectionUI();
-    }
-
-    function createColHeader(index, width) {
-        const th = document.createElement('th');
-        const w = (width || DEFAULT_COL_WIDTH) * AppState.zoom;
-        th.style.width = th.style.minWidth = w + 'px';
-        th.innerHTML = `<span>${Utils.getColName(index)}</span>`;
-        th.onclick = (e) => {
-            if (e.target.classList.contains('resizer-h')) return;
-            if (AppState.selection.type === 'col' && AppState.selection.index === index) showContextMenu(e, 'col', index);
-            else selectHeader('col', index);
-        };
-        th.oncontextmenu = (e) => { e.preventDefault(); selectHeader('col', index); showContextMenu(e, 'col', index); };
-        const resizer = document.createElement('div');
-        resizer.className = 'resizer-h';
-        resizer.addEventListener('mousedown', initResizeCol);
-        resizer.addEventListener('touchstart', initResizeCol, {passive: false});
-        th.appendChild(resizer);
-        DOM.headerRow.appendChild(th);
-    }
-
-    function createRow(rowIndex, height) {
-        const tr = document.createElement('tr');
-        if (height) tr.style.height = (height * AppState.zoom) + 'px';
-        const th = document.createElement('th');
-        th.className = 'row-header';
-        th.innerText = rowIndex + 1;
-        th.onclick = (e) => {
-            if (e.target.classList.contains('resizer-v')) return;
-            if (AppState.selection.type === 'row' && AppState.selection.index === rowIndex) showContextMenu(e, 'row', rowIndex);
-            else selectHeader('row', rowIndex);
-        };
-        th.oncontextmenu = (e) => { e.preventDefault(); selectHeader('row', rowIndex); showContextMenu(e, 'row', rowIndex); };
-        const resizer = document.createElement('div');
-        resizer.className = 'resizer-v';
-        resizer.addEventListener('mousedown', initResizeRow);
-        resizer.addEventListener('touchstart', initResizeRow, {passive: false});
-        th.appendChild(resizer);
-        tr.appendChild(th);
-        const sheet = AppState.currentSheet;
-        if (!sheet.data[rowIndex]) sheet.data[rowIndex] = [];
-        for (let i = 0; i < sheet.colCount; i++) tr.appendChild(createCell(rowIndex, i, sheet.data[rowIndex][i] || "", sheet.colors[`${rowIndex}-${i}`] || "#ffffff"));
-        DOM.tableBody.appendChild(tr);
-    }
-
-    function createCell(r, c, value, color) {
-        const td = document.createElement('td');
-        td.style.backgroundColor = color;
-        const textarea = document.createElement('textarea');
-        textarea.setAttribute('autocomplete', 'off');
-        textarea.setAttribute('spellcheck', 'false');
-        textarea.value = value;
-        const trigger = document.createElement('div');
-        trigger.className = 'focus-trigger';
-        trigger.innerHTML = '✎';
-        trigger.onmousedown = (e) => { e.preventDefault(); e.stopPropagation(); openFocusMode(r, c, textarea); };
-        const countSpan = document.createElement('span');
-        countSpan.className = 'char-count';
-        updateCharCount(countSpan, value);
-        textarea.oninput = function() {
-            autoResize(this);
-            AppState.currentSheet.data[r][c] = this.value;
-            updateCharCount(countSpan, this.value);
-            DB.save();
-        };
-        textarea.onfocus = function() {
-            clearSelection();
-            autoResize(this);
-            AppState.lastFocusedCell = { r, c, element: td, textarea: this, countSpan };
-        };
-        textarea.onblur = function() { this.style.height = '100%'; };
-        td.append(textarea, trigger, countSpan);
-        return td;
-    }
-
-    function selectHeader(type, index) { AppState.selection = { type, index }; updateSelectionUI(); }
-    function clearSelection() { AppState.selection = { type: null, index: null }; updateSelectionUI(); }
-
-    function updateSelectionUI() {
-        document.querySelectorAll('th, td, tr').forEach(el => el.classList.remove('active-header', 'selected-col', 'selected-row'));
-        if (AppState.selection.type === 'col') {
-            const idx = AppState.selection.index;
-            const ths = DOM.headerRow.querySelectorAll('th');
-            if (ths[idx + 1]) ths[idx + 1].classList.add('active-header');
-            Array.from(DOM.tableBody.rows).forEach(row => row.cells[idx + 1]?.classList.add('selected-col'));
-        } else if (AppState.selection.type === 'row') {
-            const row = DOM.tableBody.rows[AppState.selection.index];
-            if (row) { row.classList.add('selected-row'); row.cells[0].classList.add('active-header'); }
-        }
-    }
-
-    function updateCharCount(span, text) {
-        const count = text ? text.replace(/[\n\r]/g, "").length : 0;
-        span.innerText = count;
-        span.style.display = count > 0 ? '' : 'none';
-    }
-
-    function autoResize(el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
-
-    function applyColor(color) {
-        if (AppState.lastFocusedCell) {
-            const { r, c, element } = AppState.lastFocusedCell;
-            element.style.backgroundColor = color;
-            AppState.currentSheet.colors[`${r}-${c}`] = color;
-            DB.save();
-        }
-    }
-
-    function openFocusMode(r, c, originalTextarea) {
-        DOM.focusLabel.innerText = `${Utils.getColName(c)}${r + 1} の編集`;
-        DOM.focusTextarea.value = originalTextarea.value;
-        DOM.focusOverlay.style.display = 'flex';
-        DOM.focusTextarea.focus();
-        DOM.btnCloseFocus.onclick = () => {
-            const val = DOM.focusTextarea.value;
-            originalTextarea.value = val;
-            AppState.currentSheet.data[r][c] = val;
-            if (AppState.lastFocusedCell?.countSpan) updateCharCount(AppState.lastFocusedCell.countSpan, val);
-            DOM.focusOverlay.style.display = 'none';
-            DB.save();
-        };
-    }
-
-    function showContextMenu(e, type, index) {
-        e.preventDefault(); e.stopPropagation();
-        DOM.contextMenu.innerHTML = '';
-        const items = [
-            { label: '前に1つ挿入', action: () => modifyItems('insert', type, index) },
-            { label: 'この項目を削除', action: () => modifyItems('delete', type, index) },
-            { label: '切り取り', action: () => modifyItems('cut', type, index) },
-            { label: '貼付', action: () => modifyItems('paste', type, index), disabled: AppState.clipboard.type !== type }
-        ];
-        items.forEach(item => {
-            const div = document.createElement('div');
-            div.className = `context-menu-item ${item.disabled ? 'disabled' : ''}`;
-            div.innerText = item.label;
-            if (!item.disabled) div.onclick = () => { item.action(); hideContextMenu(); };
-            DOM.contextMenu.appendChild(div);
-        });
-        DOM.contextMenu.style.display = 'block';
-        const rect = { w: 180, x: e.clientX || e.touches?.[0].clientX || 0, y: e.clientY || e.touches?.[0].clientY || 0 };
-        DOM.contextMenu.style.left = Math.min(rect.x, window.innerWidth - rect.w - 10) + 'px';
-        DOM.contextMenu.style.top = rect.y + 'px';
-    }
-
-    const hideContextMenu = () => DOM.contextMenu.style.display = 'none';
-
-    async function modifyItems(mode, type, index) {
-        const sheet = AppState.currentSheet;
-        if (mode === 'insert') {
-            if (type === 'row') {
-                sheet.data.splice(index, 0, []);
-                sheet.rowHeights.splice(index, 0, null);
-                shiftColors('row', index, 1); sheet.rowCount++;
-            } else {
-                sheet.data.forEach(r => r.splice(index, 0, ""));
-                sheet.colWidths.splice(index, 0, null);
-                shiftColors('col', index, 1); sheet.colCount++;
-            }
-        } else if (mode === 'delete') {
-            if (type === 'row' && sheet.rowCount > 1) {
-                sheet.data.splice(index, 1);
-                sheet.rowHeights.splice(index, 1);
-                deleteColors(type, index); shiftColors('row', index + 1, -1); sheet.rowCount--;
-            } else if (type === 'col' && sheet.colCount > 1) {
-                sheet.data.forEach(r => r.splice(index, 1));
-                sheet.colWidths.splice(index, 1);
-                deleteColors(type, index); shiftColors('col', index + 1, -1); sheet.colCount--;
-            }
-            clearSelection();
-        } else if (mode === 'cut') {
-            AppState.clipboard = {
-                type, index,
-                data: type === 'row' ? Utils.deepCopy(sheet.data[index]) : sheet.data.map(r => r[index]),
-                heightOrWidth: type === 'row' ? sheet.rowHeights[index] : sheet.colWidths[index],
-                colors: extractColors(type, index)
+class DatabaseService {
+    constructor() { this.db = null; }
+    async init() {
+        return new Promise((resolve, reject) => {
+            const req = indexedDB.open(CONFIG.DB_NAME, CONFIG.DB_VERSION);
+            req.onupgradeneeded = (e) => {
+                const db = e.target.result;
+                if (!db.objectStoreNames.contains(CONFIG.STORE_MEMOS)) db.createObjectStore(CONFIG.STORE_MEMOS, { keyPath: 'id' });
+                if (!db.objectStoreNames.contains(CONFIG.STORE_SHEETS)) db.createObjectStore(CONFIG.STORE_SHEETS, { keyPath: 'name' });
             };
-            await modifyItems('delete', type, index);
-            return;
-        } else if (mode === 'paste') {
-            if (type === 'row') {
-                sheet.data.splice(index, 0, AppState.clipboard.data);
-                sheet.rowHeights.splice(index, 0, AppState.clipboard.heightOrWidth);
-                shiftColors('row', index, 1); applyExtractedColors('row', index, AppState.clipboard.colors);
-                sheet.rowCount++;
-            } else {
-                sheet.data.forEach((r, i) => r.splice(index, 0, AppState.clipboard.data[i] || ""));
-                sheet.colWidths.splice(index, 0, AppState.clipboard.heightOrWidth);
-                shiftColors('col', index, 1); applyExtractedColors('col', index, AppState.clipboard.colors);
-                sheet.colCount++;
-            }
-            AppState.clipboard = { type: null, index: null, data: null };
-        }
-        DB.save(); renderTable();
-    }
-
-    function shiftColors(type, startIndex, delta) {
-        const sheet = AppState.currentSheet, next = {};
-        Object.keys(sheet.colors).forEach(key => {
-            let [r, c] = key.split('-').map(Number);
-            if (type === 'row' && r >= startIndex) r += delta;
-            if (type === 'col' && c >= startIndex) c += delta;
-            if (r >= 0 && c >= 0) next[`${r}-${c}`] = sheet.colors[key];
-        });
-        sheet.colors = next;
-    }
-
-    function deleteColors(type, index) {
-        const sheet = AppState.currentSheet;
-        Object.keys(sheet.colors).forEach(k => {
-            const [r, c] = k.split('-').map(Number);
-            if ((type === 'row' && r === index) || (type === 'col' && c === index)) delete sheet.colors[k];
+            req.onsuccess = (e) => { this.db = e.target.result; resolve(); };
+            req.onerror = () => reject('DB初期化エラー');
         });
     }
-
-    function extractColors(type, index) {
-        const sheet = AppState.currentSheet, ext = {};
-        Object.keys(sheet.colors).forEach(k => {
-            const [r, c] = k.split('-').map(Number);
-            if (type === 'row' && r === index) ext[c] = sheet.colors[k];
-            if (type === 'col' && c === index) ext[r] = sheet.colors[k];
-        });
-        return ext;
-    }
-
-    function applyExtractedColors(type, index, map) {
-        if (!map) return;
-        const sheet = AppState.currentSheet;
-        Object.keys(map).forEach(pos => {
-            sheet.colors[type === 'row' ? `${index}-${pos}` : `${pos}-${index}`] = map[pos];
-        });
-    }
-
-    function renderTabs() {
-        DOM.tabContainer.querySelectorAll('.tab').forEach(t => t.remove());
-        AppState.sheets.forEach((sheet, idx) => {
-            const tab = document.createElement('div');
-            tab.className = `tab ${idx === AppState.activeSheetIndex ? 'active' : ''}`;
-            const span = document.createElement('span');
-            span.innerText = sheet.name;
-            span.onclick = () => { AppState.activeSheetIndex = idx; AppState.lastFocusedCell = null; clearSelection(); DB.save(); renderTable(); };
-            span.ondblclick = () => {
-                const name = prompt("シート名の変更:", AppState.sheets[idx].name);
-                if (name?.trim()) { AppState.sheets[idx].name = name.trim(); DB.save(); renderTabs(); }
+    async getSheets() {
+        return new Promise((resolve) => {
+            const tx = this.db.transaction(CONFIG.STORE_SHEETS, 'readonly');
+            const req = tx.objectStore(CONFIG.STORE_SHEETS).getAll();
+            req.onsuccess = () => {
+                let sheets = req.result.sort((a, b) => a.order - b.order).map(s => s.name);
+                if (sheets.length === 0) sheets = ['Main Sheet'];
+                resolve(sheets);
             };
-            tab.appendChild(span);
-            if (AppState.sheets.length > 1) {
-                const del = document.createElement('span');
-                del.className = 'tab-close'; del.innerHTML = '×';
-                del.onclick = (e) => {
-                    e.stopPropagation();
-                    if (confirm(`「${AppState.sheets[idx].name}」を削除しますか？`)) {
-                        AppState.sheets.splice(idx, 1);
-                        if (AppState.activeSheetIndex >= AppState.sheets.length) AppState.activeSheetIndex = AppState.sheets.length - 1;
-                        DB.save(); renderTable();
-                    }
-                };
-                tab.appendChild(del);
-            }
-            DOM.tabContainer.insertBefore(tab, document.getElementById('btn-add-sheet'));
         });
     }
-
-    const getPos = e => ({ x: e.touches ? e.touches[0].clientX : e.clientX, y: e.touches ? e.touches[0].clientY : e.clientY });
-
-    function initResizeCol(e) {
-        e.stopPropagation(); if (e.cancelable) e.preventDefault();
-        const th = e.target.parentElement, idx = Array.from(th.parentElement.children).indexOf(th) - 1;
-        const startX = getPos(e).x, startW = th.offsetWidth / AppState.zoom;
-        const move = (ev) => {
-            const w = Math.max(startW + (getPos(ev).x - startX) / AppState.zoom, 40);
-            th.style.width = th.style.minWidth = (w * AppState.zoom) + 'px';
-            AppState.currentSheet.colWidths[idx] = w;
-        };
-        const end = () => { DB.save();
-        document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', end); document.removeEventListener('touchmove', move); document.removeEventListener('touchend', end); };
-        document.addEventListener('mousemove', move); document.addEventListener('mouseup', end);
-        document.addEventListener('touchmove', move, {passive: false}); document.addEventListener('touchend', end);
+    async saveSheetsOrder(sheetsArray) {
+        return new Promise((resolve, reject) => {
+            const tx = this.db.transaction(CONFIG.STORE_SHEETS, 'readwrite');
+            const store = tx.objectStore(CONFIG.STORE_SHEETS);
+            store.clear().onsuccess = () => {
+                sheetsArray.forEach((name, index) => { store.put({ name, order: index }); });
+            };
+            tx.oncomplete = resolve; tx.onerror = reject;
+        });
     }
-
-    function initResizeRow(e) {
-        e.stopPropagation(); if (e.cancelable) e.preventDefault();
-        const tr = e.target.closest('tr'), idx = Array.from(tr.parentElement.children).indexOf(tr);
-        const startY = getPos(e).y, startH = tr.offsetHeight / AppState.zoom;
-        const move = (ev) => {
-            const h = Math.max(startH + (getPos(ev).y - startY) / AppState.zoom, 20);
-            tr.style.height = (h * AppState.zoom) + 'px';
-            AppState.currentSheet.rowHeights[idx] = h;
-        };
-        const end = () => { DB.save(); document.removeEventListener('mousemove', move);
-        document.removeEventListener('mouseup', end); document.removeEventListener('touchmove', move); document.removeEventListener('touchend', end); };
-        document.addEventListener('mousemove', move); document.addEventListener('mouseup', end);
-        document.addEventListener('touchmove', move, {passive: false}); document.addEventListener('touchend', end);
+    async renameSheet(oldName, newName) {
+        return new Promise((resolve, reject) => {
+            const tx = this.db.transaction([CONFIG.STORE_SHEETS, CONFIG.STORE_MEMOS], 'readwrite');
+            tx.oncomplete = resolve; tx.onerror = () => reject(tx.error);
+            const memoStore = tx.objectStore(CONFIG.STORE_MEMOS);
+            const range = IDBKeyRange.bound(`${oldName}-`, `${oldName}-\uffff`);
+            memoStore.openCursor(range).onsuccess = (e) => {
+                const cursor = e.target.result;
+                if (cursor) {
+                    const item = cursor.value;
+                    const newId = item.id.replace(oldName, newName);
+                    memoStore.put({ ...item, id: newId });
+                    cursor.delete();
+                    cursor.continue();
+                }
+            };
+        });
     }
+    async deleteSheet(sheetName) {
+        return new Promise((resolve, reject) => {
+            const tx = this.db.transaction([CONFIG.STORE_SHEETS, CONFIG.STORE_MEMOS], 'readwrite');
+            tx.oncomplete = resolve; tx.onerror = reject;
+            tx.objectStore(CONFIG.STORE_SHEETS).delete(sheetName);
+            const range = IDBKeyRange.bound(`${sheetName}-`, `${sheetName}-\uffff`);
+            tx.objectStore(CONFIG.STORE_MEMOS).openCursor(range).onsuccess = (e) => {
+                const cursor = e.target.result;
+                if (cursor) { cursor.delete(); cursor.continue(); }
+            };
+        });
+    }
+    async getSheetMemos(sheetName) {
+        return new Promise((resolve) => {
+            const tx = this.db.transaction(CONFIG.STORE_MEMOS, 'readonly');
+            const range = IDBKeyRange.bound(`${sheetName}-`, `${sheetName}-\uffff`);
+            const req = tx.objectStore(CONFIG.STORE_MEMOS).getAll(range);
+            req.onsuccess = () => {
+                const map = {};
+                req.result.forEach(item => map[item.id] = item.text);
+                resolve(map);
+            };
+        });
+    }
+    async saveMemo(id, text) {
+        return new Promise((resolve, reject) => {
+            const tx = this.db.transaction(CONFIG.STORE_MEMOS, 'readwrite');
+            const store = tx.objectStore(CONFIG.STORE_MEMOS);
+            if (text.trim() === "") { store.delete(id); } else { store.put({ id, text, updatedAt: Date.now() }); }
+            tx.oncomplete = resolve; tx.onerror = reject;
+        });
+    }
+    async getAllDataForExport() {
+        return new Promise((resolve) => {
+            const tx = this.db.transaction([CONFIG.STORE_SHEETS, CONFIG.STORE_MEMOS], 'readonly');
+            let data = { sheets: [], memos: [] };
+            tx.objectStore(CONFIG.STORE_SHEETS).getAll().onsuccess = e => data.sheets = e.target.result;
+            tx.objectStore(CONFIG.STORE_MEMOS).getAll().onsuccess = e => data.memos = e.target.result;
+            tx.oncomplete = () => resolve(data);
+        });
+    }
+}
 
-    function exportCSV() {
-        const sheet = AppState.currentSheet;
-        let csv = "";
-        for (let i = 0; i < sheet.rowCount; i++) {
-            let row = [];
-            for (let j = 0; j < sheet.colCount; j++) row.push(`"${(sheet.data[i]?.[j] || "").replace(/"/g, '""')}"`);
-            csv += row.join(",") + "\r\n";
+class UIController {
+    constructor(appContext) {
+        this.app = appContext;
+        this.DOM = {
+            loading: document.getElementById('loading'),
+            tabBar: document.getElementById('tab-bar'),
+            gridHead: document.getElementById('grid-head'),
+            gridBody: document.getElementById('grid-body'),
+            mainGrid: document.getElementById('main-grid'),
+            overlay: document.getElementById('editor-overlay'),
+            editArea: document.getElementById('edit-area'),
+            editorTitle: document.getElementById('editor-title'),
+            charCount: document.getElementById('char-count'),
+            dot: document.getElementById('dot'),
+            statusText: document.getElementById('status-text'),
+        };
+        this.bindStaticEvents();
+    }
+    bindStaticEvents() {
+        // 【修正】クリック処理: セル要素自体を渡して判定に使用
+        this.DOM.mainGrid.addEventListener('click', (e) => {
+            const cell = e.target.closest('.memo-cell');
+            if (cell) {
+                const r = parseInt(cell.dataset.row, 10);
+                const c = parseInt(cell.dataset.col, 10);
+                this.app.handleCellClick(r, c, cell.innerText, cell);
+            }
+        });
+
+        // 【追加】インライン編集用のInputイベント監視
+        this.DOM.gridBody.addEventListener('input', (e) => {
+            if (e.target.classList.contains('memo-cell')) {
+                const cell = e.target;
+                const r = parseInt(cell.dataset.row, 10);
+                const c = parseInt(cell.dataset.col, 10);
+                // インライン編集時はinnerTextを使用
+                this.app.handleInput(r, c, cell.innerText, 'inline');
+            }
+        });
+
+        // 【追加】フォーカスが外れたらcontenteditableを無効化（DOMをクリーンに保つため）
+        this.DOM.gridBody.addEventListener('focusout', (e) => {
+            if (e.target.classList.contains('memo-cell')) {
+                e.target.contentEditable = "false";
+            }
+        });
+
+        document.getElementById('btn-close-editor').addEventListener('click', () => this.closeEditor());
+        this.DOM.editArea.addEventListener('input', (e) => {
+            this.updateCharCount(e.target.value.length);
+            // モーダル編集時はtextareaの値を使用
+            const {r, c} = this.app.state.targetCell || {};
+            if(r !== undefined) this.app.handleInput(r, c, e.target.value, 'modal');
+        });
+        this.DOM.overlay.addEventListener('click', (e) => {
+            if (e.target === this.DOM.overlay) this.closeEditor();
+        });
+        document.getElementById('btn-add-tab').addEventListener('click', () => this.app.addSheet());
+        document.getElementById('btn-export').addEventListener('click', () => this.app.exportData());
+    }
+    showLoading(show) { this.DOM.loading.classList.toggle('visible', show); }
+    setStatus(type) {
+        this.DOM.dot.className = 'dot';
+        const msgs = { 'saving': { class: 'editing', text: 'Saving...' }, 'saved': { class: 'saved', text: 'Saved' }, 'error': { class: 'error', text: 'Error!' }, 'ready': { class: '', text: 'Ready' } };
+        const st = msgs[type] || msgs['ready'];
+        if(st.class) this.DOM.dot.classList.add(st.class);
+        this.DOM.statusText.textContent = st.text;
+    }
+    renderTabs(sheets, currentSheet) {
+        this.DOM.tabBar.innerHTML = '';
+        sheets.forEach(name => {
+            const isActive = name === currentSheet;
+            const wrapper = document.createElement('div');
+            wrapper.className = `tab-wrapper ${isActive ? 'active' : ''}`;
+            wrapper.innerHTML = `<button class="tab">${name}</button><div class="tab-ops"><button class="btn-op btn-rename">✎</button><button class="btn-op btn-delete">×</button></div>`;
+            wrapper.querySelector('.tab').onclick = () => this.app.switchSheet(name);
+            if (isActive) {
+                wrapper.querySelector('.btn-rename').onclick = () => this.app.renameSheet(name);
+                wrapper.querySelector('.btn-delete').onclick = () => this.app.deleteSheet(name);
+            }
+            this.DOM.tabBar.appendChild(wrapper);
+        });
+    }
+    initGridSkeleton() {
+        const fragmentHead = document.createDocumentFragment();
+        const headerRow = document.createElement('tr');
+        // 列数が増えても自動対応 (A, B... L...)
+        headerRow.innerHTML = '<th></th>' + Array.from({length: CONFIG.COLS}, (_, i) => `<th>${String.fromCharCode(65+i)}</th>`).join('');
+        fragmentHead.appendChild(headerRow);
+        this.DOM.gridHead.appendChild(fragmentHead);
+        const fragmentBody = document.createDocumentFragment();
+        for(let r=1; r<=CONFIG.ROWS; r++) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${r}</td>` + Array.from({length: CONFIG.COLS}, (_, c) => `<td><div class="memo-cell" id="cell-${r}-${c}" data-row="${r}" data-col="${c}"></div></td>`).join('');
+            fragmentBody.appendChild(tr);
         }
-        const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csv], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
-        link.download = `${sheet.name}_${Date.now()}.csv`;
-        link.click();
+        this.DOM.gridBody.appendChild(fragmentBody);
     }
-
-    async function initApp() {
-        COLORS.forEach(c => {
-            const s = document.createElement('div');
-            s.className = 'color-swatch'; s.style.backgroundColor = c;
-            s.onclick = () => applyColor(c);
-            DOM.colorPalette.appendChild(s);
-        });
-
-        document.getElementById('btn-add-row').onclick = () => { createRow(AppState.currentSheet.rowCount++, null); DB.save(); };
-        document.getElementById('btn-add-col').onclick = () => {
-            const s = AppState.currentSheet;
-            createColHeader(s.colCount++, null);
-            Array.from(DOM.tableBody.rows).forEach((r, idx) => r.appendChild(createCell(idx, s.colCount - 1, "", "#ffffff")));
-            DB.save();
-        };
-        document.getElementById('btn-export').onclick = exportCSV;
-        document.getElementById('btn-add-sheet').onclick = () => {
-            AppState.sheets.push({ name: `シート${AppState.sheets.length + 1}`, data: [], rowCount: 20, colCount: 10, colWidths: [], rowHeights: [], colors: {} });
-            AppState.activeSheetIndex = AppState.sheets.length - 1;
-            DB.save(); renderTable();
-        };
-        
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('th') && !e.target.closest('td') && !e.target.closest('.toolbar') && !e.target.closest('.context-menu') && !e.target.closest('.fixed-header-container')) {
-                clearSelection(); hideContextMenu();
+    updateGridData(dataMap) {
+        for(let r=1; r<=CONFIG.ROWS; r++) {
+            for(let c=0; c<CONFIG.COLS; c++) {
+                const el = document.getElementById(`cell-${r}-${c}`);
+                if (el) el.textContent = dataMap[`${this.app.state.currentSheet}-${r}-${c}`] || '';
             }
-        });
-        initZoomGestures();
-        try { await DB.init(); await DB.load(); } catch (e) { console.error(e); }
-        renderTable();
-        if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+        }
+    }
+    updateSingleCell(r, c, text) {
+        const el = document.getElementById(`cell-${r}-${c}`);
+        // 編集中の要素がアクティブな場合(インライン編集)、外部からの更新でカーソル位置をリセットさせない
+        if (el && document.activeElement !== el) {
+            el.textContent = text;
+        }
+    }
+    openEditor(r, c, initialText) {
+        const colLetter = String.fromCharCode(65 + c);
+        this.DOM.editorTitle.textContent = `${this.app.state.currentSheet} [${colLetter}${r}]`;
+        this.DOM.editArea.value = initialText;
+        this.updateCharCount(initialText.length);
+        this.DOM.overlay.classList.add('visible');
+        setTimeout(() => this.DOM.editArea.focus(), 100);
+    }
+    closeEditor() {
+        this.DOM.overlay.classList.remove('visible');
+        this.DOM.editArea.blur();
+    }
+    updateCharCount(len) { this.DOM.charCount.textContent = `${len} 文字`; }
+}
+
+class GridMemoApp {
+    constructor() {
+        this.db = new DatabaseService();
+        this.ui = new UIController(this);
+        this.state = { sheets: [], currentSheet: '', targetCell: null, saveTimer: null, isProcessing: false };
+    }
+    async bootstrap() {
+        try {
+            await this.db.init();
+            this.state.sheets = await this.db.getSheets();
+            this.state.currentSheet = this.state.sheets[0];
+            this.ui.renderTabs(this.state.sheets, this.state.currentSheet);
+            this.ui.initGridSkeleton();
+            await this.loadCurrentSheetData();
+        } catch (e) { console.error(e); alert("初期化エラー"); } finally { this.ui.showLoading(false); }
+    }
+    async loadCurrentSheetData() {
+        const dataMap = await this.db.getSheetMemos(this.state.currentSheet);
+        this.ui.updateGridData(dataMap);
+    }
+    async switchSheet(name) {
+        if (this.state.currentSheet === name || this.state.isProcessing) return;
+        this.state.isProcessing = true; this.ui.showLoading(true);
+        this.state.currentSheet = name;
+        this.ui.renderTabs(this.state.sheets, this.state.currentSheet);
+        await this.loadCurrentSheetData();
+        this.ui.showLoading(false); this.state.isProcessing = false;
+    }
+    async addSheet() {
+        const name = prompt("新しいシート名:");
+        if (!name || !name.trim() || this.state.sheets.includes(name)) return;
+        this.state.sheets.push(name.trim());
+        await this.db.saveSheetsOrder(this.state.sheets);
+        this.switchSheet(name.trim());
+    }
+    async renameSheet(oldName) {
+        const newName = prompt("新しいシート名:", oldName);
+        if (!newName || !newName.trim() || newName === oldName || this.state.sheets.includes(newName)) return;
+        this.ui.showLoading(true);
+        try {
+            await this.db.renameSheet(oldName, newName.trim());
+            const idx = this.state.sheets.indexOf(oldName);
+            this.state.sheets[idx] = newName.trim();
+            await this.db.saveSheetsOrder(this.state.sheets);
+            this.state.currentSheet = newName.trim();
+            this.ui.renderTabs(this.state.sheets, this.state.currentSheet);
+            await this.loadCurrentSheetData();
+        } catch (e) { alert("変更失敗"); } finally { this.ui.showLoading(false); }
+    }
+    async deleteSheet(name) {
+        if (this.state.sheets.length <= 1) return alert("削除不可");
+        if (!confirm(`シート「${name}」を削除しますか？`)) return;
+        this.ui.showLoading(true);
+        try {
+            await this.db.deleteSheet(name);
+            this.state.sheets = this.state.sheets.filter(s => s !== name);
+            await this.db.saveSheetsOrder(this.state.sheets);
+            await this.switchSheet(this.state.sheets[0]);
+        } catch (e) { alert("削除失敗"); } finally { this.ui.showLoading(false); }
     }
 
-    initApp();
+    /**
+     * 【修正】タップ時の挙動分岐
+     * 1回目 (非フォーカス時): インライン編集モードにする
+     * 2回目 (フォーカス時): 全文エディタモーダルを開く
+     */
+    handleCellClick(r, c, text, cellElement) {
+        // すでにこのセルがフォーカスされているか確認
+        const isFocused = (document.activeElement === cellElement);
+
+        this.state.targetCell = { r, c };
+
+        if (isFocused) {
+            // 2回目タップ: モーダルを開く
+            this.ui.openEditor(r, c, text);
+        } else {
+            // 1回目タップ: インライン編集開始
+            cellElement.contentEditable = "true";
+            cellElement.focus();
+        }
+    }
+
+    /**
+     * 【修正】入力ハンドリング
+     * source: 'inline' (セル直接) or 'modal' (モーダル)
+     */
+    handleInput(r, c, text, source) {
+        // モーダルからの入力の場合はViewを更新
+        // インラインの場合はブラウザが更新しているので更新しない（カーソル飛び防止）
+        if (source === 'modal') {
+            this.ui.updateSingleCell(r, c, text);
+        }
+
+        this.ui.setStatus('saving');
+        clearTimeout(this.state.saveTimer);
+        this.state.saveTimer = setTimeout(() => {
+            this.db.saveMemo(`${this.state.currentSheet}-${r}-${c}`, text)
+                .then(() => this.ui.setStatus('saved'))
+                .catch(() => this.ui.setStatus('error'));
+        }, CONFIG.DEBOUNCE_MS);
+    }
+
+    async exportData() {
+        const data = await this.db.getAllDataForExport();
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = `GridMemoPro_${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(url);
+    }
+}
+
+// 起動 & Service Worker登録
+window.addEventListener('DOMContentLoaded', () => {
+    const app = new GridMemoApp();
+    app.bootstrap();
+});
+
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('SW registered:', reg))
+            .catch(err => console.error('SW error:', err));
+    });
+}
 </script>
-
 </body>
 </html>
