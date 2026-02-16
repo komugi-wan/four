@@ -5,160 +5,113 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Grid Memo</title>
 <style>
-/* =========================
-   Base Design (Dusty Pink)
-========================= */
 :root{
-  --pink:#c48a9a;
-  --pink-light:#e8c7cf;
-  --pink-bg:#f6eef1;
-  --border:#e2d6da;
-  --text:#4a3f44;
+  --pink:#d8a7b1;
+  --pink-light:#f3e6ea;
+  --border:#e5d6da;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 body{
   margin:0;
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
-  background:var(--pink-bg);
-  color:var(--text);
-  overflow:hidden;
+  font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif;
+  background:#faf7f8;
+  color:#333;
   touch-action:manipulation;
 }
-
-/* =========================
-   Header
-========================= */
 header{
-  height:56px;
-  background:var(--pink);
-  color:white;
-  display:flex;
-  align-items:center;
-  padding:0 10px;
-  justify-content:space-between;
-}
-header input{
-  background:transparent;
-  border:none;
-  color:white;
-  font-size:16px;
-  font-weight:600;
-  width:120px;
-}
-header button{
-  background:var(--pink-light);
-  border:none;
-  padding:6px 10px;
-  border-radius:8px;
-  font-size:14px;
-  color:var(--text);
-}
-
-/* =========================
-   Layout
-========================= */
-#app{
-  position:absolute;
-  top:56px;
-  bottom:0;
-  left:0;
-  right:0;
-  display:flex;
-  flex-direction:column;
-}
-
-/* Fixed headers */
-#columnHeaders{
-  display:flex;
-  background:white;
-  border-bottom:1px solid var(--border);
-}
-#rowHeaders{
-  background:white;
-  border-right:1px solid var(--border);
-}
-.corner{
-  width:80px;
-  border-right:1px solid var(--border);
-}
-.colHeader,.rowHeader{
-  width:160px;
-  min-width:160px;
-  font-size:14px;
-  text-align:center;
-  padding:6px 4px;
-  border-right:1px solid var(--border);
-  border-bottom:1px solid var(--border);
-  background:white;
-}
-
-/* Scroll area */
-#scrollWrapper{
-  flex:1;
-  display:flex;
-  overflow:hidden;
-}
-#gridScroll{
-  flex:1;
-  overflow:auto;
-  -webkit-overflow-scrolling:touch;
-}
-#gridContainer{
-  transform-origin:0 0;
-}
-
-/* Grid */
-.row{
-  display:flex;
-}
-.cell{
-  width:160px; /* approx 15 chars */
-  min-height:40px;
-  max-height:160px; /* approx 100 chars */
-  padding:6px;
-  font-size:16pt;
-  border-right:1px solid var(--border);
-  border-bottom:1px solid var(--border);
-  overflow:hidden;
-  word-break:break-word;
-}
-
-/* =========================
-   Long Text Editor
-========================= */
-#editorOverlay{
   position:fixed;
-  left:0;
-  right:0;
-  bottom:-100%;
-  height:100%;
-  background:white;
-  display:flex;
-  flex-direction:column;
-  transition:bottom .3s ease;
-}
-#editorOverlay.active{
-  bottom:0;
-}
-#editorHeader{
+  top:0;left:0;right:0;
   height:56px;
   background:var(--pink);
   display:flex;
   align-items:center;
   justify-content:space-between;
   padding:0 12px;
-  color:white;
+  color:#fff;
+  z-index:1000;
 }
+header input{
+  border:none;
+  background:rgba(255,255,255,0.2);
+  color:#fff;
+  padding:6px 8px;
+  border-radius:6px;
+  width:120px;
+}
+header button{
+  border:none;
+  background:#fff;
+  color:var(--pink);
+  padding:6px 10px;
+  border-radius:6px;
+  font-size:14px;
+}
+#container{
+  position:absolute;
+  top:56px;bottom:0;left:0;right:0;
+  overflow:auto;
+  -webkit-overflow-scrolling:touch;
+}
+table{
+  border-collapse:collapse;
+  background:#fff;
+}
+th,td{
+  border:1px solid var(--border);
+  font-size:16pt;
+  min-width:15ch;
+  max-width:15ch;
+  padding:4px;
+  vertical-align:top;
+}
+td{
+  max-height:calc(1.6em * 100);
+  overflow:hidden;
+  word-break:break-word;
+}
+th{
+  background:var(--pink-light);
+  position:sticky;
+  z-index:2;
+}
+thead th{
+  top:0;
+  z-index:3;
+}
+tbody th{
+  left:0;
+  z-index:3;
+}
+thead th:first-child{
+  left:0;
+  z-index:4;
+}
+#gridWrapper{
+  transform-origin:0 0;
+}
+#editorOverlay{
+  position:fixed;
+  left:0;right:0;bottom:-100%;
+  height:100%;
+  background:#fff;
+  display:flex;
+  flex-direction:column;
+  transition:bottom 0.3s ease;
+  z-index:2000;
+}
+#editorOverlay.active{bottom:0;}
 #editorOverlay textarea{
   flex:1;
   border:none;
   padding:16px;
   font-size:16pt;
   outline:none;
-  resize:none;
 }
-#charCount{
-  font-size:14px;
+#editorOverlay .footer{
+  padding:12px;
+  border-top:1px solid #ddd;
+  display:flex;
+  justify-content:space-between;
 }
 </style>
 </head>
@@ -166,223 +119,205 @@ header button{
 
 <header>
   <div>
-    <input id="sheetName" value="Sheet 1">
-  </div>
-  <div>
     <button id="addSheet">＋</button>
     <button id="deleteSheet">－</button>
   </div>
+  <input id="sheetName" placeholder="シート名">
 </header>
 
-<div id="app">
-  <div id="columnHeaders">
-    <div class="corner"></div>
-  </div>
-  <div id="scrollWrapper">
-    <div id="rowHeaders"></div>
-    <div id="gridScroll">
-      <div id="gridContainer"></div>
-    </div>
-  </div>
+<div id="container">
+  <div id="gridWrapper"></div>
 </div>
 
-<!-- Long Text Editor -->
 <div id="editorOverlay">
-  <div id="editorHeader">
-    <div>メモ</div>
-    <div id="charCount">0</div>
-    <button id="closeEditor">保存</button>
+  <textarea id="fullEditor"></textarea>
+  <div class="footer">
+    <span id="charCount">0文字</span>
+    <button id="closeEditor">閉じる</button>
   </div>
-  <textarea id="editorTextarea"></textarea>
 </div>
 
 <script>
-/* =========================
-   Constants
-========================= */
-const ROWS=50;
-const COLS=12;
-let currentSheetId=null;
-let scale=1;
+/* ===============================
+   IndexedDB 設定
+================================ */
+const DB_NAME="GridMemoDB";
+const STORE="sheets";
 let db;
 
-/* =========================
-   IndexedDB Setup
-========================= */
-const request=indexedDB.open("GridMemoDB",1);
-request.onupgradeneeded=e=>{
-  db=e.target.result;
-  db.createObjectStore("sheets",{keyPath:"id",autoIncrement:true});
-};
-request.onsuccess=e=>{
-  db=e.target.result;
-  init();
-};
-
-/* =========================
-   Initialize
-========================= */
-function init(){
-  loadSheets();
-  createHeaders();
-  setupPinch();
+function initDB(){
+  return new Promise((resolve,reject)=>{
+    const req=indexedDB.open(DB_NAME,1);
+    req.onupgradeneeded=e=>{
+      db=e.target.result;
+      db.createObjectStore(STORE,{keyPath:"id",autoIncrement:true});
+    };
+    req.onsuccess=e=>{db=e.target.result;resolve();};
+    req.onerror=reject;
+  });
+}
+function saveSheet(sheet){
+  const tx=db.transaction(STORE,"readwrite");
+  tx.objectStore(STORE).put(sheet);
+}
+function deleteSheetDB(id){
+  const tx=db.transaction(STORE,"readwrite");
+  tx.objectStore(STORE).delete(id);
+}
+function getAllSheets(){
+  return new Promise(resolve=>{
+    const tx=db.transaction(STORE,"readonly");
+    const req=tx.objectStore(STORE).getAll();
+    req.onsuccess=()=>resolve(req.result);
+  });
 }
 
-/* =========================
-   Sheet Management
-========================= */
-function loadSheets(){
-  const tx=db.transaction("sheets","readonly");
-  const store=tx.objectStore("sheets");
-  const req=store.getAll();
-  req.onsuccess=()=>{
-    if(req.result.length===0){
-      createSheet("Sheet 1");
-    }else{
-      loadSheet(req.result[0]);
-    }
+/* ===============================
+   シート管理
+================================ */
+let sheets=[];
+let currentSheet=null;
+
+async function loadSheets(){
+  sheets=await getAllSheets();
+  if(sheets.length===0){
+    const empty=createEmptySheet("Sheet1");
+    saveSheet(empty);
+    sheets=[empty];
+  }
+  selectSheet(sheets[0].id);
+}
+function createEmptySheet(name){
+  return {
+    id:Date.now(),
+    name,
+    cells:Array.from({length:50},()=>Array(12).fill(""))
   };
 }
-
-function createSheet(name){
-  const tx=db.transaction("sheets","readwrite");
-  tx.objectStore("sheets").add({name,cells:{}});
-  tx.oncomplete=loadSheets;
+function selectSheet(id){
+  currentSheet=sheets.find(s=>s.id===id);
+  render();
+  document.getElementById("sheetName").value=currentSheet.name;
 }
-
-function loadSheet(sheet){
-  currentSheetId=sheet.id;
-  document.getElementById("sheetName").value=sheet.name;
-  renderGrid(sheet.cells);
-}
-
-function deleteCurrentSheet(){
-  if(!currentSheetId) return;
-  const tx=db.transaction("sheets","readwrite");
-  tx.objectStore("sheets").delete(currentSheetId);
-  tx.oncomplete=loadSheets;
-}
-
 document.getElementById("addSheet").onclick=()=>{
-  createSheet("New Sheet");
+  const newSheet=createEmptySheet("NewSheet");
+  sheets.push(newSheet);
+  saveSheet(newSheet);
+  selectSheet(newSheet.id);
 };
-document.getElementById("deleteSheet").onclick=deleteCurrentSheet;
-
-document.getElementById("sheetName").onchange=e=>{
-  const tx=db.transaction("sheets","readwrite");
-  const store=tx.objectStore("sheets");
-  const req=store.get(currentSheetId);
-  req.onsuccess=()=>{
-    const data=req.result;
-    data.name=e.target.value;
-    store.put(data);
-  };
+document.getElementById("deleteSheet").onclick=()=>{
+  if(!currentSheet) return;
+  deleteSheetDB(currentSheet.id);
+  sheets=sheets.filter(s=>s.id!==currentSheet.id);
+  if(sheets.length===0){
+    const s=createEmptySheet("Sheet1");
+    sheets=[s];
+    saveSheet(s);
+  }
+  selectSheet(sheets[0].id);
+};
+document.getElementById("sheetName").oninput=e=>{
+  currentSheet.name=e.target.value;
+  saveSheet(currentSheet);
 };
 
-/* =========================
-   Grid Rendering
-========================= */
-function createHeaders(){
-  const colH=document.getElementById("columnHeaders");
-  for(let c=0;c<COLS;c++){
-    const div=document.createElement("div");
-    div.className="colHeader";
-    div.textContent=String.fromCharCode(65+c);
-    colH.appendChild(div);
+/* ===============================
+   グリッド描画
+================================ */
+function render(){
+  const wrapper=document.getElementById("gridWrapper");
+  wrapper.innerHTML="";
+  const table=document.createElement("table");
+  const thead=document.createElement("thead");
+  const tr=document.createElement("tr");
+  const corner=document.createElement("th");
+  tr.appendChild(corner);
+  for(let c=0;c<12;c++){
+    const th=document.createElement("th");
+    th.textContent=String.fromCharCode(65+c);
+    tr.appendChild(th);
   }
-  const rowH=document.getElementById("rowHeaders");
-  for(let r=0;r<ROWS;r++){
-    const div=document.createElement("div");
-    div.className="rowHeader";
-    div.textContent=r+1;
-    rowH.appendChild(div);
-  }
-}
+  thead.appendChild(tr);
+  table.appendChild(thead);
 
-function renderGrid(cells){
-  const container=document.getElementById("gridContainer");
-  container.innerHTML="";
-  for(let r=0;r<ROWS;r++){
-    const row=document.createElement("div");
-    row.className="row";
-    for(let c=0;c<COLS;c++){
-      const key=r+"-"+c;
-      const cell=document.createElement("div");
-      cell.className="cell";
-      cell.textContent=cells[key]||"";
-      cell.onclick=()=>openEditor(r,c,cell.textContent);
-      row.appendChild(cell);
+  const tbody=document.createElement("tbody");
+  for(let r=0;r<50;r++){
+    const tr=document.createElement("tr");
+    const th=document.createElement("th");
+    th.textContent=r+1;
+    tr.appendChild(th);
+    for(let c=0;c<12;c++){
+      const td=document.createElement("td");
+      td.textContent=currentSheet.cells[r][c];
+      td.onclick=()=>openEditor(r,c);
+      tr.appendChild(td);
     }
-    container.appendChild(row);
+    tbody.appendChild(tr);
   }
+  table.appendChild(tbody);
+  wrapper.appendChild(table);
 }
 
-/* =========================
-   Cell Editing
-========================= */
-let editTarget=null;
-function openEditor(r,c,value){
-  editTarget={r,c};
+/* ===============================
+   長文エディタ
+================================ */
+let editPos=null;
+function openEditor(r,c){
+  editPos={r,c};
   const overlay=document.getElementById("editorOverlay");
-  const textarea=document.getElementById("editorTextarea");
-  textarea.value=value||"";
-  document.getElementById("charCount").textContent=textarea.value.length;
+  const textarea=document.getElementById("fullEditor");
+  textarea.value=currentSheet.cells[r][c];
+  document.getElementById("charCount").textContent=textarea.value.length+"文字";
   overlay.classList.add("active");
-  textarea.focus();
+  setTimeout(()=>textarea.focus(),100);
 }
-
-document.getElementById("editorTextarea").oninput=e=>{
-  document.getElementById("charCount").textContent=e.target.value.length;
+document.getElementById("fullEditor").oninput=e=>{
+  document.getElementById("charCount").textContent=e.target.value.length+"文字";
 };
-
 document.getElementById("closeEditor").onclick=()=>{
-  const value=document.getElementById("editorTextarea").value;
-  saveCell(editTarget.r,editTarget.c,value);
-  document.getElementById("editorOverlay").classList.remove("active");
+  const overlay=document.getElementById("editorOverlay");
+  const textarea=document.getElementById("fullEditor");
+  if(editPos){
+    currentSheet.cells[editPos.r][editPos.c]=textarea.value;
+    saveSheet(currentSheet);
+    render();
+  }
+  overlay.classList.remove("active");
 };
 
-function saveCell(r,c,value){
-  const tx=db.transaction("sheets","readwrite");
-  const store=tx.objectStore("sheets");
-  const req=store.get(currentSheetId);
-  req.onsuccess=()=>{
-    const data=req.result;
-    data.cells[r+"-"+c]=value;
-    store.put(data);
-    loadSheet(data);
-  };
+/* ===============================
+   ピンチズーム
+================================ */
+let scale=1;
+let startDist=0;
+let startScale=1;
+const wrapper=document.getElementById("gridWrapper");
+
+function getDistance(t1,t2){
+  return Math.hypot(t2.clientX-t1.clientX,t2.clientY-t1.clientY);
 }
+wrapper.addEventListener("touchstart",e=>{
+  if(e.touches.length===2){
+    startDist=getDistance(e.touches[0],e.touches[1]);
+    startScale=scale;
+  }
+},{passive:false});
 
-/* =========================
-   Pinch Zoom (Grid Only)
-========================= */
-function setupPinch(){
-  const grid=document.getElementById("gridContainer");
-  let startDist=0;
-  let startScale=1;
+wrapper.addEventListener("touchmove",e=>{
+  if(e.touches.length===2){
+    e.preventDefault();
+    const dist=getDistance(e.touches[0],e.touches[1]);
+    scale=startScale*(dist/startDist);
+    scale=Math.min(Math.max(scale,0.4),3);
+    wrapper.style.transform=`scale(${scale})`;
+  }
+},{passive:false});
 
-  grid.addEventListener("touchstart",e=>{
-    if(e.touches.length===2){
-      startDist=getDist(e);
-      startScale=scale;
-    }
-  },{passive:false});
-
-  grid.addEventListener("touchmove",e=>{
-    if(e.touches.length===2){
-      e.preventDefault();
-      const newDist=getDist(e);
-      scale=Math.min(2,Math.max(0.3,startScale*(newDist/startDist)));
-      grid.style.transform="scale("+scale+")";
-    }
-  },{passive:false});
-}
-
-function getDist(e){
-  const dx=e.touches[0].clientX-e.touches[1].clientX;
-  const dy=e.touches[0].clientY-e.touches[1].clientY;
-  return Math.sqrt(dx*dx+dy*dy);
-}
+/* ===============================
+   初期化
+================================ */
+initDB().then(loadSheets);
 </script>
+
 </body>
 </html>
