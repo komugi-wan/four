@@ -1,815 +1,561 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Grid Memo</title>
-<style>
-/* * ==========================================
- * Theme & Reset
- * ==========================================
- */
-:root {
-    --theme-base: #fdf5f7;       /* 背景：極薄いピンク */
-    --theme-surface: #ffffff;    /* セル背景：白 */
-    --theme-primary: #bfafb5;    /* 枠線・アクセント：くすみピンク（濃） */
-    --theme-secondary: #eadde2;  /* ヘッダー背景：くすみピンク（薄） */
-    --theme-text: #5d4c51;       /* 文字色：温かみのあるダークグレー */
-    --theme-highlight: #d68c9e;  /* 強調・ボタン：上品なピンク */
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Luxe Notes</title>
+    <meta name="theme-color" content="#f4dcd6">
+    <link rel="manifest" href="manifest.json">
     
-    --header-height: 50px;
-    --cell-base-width: 160px;    /* 15文字程度が収まる幅 */
-    --font-size: 16px;
-    
-    --shadow-soft: 0 2px 8px rgba(93, 76, 81, 0.08);
-    --ease-out: cubic-bezier(0.25, 0.8, 0.25, 1);
-}
+    <style>
+        :root {
+            --primary-pink: #f4dcd6;
+            --dark-pink: #d8a7a1;
+            --gold: #d4af37;
+            --bg-color: #fdfaf9;
+            --text-main: #4a4a4a;
+            --text-sub: #8c8c8c;
+            --white: #ffffff;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            --danger: #e57373;
+        }
 
-* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html, body {
-    margin: 0; padding: 0; width: 100%; height: 100%;
-    background-color: var(--theme-base);
-    color: var(--theme-text);
-    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Yu Gothic", sans-serif;
-    overflow: hidden; /* アプリ全体はスクロールさせない */
-    overscroll-behavior: none;
-}
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
 
-/* * ==========================================
- * App Structure
- * ==========================================
- */
-#app {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    width: 100%;
-}
+        body {
+            margin: 0;
+            font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
 
-/* Header Area */
-header {
-    height: var(--header-height);
-    background-color: var(--theme-surface);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 16px;
-    box-shadow: 0 1px 0 var(--theme-primary);
-    z-index: 100;
-    flex-shrink: 0;
-}
+        /* Header */
+        header {
+            background-color: var(--white);
+            padding: 1rem;
+            text-align: center;
+            border-bottom: 1px solid var(--primary-pink);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
 
-h1 {
-    font-size: 18px;
-    font-weight: 600;
-    margin: 0;
-    color: var(--theme-text);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-.sheet-select {
-    background: transparent;
-    border: none;
-    font-size: 16px;
-    font-weight: bold;
-    color: var(--theme-text);
-    outline: none;
-    max-width: 150px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
+        header h1 {
+            margin: 0;
+            font-size: 1.2rem;
+            letter-spacing: 0.1rem;
+            color: var(--dark-pink);
+            font-weight: 600;
+        }
 
-.controls {
-    display: flex;
-    gap: 16px;
-}
+        /* Folder Navigation */
+        .folder-nav {
+            background: var(--white);
+            padding: 0.8rem;
+            display: flex;
+            gap: 0.5rem;
+            overflow-x: auto;
+            border-bottom: 1px solid #eee;
+            align-items: center;
+        }
 
-.icon-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 8px;
-    color: var(--theme-highlight);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.icon-btn svg { width: 24px; height: 24px; fill: currentColor; }
+        .folder-tab {
+            padding: 4px 12px;
+            background: #f0f0f0;
+            border-radius: 15px;
+            font-size: 0.85rem;
+            white-space: nowrap;
+            cursor: pointer;
+            color: var(--text-sub);
+        }
 
-/* * ==========================================
- * Grid Container & Zoom Logic
- * ==========================================
- */
-#viewport {
-    flex: 1;
-    overflow: auto; /* ここがスクロールする */
-    position: relative;
-    background-color: var(--theme-base);
-    overscroll-behavior: none;
-}
+        .folder-tab.active {
+            background: var(--dark-pink);
+            color: white;
+        }
 
-/* Sizer: 
-   transformで見た目が大きくなっても、DOMフロー上のサイズは変わらないため、
-   JSで計算した「拡大後のピクセルサイズ」をこのdivに適用して
-   強制的にスクロールバーを発生させる。
-*/
-#grid-sizer {
-    width: 1px; 
-    height: 1px;
-    transform-origin: 0 0;
-}
+        .btn-folder-action {
+            background: none;
+            border: 1px dashed var(--dark-pink);
+            color: var(--dark-pink);
+            border-radius: 15px;
+            padding: 3px 10px;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
 
-/* Scaler:
-   実際に transform: scale() が適用される要素。
-   grid-sizer の中に配置。
-*/
-#grid-scaler {
-    transform-origin: 0 0;
-    will-change: transform;
-}
+        /* ListView */
+        #list-view {
+            display: block;
+            padding-bottom: 80px;
+        }
 
-/* Grid Layout:
-   Scalerの中に配置。実際のサイズ（scale=1の状態）を持つ。
-*/
-#grid-table {
-    display: grid;
-    /* 1列目は行番号用、残りはデータ用 */
-    grid-template-columns: 40px repeat(12, var(--cell-base-width));
-    /* 行数はJSで生成時に repeat(50, auto) のように扱う */
-    background-color: var(--theme-primary); /* グリッド線代わり */
-    gap: 1px;
-    border-bottom: 1px solid var(--theme-primary);
-    border-right: 1px solid var(--theme-primary);
-}
+        .memo-item {
+            background: var(--white);
+            margin-bottom: 1px;
+            padding: 1.2rem;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            cursor: pointer;
+            transition: background 0.2s;
+            border-bottom: 1px solid #f0f0f0;
+        }
 
-/* Headers & Sticky */
-.cell {
-    background-color: var(--theme-surface);
-    padding: 8px;
-    font-size: var(--font-size);
-    line-height: 1.5;
-    min-height: 2.5em; /* 最低の高さ */
-    max-height: calc(1.5em * 6); /* 文字量に応じて可変だが、最大100文字程度で見切れるように制限(約6行) */
-    overflow: hidden;
-    outline: none;
-    position: relative;
-    word-break: break-all;
-    white-space: pre-wrap;
-}
+        .memo-item:active {
+            background-color: var(--primary-pink);
+        }
 
-/* Sticky Configuration */
-/* 行ヘッダー（左端） */
-.cell.row-header {
-    background-color: var(--theme-secondary);
-    color: var(--theme-text);
-    font-size: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    position: sticky;
-    left: 0;
-    z-index: 10;
-    user-select: none;
-}
+        .memo-item .title-text {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
 
-/* 列ヘッダー（上端） */
-.cell.col-header {
-    background-color: var(--theme-secondary);
-    color: var(--theme-text);
-    font-weight: bold;
-    text-align: center;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    user-select: none;
-    height: 40px; /* ヘッダー高さ固定 */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
+        .memo-item .preview-text {
+            font-size: 0.9rem;
+            color: var(--text-sub);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
 
-/* 左上角（固定） */
-.cell.corner-header {
-    position: sticky;
-    top: 0;
-    left: 0;
-    z-index: 20; /* 最前面 */
-    background-color: var(--theme-secondary);
-}
+        .memo-item .meta-info {
+            font-size: 0.75rem;
+            color: var(--text-sub);
+            margin-top: 0.4rem;
+        }
 
-/* 通常セル編集時のスタイル */
-.cell:focus {
-    background-color: #fff0f5;
-    box-shadow: inset 0 0 0 2px var(--theme-highlight);
-}
+        /* EditorView */
+        #editor-view {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-color);
+            z-index: 200;
+            flex-direction: column;
+        }
 
-/* 長文編集ボタン (フォーカス時にJSで制御、または常に薄く表示) */
-.expand-btn {
-    position: absolute;
-    bottom: 2px;
-    right: 2px;
-    width: 20px;
-    height: 20px;
-    background: var(--theme-highlight);
-    border-radius: 50%;
-    color: white;
-    font-size: 12px;
-    border: none;
-    display: none; /* フォーカス時に表示 */
-    align-items: center;
-    justify-content: center;
-    z-index: 5;
-    opacity: 0.8;
-}
-.cell:focus .expand-btn {
-    display: flex;
-}
+        .editor-header {
+            padding: 0.8rem 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--white);
+            border-bottom: 1px solid var(--primary-pink);
+        }
 
-/* * ==========================================
- * Full Screen Editor (Slide Up)
- * ==========================================
- */
-#editor-overlay {
-    position: fixed;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: #fff;
-    z-index: 2000;
-    transform: translateY(100%);
-    transition: transform 0.3s var(--ease-out);
-    display: flex;
-    flex-direction: column;
-}
-#editor-overlay.active {
-    transform: translateY(0);
-}
+        .btn-back {
+            background: none;
+            border: none;
+            color: var(--dark-pink);
+            font-size: 1rem;
+            cursor: pointer;
+            padding: 0.5rem;
+        }
 
-.editor-header {
-    height: 56px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 16px;
-    border-bottom: 1px solid var(--theme-secondary);
-    background: var(--theme-base);
-}
-.editor-title {
-    font-weight: bold;
-    color: var(--theme-text);
-}
-.save-btn {
-    color: var(--theme-highlight);
-    font-weight: bold;
-    border: none;
-    background: none;
-    font-size: 16px;
-    padding: 8px;
-}
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
 
-.editor-body {
-    flex: 1;
-    padding: 20px;
-    overflow-y: auto;
-}
-#full-text-area {
-    width: 100%;
-    height: 100%;
-    border: none;
-    resize: none;
-    font-size: 18px;
-    line-height: 1.6;
-    outline: none;
-    color: #333;
-    font-family: inherit;
-}
-.char-count {
-    padding: 10px 16px;
-    text-align: right;
-    font-size: 12px;
-    color: #999;
-    background: #fff;
-}
+        #folder-select {
+            border: 1px solid var(--primary-pink);
+            color: var(--text-main);
+            border-radius: 5px;
+            font-size: 0.8rem;
+            padding: 2px;
+        }
 
-/* * ==========================================
- * Sheet Manager Modal
- * ==========================================
- */
-.modal-overlay {
-    position: fixed;
-    top:0; left:0; width:100%; height:100%;
-    background: rgba(0,0,0,0.4);
-    z-index: 3000;
-    display: none;
-    align-items: center;
-    justify-content: center;
-}
-.modal-overlay.open { display: flex; }
-.modal-card {
-    background: #fff;
-    width: 80%;
-    max-width: 320px;
-    border-radius: 12px;
-    padding: 20px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-}
-.modal-card h3 { margin-top: 0; color: var(--theme-text); }
-.sheet-list {
-    list-style: none;
-    padding: 0;
-    max-height: 200px;
-    overflow-y: auto;
-    margin: 15px 0;
-    border: 1px solid #eee;
-}
-.sheet-item {
-    padding: 10px;
-    border-bottom: 1px solid #eee;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-.sheet-item.active { background: #fff0f5; font-weight: bold; }
-.modal-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-}
-.btn {
-    padding: 8px 16px;
-    border-radius: 6px;
-    border: none;
-    font-size: 14px;
-}
-.btn-primary { background: var(--theme-highlight); color: #fff; }
-.btn-text { background: transparent; color: #888; }
+        .char-count {
+            font-size: 0.8rem;
+            color: var(--text-sub);
+            border: 1px solid var(--primary-pink);
+            padding: 2px 8px;
+            border-radius: 12px;
+        }
 
-</style>
+        #memo-title-input {
+            width: 100%;
+            border: none;
+            padding: 1.2rem 1.5rem 0.5rem;
+            font-size: 1.2rem;
+            font-weight: 600;
+            background: transparent;
+            outline: none;
+            color: var(--text-main);
+            font-family: inherit;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        textarea {
+            flex: 1;
+            width: 100%;
+            border: none;
+            padding: 1rem 1.5rem;
+            font-size: 1rem;
+            background: transparent;
+            outline: none;
+            resize: none;
+            color: var(--text-main);
+            font-family: inherit;
+        }
+
+        /* Floating Action Button */
+        .fab {
+            position: fixed;
+            bottom: 2rem;
+            right: 1.5rem;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--dark-pink), var(--gold));
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4);
+            border: none;
+            cursor: pointer;
+        }
+
+        /* Folder Modal Styling */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.3);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 300;
+            backdrop-filter: blur(2px);
+        }
+
+        .modal-content {
+            background: var(--white);
+            width: 85%;
+            max-width: 320px;
+            padding: 1.5rem;
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            text-align: center;
+        }
+
+        .modal-content h3 {
+            margin-top: 0;
+            color: var(--dark-pink);
+            font-size: 1.1rem;
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 10px;
+            margin: 1rem 0;
+            border: 1px solid var(--primary-pink);
+            border-radius: 8px;
+            outline: none;
+            font-size: 1rem;
+        }
+
+        .modal-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .btn-modal {
+            padding: 10px;
+            border-radius: 10px;
+            border: none;
+            font-size: 0.9rem;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background: var(--dark-pink);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: var(--text-sub);
+        }
+
+        .btn-danger {
+            background: transparent;
+            color: var(--danger);
+            font-size: 0.8rem;
+            margin-top: 5px;
+        }
+
+        /* Utilities */
+        .hidden { display: none !important; }
+    </style>
 </head>
 <body>
 
-<div id="app">
-    <header>
-        <h1>
-            <span id="current-sheet-name" class="sheet-select" onclick="SheetManager.open()">Sheet 1</span>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="#999"><path d="M7 10l5 5 5-5z"/></svg>
-        </h1>
-        <div class="controls">
-            <button class="icon-btn" onclick="SheetManager.open()" aria-label="Sheets">
-                <svg viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg>
-            </button>
-        </div>
-    </header>
+    <div id="list-screen">
+        <header>
+            <h1>Luxe Notes</h1>
+        </header>
+        
+        <div class="folder-nav" id="folder-nav"></div>
 
-    <div id="viewport">
-        <div id="grid-sizer">
-            <div id="grid-scaler">
-                <div id="grid-table">
-                    </div>
+        <div id="list-view"></div>
+        <button class="fab" onclick="createNewMemo()">＋</button>
+    </div>
+
+    <div id="editor-view">
+        <div class="editor-header">
+            <button class="btn-back" onclick="closeEditor()">＜ 戻る</button>
+            <div class="header-right">
+                <select id="folder-select"></select>
+                <div class="char-count"><span id="count-num">0</span> 文字</div>
+            </div>
+        </div>
+        <input type="text" id="memo-title-input" placeholder="タイトル（任意）">
+        <textarea id="memo-textarea" placeholder="ここにメモを入力..."></textarea>
+    </div>
+
+    <div id="folder-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 id="modal-title">フォルダの編集</h3>
+            <input type="text" id="modal-folder-input" class="modal-input" placeholder="フォルダ名を入力">
+            <div class="modal-actions">
+                <button class="btn-modal btn-primary" onclick="saveFolderAction()">保存</button>
+                <button class="btn-modal btn-secondary" onclick="closeModal()">キャンセル</button>
+                <button id="btn-delete-folder" class="btn-modal btn-danger" onclick="deleteFolderAction()">このフォルダを削除</button>
             </div>
         </div>
     </div>
-</div>
 
-<div id="editor-overlay">
-    <div class="editor-header">
-        <span class="editor-title" id="editor-title-ref">A1</span>
-        <button class="save-btn" onclick="Editor.close()">完了</button>
-    </div>
-    <div class="editor-body">
-        <textarea id="full-text-area" placeholder="ここに入力..."></textarea>
-    </div>
-    <div class="char-count" id="char-count">0文字</div>
-</div>
-
-<div id="sheet-modal" class="modal-overlay">
-    <div class="modal-card">
-        <h3>シート管理</h3>
-        <ul id="sheet-list-ui" class="sheet-list"></ul>
-        <div class="modal-actions">
-            <button class="btn btn-text" onclick="SheetManager.addSheet()">＋ 新規作成</button>
-            <button class="btn btn-primary" onclick="SheetManager.close()">閉じる</button>
-        </div>
-    </div>
-</div>
-
-<script>
-/* * ==========================================
- * Core Logic (Vanilla JS)
- * ==========================================
- */
-
-const CONFIG = {
-    rows: 50,
-    cols: 12,
-    colLabels: "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
-    baseWidth: 160, // px per col
-    headerWidth: 40, // px
-    rowHeight: 24,   // base px
-    dbName: 'GridMemoDB',
-    dbVersion: 1
-};
-
-// State
-let state = {
-    currentSheetId: null,
-    scale: 1.0,
-    sheets: [], // metadata only
-    data: {} // current sheet cells: { "r_c": "text" }
-};
-
-/* * ==========================================
- * IndexedDB Wrapper
- * ==========================================
- */
-const DB = {
-    db: null,
-    async init() {
-        return new Promise((resolve, reject) => {
-            const req = indexedDB.open(CONFIG.dbName, CONFIG.dbVersion);
-            req.onupgradeneeded = (e) => {
-                const db = e.target.result;
-                if (!db.objectStoreNames.contains('sheets')) {
-                    db.createObjectStore('sheets', { keyPath: 'id' });
-                }
-            };
-            req.onsuccess = (e) => {
-                this.db = e.target.result;
-                resolve();
-            };
-            req.onerror = (e) => reject(e);
-        });
-    },
-    async getAllSheets() {
-        return new Promise(resolve => {
-            const tx = this.db.transaction('sheets', 'readonly');
-            const store = tx.objectStore('sheets');
-            const req = store.getAll();
-            req.onsuccess = () => resolve(req.result);
-        });
-    },
-    async saveSheet(sheet) {
-        return new Promise(resolve => {
-            const tx = this.db.transaction('sheets', 'readwrite');
-            const store = tx.objectStore('sheets');
-            store.put(sheet);
-            tx.oncomplete = () => resolve();
-        });
-    },
-    async deleteSheet(id) {
-        return new Promise(resolve => {
-            const tx = this.db.transaction('sheets', 'readwrite');
-            const store = tx.objectStore('sheets');
-            store.delete(id);
-            tx.oncomplete = () => resolve();
-        });
-    }
-};
-
-/* * ==========================================
- * UI Renderer
- * ==========================================
- */
-const UI = {
-    gridTable: document.getElementById('grid-table'),
-    gridSizer: document.getElementById('grid-sizer'),
-    gridScaler: document.getElementById('grid-scaler'),
-    viewport: document.getElementById('viewport'),
-    sheetName: document.getElementById('current-sheet-name'),
-
-    init() {
-        this.renderGridStructure();
-        this.initZoom();
-    },
-
-    renderGridStructure() {
-        this.gridTable.innerHTML = '';
+    <script>
+        // Data Structure
+        let memos = JSON.parse(localStorage.getItem('luxe_memos')) || [
+            { id: 1, title: '', content: '新しいアイディアをここに...', date: new Date().toLocaleDateString(), folderId: 'default' }
+        ];
         
-        // Corner (0,0)
-        const corner = document.createElement('div');
-        corner.className = 'cell corner-header';
-        this.gridTable.appendChild(corner);
+        let folders = JSON.parse(localStorage.getItem('luxe_folders')) || [
+            { id: 'default', name: '未分類' }
+        ];
 
-        // Column Headers (A-L)
-        for (let c = 0; c < CONFIG.cols; c++) {
-            const cell = document.createElement('div');
-            cell.className = 'cell col-header';
-            cell.textContent = CONFIG.colLabels[c] || c;
-            this.gridTable.appendChild(cell);
-        }
+        let currentEditingId = null;
+        let currentFolderId = 'default';
+        let folderModalTargetId = null;
 
-        // Rows
-        for (let r = 0; r < CONFIG.rows; r++) {
-            // Row Header (1-50)
-            const rowHead = document.createElement('div');
-            rowHead.className = 'cell row-header';
-            rowHead.textContent = r + 1;
-            this.gridTable.appendChild(rowHead);
+        const listView = document.getElementById('list-view');
+        const editorView = document.getElementById('editor-view');
+        const titleInput = document.getElementById('memo-title-input');
+        const textarea = document.getElementById('memo-textarea');
+        const countNum = document.getElementById('count-num');
+        const folderNav = document.getElementById('folder-nav');
+        const folderSelect = document.getElementById('folder-select');
+        
+        const folderModal = document.getElementById('folder-modal');
+        const folderInput = document.getElementById('modal-folder-input');
+        const modalTitle = document.getElementById('modal-title');
+        const btnDelete = document.getElementById('btn-delete-folder');
 
-            // Cells
-            for (let c = 0; c < CONFIG.cols; c++) {
-                const cell = document.createElement('div');
-                cell.className = 'cell data-cell';
-                cell.dataset.r = r;
-                cell.dataset.c = c;
-                cell.contentEditable = true;
-                cell.spellcheck = false;
+        // Render Folder Navigation
+        function renderFolders() {
+            folderNav.innerHTML = '';
+            folders.forEach(folder => {
+                const tab = document.createElement('div');
+                tab.className = `folder-tab ${folder.id === currentFolderId ? 'active' : ''}`;
+                tab.innerText = folder.name;
+                tab.onclick = () => {
+                    currentFolderId = folder.id;
+                    renderFolders();
+                    renderList();
+                };
                 
-                // Expand Button
-                const btn = document.createElement('button');
-                btn.className = 'expand-btn';
-                btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>';
-                btn.contentEditable = false; // Prevent cursor entering button
-                btn.addEventListener('touchstart', (e) => {
-                    e.stopPropagation(); // prevent focus jump
-                    e.preventDefault();
-                    Editor.open(r, c);
-                });
-                btn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    Editor.open(r, c); // Fallback for click
-                });
-
-                cell.appendChild(btn);
-
-                // Events
-                cell.addEventListener('input', (e) => {
-                    App.updateCell(r, c, e.target.firstChild.textContent || e.target.innerText); // Robust text retrieval
-                });
+                tab.ondblclick = () => openFolderModal(folder.id);
                 
-                this.gridTable.appendChild(cell);
+                folderNav.appendChild(tab);
+            });
+
+            const addBtn = document.createElement('button');
+            addBtn.className = 'btn-folder-action';
+            addBtn.innerText = '+ フォルダ追加';
+            addBtn.onclick = () => openFolderModal(null);
+            folderNav.appendChild(addBtn);
+
+            if (currentFolderId !== 'default') {
+                const editBtn = document.createElement('button');
+                editBtn.className = 'btn-folder-action';
+                editBtn.style.marginLeft = '5px';
+                editBtn.innerText = '編集';
+                editBtn.onclick = () => openFolderModal(currentFolderId);
+                folderNav.appendChild(editBtn);
             }
         }
-    },
 
-    loadDataToGrid(data) {
-        // Clear all cells first (keep buttons)
-        const cells = document.querySelectorAll('.data-cell');
-        cells.forEach(cell => {
-             // Keep the button, clear text
-             const btn = cell.querySelector('.expand-btn');
-             cell.innerText = ""; 
-             if(btn) cell.appendChild(btn);
-             
-             const key = `${cell.dataset.r}_${cell.dataset.c}`;
-             if (data[key]) {
-                 // Insert text before button
-                 cell.prepend(document.createTextNode(data[key]));
-             }
-        });
-    },
-
-    /* Zoom Logic */
-    initZoom() {
-        let startDist = 0;
-        let startScale = 1;
-        const minScale = 0.3; // 5 columns visible logic roughly
-        const maxScale = 2.0;
-
-        // Base Grid Size (Unscaled)
-        const baseGridWidth = CONFIG.headerWidth + (CONFIG.cols * CONFIG.baseWidth);
-        const baseGridHeight = CONFIG.headerHeight + (CONFIG.rows * 40); // approx
-
-        // Set initial sizer size
-        const updateSizer = (s) => {
-            // Sizer size = Unscaled Size * Scale Factor
-            // This forces the viewport to show scrollbars appropriate for the zoomed content
-            // The Scaler is inside the Sizer.
-            
-            // Calculate actual rendered size of the grid
-            const rect = this.gridTable.getBoundingClientRect();
-            // Note: getBoundingClientRect is affected by transform.
-            
-            // Robust approach:
-            // Sizer acts as the "Virtual Canvas" size.
-            // Scaler is the layer being transformed.
-            
-            // Grid's natural width
-            const naturalWidth = this.gridTable.offsetWidth;
-            const naturalHeight = this.gridTable.offsetHeight;
-
-            this.gridSizer.style.width = `${naturalWidth * s}px`;
-            this.gridSizer.style.height = `${naturalHeight * s}px`;
-            
-            this.gridScaler.style.transform = `scale(${s})`;
-        };
-
-        this.viewport.addEventListener('touchstart', (e) => {
-            if (e.touches.length === 2) {
-                e.preventDefault(); // Prevent native zoom
-                startDist = Math.hypot(
-                    e.touches[0].pageX - e.touches[1].pageX,
-                    e.touches[0].pageY - e.touches[1].pageY
-                );
-                startScale = state.scale;
+        // Modal Functions
+        function openFolderModal(id) {
+            folderModalTargetId = id;
+            if (id === null) {
+                modalTitle.innerText = "新規フォルダ";
+                folderInput.value = "";
+                btnDelete.style.display = "none";
+            } else {
+                if (id === 'default') return;
+                const folder = folders.find(f => f.id === id);
+                modalTitle.innerText = "フォルダの編集";
+                folderInput.value = folder.name;
+                btnDelete.style.display = "block";
             }
-        }, { passive: false });
+            folderModal.style.display = "flex";
+            folderInput.focus();
+        }
 
-        this.viewport.addEventListener('touchmove', (e) => {
-            if (e.touches.length === 2) {
-                e.preventDefault();
-                const dist = Math.hypot(
-                    e.touches[0].pageX - e.touches[1].pageX,
-                    e.touches[0].pageY - e.touches[1].pageY
-                );
-                if (startDist > 0) {
-                    const diff = dist / startDist;
-                    let newScale = startScale * diff;
-                    newScale = Math.min(Math.max(newScale, minScale), maxScale);
-                    
-                    state.scale = newScale;
-                    updateSizer(newScale);
+        function closeModal() {
+            folderModal.style.display = "none";
+        }
+
+        function saveFolderAction() {
+            const name = folderInput.value.trim();
+            if (!name) return;
+
+            if (folderModalTargetId === null) {
+                const newFolder = { id: 'f_' + Date.now(), name: name };
+                folders.push(newFolder);
+            } else {
+                const folder = folders.find(f => f.id === folderModalTargetId);
+                if (folder) folder.name = name;
+            }
+            
+            saveData();
+            renderFolders();
+            closeModal();
+        }
+
+        function deleteFolderAction() {
+            if (!folderModalTargetId || folderModalTargetId === 'default') return;
+            
+            if (confirm('このフォルダ内のメモは「未分類」に移動されます。削除しますか？')) {
+                memos.forEach(m => { if (m.folderId === folderModalTargetId) m.folderId = 'default'; });
+                folders = folders.filter(f => f.id !== folderModalTargetId);
+                currentFolderId = 'default';
+                saveData();
+                renderFolders();
+                renderList();
+                closeModal();
+            }
+        }
+
+        // Render List
+        function renderList() {
+            listView.innerHTML = '';
+            const filteredMemos = memos.filter(m => m.folderId === currentFolderId);
+            
+            filteredMemos.sort((a, b) => b.id - a.id).forEach(memo => {
+                const item = document.createElement('div');
+                item.className = 'memo-item';
+                item.onclick = () => openEditor(memo.id);
+                
+                const preview = memo.content.split('\n')[0] || '内容なし';
+                
+                let html = '';
+                if (memo.title && memo.title.trim() !== '') {
+                    html += `<div class="title-text">${memo.title}</div>`;
+                    html += `<div class="preview-text">${preview}</div>`;
+                } else {
+                    html += `<div class="title-text" style="font-weight:normal;">${preview}</div>`;
+                }
+                
+                html += `<div class="meta-info">${memo.date} | ${memo.content.length}文字</div>`;
+                item.innerHTML = html;
+                listView.appendChild(item);
+            });
+        }
+
+        // Editor Logic
+        function openEditor(id) {
+            currentEditingId = id;
+            const memo = memos.find(m => m.id === id);
+            
+            folderSelect.innerHTML = folders.map(f => `<option value="${f.id}" ${memo && memo.folderId === f.id ? 'selected' : ''}>${f.name}</option>`).join('');
+            
+            titleInput.value = memo ? (memo.title || '') : '';
+            textarea.value = memo ? memo.content : '';
+            updateCharCount();
+            editorView.style.display = 'flex';
+            textarea.focus();
+        }
+
+        function createNewMemo() {
+            const newId = Date.now();
+            const newMemo = { 
+                id: newId, 
+                title: '',
+                content: '', 
+                date: new Date().toLocaleDateString(), 
+                folderId: currentFolderId 
+            };
+            memos.push(newMemo);
+            openEditor(newId);
+        }
+
+        function closeEditor() {
+            const title = titleInput.value.trim();
+            const content = textarea.value.trim();
+            const selectedFolderId = folderSelect.value;
+            
+            if (title === '' && content === '') {
+                memos = memos.filter(m => m.id !== currentEditingId);
+            } else {
+                const memo = memos.find(m => m.id === currentEditingId);
+                if (memo) {
+                    memo.title = title;
+                    memo.content = content;
+                    memo.date = new Date().toLocaleDateString();
+                    memo.folderId = selectedFolderId;
                 }
             }
-        }, { passive: false });
-
-        // Initial setup
-        // Wait for render
-        setTimeout(() => updateSizer(1.0), 100);
-    }
-};
-
-/* * ==========================================
- * Editor Logic
- * ==========================================
- */
-const Editor = {
-    overlay: document.getElementById('editor-overlay'),
-    textarea: document.getElementById('full-text-area'),
-    title: document.getElementById('editor-title-ref'),
-    count: document.getElementById('char-count'),
-    currentR: null,
-    currentC: null,
-
-    open(r, c) {
-        this.currentR = r;
-        this.currentC = c;
-        const key = `${r}_${c}`;
-        const val = state.data[key] || "";
-        
-        // Column label
-        const label = CONFIG.colLabels[c] + (parseInt(r) + 1);
-        this.title.textContent = label;
-        this.textarea.value = val;
-        this.updateCount();
-        
-        this.overlay.classList.add('active');
-        this.textarea.focus();
-    },
-
-    close() {
-        const val = this.textarea.value;
-        App.updateCell(this.currentR, this.currentC, val);
-        
-        // Update UI grid immediately
-        const cell = document.querySelector(`.data-cell[data-r='${this.currentR}'][data-c='${this.currentC}']`);
-        if(cell) {
-             const btn = cell.querySelector('.expand-btn');
-             cell.innerText = ""; 
-             if(btn) cell.appendChild(btn);
-             cell.prepend(document.createTextNode(val));
+            
+            saveData();
+            renderFolders();
+            renderList();
+            editorView.style.display = 'none';
         }
 
-        this.overlay.classList.remove('active');
-    },
+        function updateCharCount() {
+            countNum.innerText = textarea.value.length;
+        }
 
-    updateCount() {
-        this.count.textContent = `${this.textarea.value.length}文字`;
-    }
-};
+        function saveData() {
+            localStorage.setItem('luxe_memos', JSON.stringify(memos));
+            localStorage.setItem('luxe_folders', JSON.stringify(folders));
+        }
 
-document.getElementById('full-text-area').addEventListener('input', () => Editor.updateCount());
-
-/* * ==========================================
- * Sheet Manager
- * ==========================================
- */
-const SheetManager = {
-    modal: document.getElementById('sheet-modal'),
-    list: document.getElementById('sheet-list-ui'),
-
-    async open() {
-        this.renderList();
-        this.modal.classList.add('open');
-    },
-
-    close() {
-        this.modal.classList.remove('open');
-    },
-
-    async renderList() {
-        this.list.innerHTML = '';
-        state.sheets.forEach(sheet => {
-            const li = document.createElement('li');
-            li.className = `sheet-item ${sheet.id === state.currentSheetId ? 'active' : ''}`;
-            
-            const span = document.createElement('span');
-            span.textContent = sheet.name;
-            span.onclick = () => App.switchSheet(sheet.id);
-            
-            const delBtn = document.createElement('button');
-            delBtn.innerHTML = '✕';
-            delBtn.className = 'btn btn-text';
-            delBtn.style.color = '#999';
-            delBtn.onclick = (e) => {
-                e.stopPropagation();
-                if(confirm('このシートを削除しますか？')) App.deleteSheet(sheet.id);
-            };
-
-            li.appendChild(span);
-            // Don't allow deleting the last sheet
-            if (state.sheets.length > 1) {
-                li.appendChild(delBtn);
-            }
-            this.list.appendChild(li);
+        // Event Listeners
+        textarea.addEventListener('input', updateCharCount);
+        
+        folderModal.addEventListener('click', (e) => {
+            if(e.target === folderModal) closeModal();
         });
-    },
 
-    addSheet() {
-        App.createSheet();
-        this.close();
-    }
-};
-
-/* * ==========================================
- * Main App Controller
- * ==========================================
- */
-const App = {
-    async init() {
-        await DB.init();
-        UI.init();
-        
-        const sheets = await DB.getAllSheets();
-        if (sheets.length === 0) {
-            await this.createSheet("メインシート");
-        } else {
-            state.sheets = sheets;
-            // Load last used or first
-            this.switchSheet(sheets[0].id);
-        }
-    },
-
-    async createSheet(nameBase) {
-        const id = Date.now();
-        const name = nameBase || `Sheet ${state.sheets.length + 1}`;
-        const newSheet = { id, name, cells: {} };
-        
-        await DB.saveSheet(newSheet);
-        state.sheets.push(newSheet);
-        this.switchSheet(id);
-    },
-
-    async switchSheet(id) {
-        const sheet = state.sheets.find(s => s.id === id);
-        if (!sheet) return;
-
-        state.currentSheetId = id;
-        state.data = sheet.cells || {};
-        UI.sheetName.textContent = sheet.name;
-        UI.loadDataToGrid(state.data);
-        SheetManager.close();
-        
-        // Scroll reset
-        document.getElementById('viewport').scrollTop = 0;
-        document.getElementById('viewport').scrollLeft = 0;
-    },
-
-    async deleteSheet(id) {
-        await DB.deleteSheet(id);
-        state.sheets = state.sheets.filter(s => s.id !== id);
-        if (state.sheets.length === 0) await this.createSheet();
-        else this.switchSheet(state.sheets[0].id);
-        SheetManager.renderList();
-    },
-
-    // Debounced save
-    saveTimeout: null,
-    updateCell(r, c, text) {
-        const key = `${r}_${c}`;
-        state.data[key] = text;
-        
-        if (this.saveTimeout) clearTimeout(this.saveTimeout);
-        this.saveTimeout = setTimeout(() => {
-            this.persistCurrentSheet();
-        }, 500);
-    },
-
-    async persistCurrentSheet() {
-        const sheet = state.sheets.find(s => s.id === state.currentSheetId);
-        if (sheet) {
-            sheet.cells = state.data;
-            await DB.saveSheet(sheet);
-        }
-    }
-};
-
-// Start
-window.addEventListener('DOMContentLoaded', () => {
-    App.init();
-});
-
-</script>
+        // Initial Render
+        renderFolders();
+        renderList();
+    </script>
 </body>
 </html>
