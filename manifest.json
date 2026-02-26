@@ -2,7 +2,7 @@
   "name": "Ultimate Chord & Sheet Music Editor",
   "short_name": "ChordEditor",
   "description": "Chord Visualizer and Sheet Music Editor",
-  "start_url": "25.html",
+  "start_url": "index.html",
   "display": "standalone",
   "background_color": "#fdfafb",
   "theme_color": "#f48fb1",
@@ -19,3 +19,4 @@
     }
   ]
 }
+
