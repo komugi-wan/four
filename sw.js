@@ -1,6 +1,6 @@
 const CACHE_NAME = 'chord-editor-v1';
 const ASSETS = [
-  '25.html',
+  'index.html',
   'manifest.json'
 ];
 
@@ -19,3 +19,4 @@ self.addEventListener('fetch', (event) => {
       .then((response) => response || fetch(event.request))
   );
 });
+
