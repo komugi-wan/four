@@ -1,11 +1,11 @@
 {
-  "name": "GridMemo Pro",
-  "short_name": "GridMemo",
-  "start_url": "./index.html",
+  "name": "Ultimate Chord & Sheet Music Editor",
+  "short_name": "ChordEditor",
+  "description": "Chord Visualizer and Sheet Music Editor",
+  "start_url": "25.html",
   "display": "standalone",
-  "background_color": "#fdfaf9",
-  "theme_color": "#d4a3a3",
-  "orientation": "portrait",
+  "background_color": "#fdfafb",
+  "theme_color": "#f48fb1",
   "icons": [
     {
       "src": "icon-192.png",
