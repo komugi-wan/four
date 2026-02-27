@@ -3,25 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#f48fb1">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    
     <title>Ultimate Chord & Sheet Music Editor</title>
     <style>
         :root {
-            --primary: #f48fb1; --primary-light: #fff1f5; --secondary: #455a64;
+            --primary: #f48fb1;
+            --primary-light: #fff1f5; --secondary: #455a64;
             --bg: #fdfafb; --text: #2c3e50; --border: #e0e0e0;
             --shadow: 0 4px 15px rgba(0,0,0,0.05); --accent-soft: #f8bbd0;
         }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent;
+        }
         body { 
-            font-family: 'Segoe UI', 'Hiragino Kaku Gothic ProN', sans-serif; 
+            font-family: 'Segoe UI', 'Hiragino Kaku Gothic ProN', sans-serif;
             background: var(--bg); 
             color: var(--text); 
             padding: 10px; 
-            padding-bottom: env(safe-area-inset-bottom); /* iOSセーフエリア対応 */
-            margin: 0; 
+            padding-bottom: env(safe-area-inset-bottom);
+            margin: 0;
             line-height: 1.5; 
+            overflow-x: hidden;
+            /* スワイプ削除時のハミ出し防止 */
         }
         .container { 
-            max-width: 800px; 
+            max-width: 800px;
             margin: auto; 
             background: white; 
             padding: 15px; 
@@ -31,7 +39,7 @@
             min-height: 90vh;
         }
         .tabs { 
-            display: flex; 
+            display: flex;
             gap: 5px; 
             margin-bottom: 20px; 
             background: #f1f3f5; 
@@ -39,10 +47,10 @@
             border-radius: 10px; 
             position: sticky; 
             top: 0; 
-            z-index: 100; 
+            z-index: 100;
         }
         .tab { 
-            flex: 1; 
+            flex: 1;
             padding: 12px 5px; 
             text-align: center; 
             cursor: pointer; 
@@ -52,53 +60,61 @@
             color: #888; 
             white-space: nowrap;
         }
-        .tab.active { background: white; color: var(--primary); font-weight: bold; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
-        .content { display: none; animation: fadeIn 0.3s ease; }
-        .content.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .tab.active { background: white; color: var(--primary); font-weight: bold;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
+        .content { display: none;
+            animation: fadeIn 0.3s ease; }
+        .content.active { display: block;
+        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1;
+        } }
         
-        h2 { text-align: center; color: var(--secondary); margin: 10px 0 20px; font-size: 1.25rem; }
-        .section { margin-bottom: 20px; }
-        .label { font-weight: bold; margin-bottom: 10px; display: block; color: #90a4ae; font-size: 0.75rem; letter-spacing: 0.05em; text-transform: uppercase; }
+        h2 { text-align: center;
+            color: var(--secondary); margin: 10px 0 20px; font-size: 1.25rem; }
+        .section { margin-bottom: 20px;
+        }
+        .label { font-weight: bold; margin-bottom: 10px; display: block; color: #90a4ae; font-size: 0.75rem;
+            letter-spacing: 0.05em; text-transform: uppercase; }
         
-        /* スマホでの押しやすさを考慮したボタン配置 */
-        .btn-group { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 8px; }
-        #rootGroup { grid-template-columns: repeat(4, 1fr); }
+        .btn-group { display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 8px; }
+        #rootGroup { grid-template-columns: repeat(4, 1fr);
+        }
         
         button { 
-            padding: 14px 5px; /* 高さを少し出す */
+            padding: 14px 5px;
             border: 1px solid var(--border); 
-            background: #fff; 
+            background: #fff;
             border-radius: 8px; 
             cursor: pointer; 
             transition: all 0.1s; 
             font-size: 0.9rem; 
             font-weight: 500; 
-            color: var(--text); 
+            color: var(--text);
             display: flex;
             align-items: center;
             justify-content: center;
         }
-        button:active { background-color: #f8f9fa; transform: translateY(1px); }
+        button:active { background-color: #f8f9fa; transform: translateY(1px);
+        }
         button.active { 
-            background: var(--primary); 
+            background: var(--primary);
             color: white; 
             border-color: var(--primary); 
-            box-shadow: 0 4px 10px rgba(244, 143, 177, 0.3); 
+            box-shadow: 0 4px 10px rgba(244, 143, 177, 0.3);
         }
         
         #result-area { 
-            margin-top: 25px; 
+            margin-top: 25px;
             padding: 20px; 
             background: var(--primary-light); 
             border-radius: 12px; 
             text-align: center; 
-            border: 2px solid var(--primary); 
+            border: 2px solid var(--primary);
         }
         
-        /* モーダル調整 */
-        #chordModal { 
-            display: none; 
+        .modal { 
+            display: none;
             position: fixed; 
             top: 0; left: 0; 
             width: 100%; height: 100%; 
@@ -109,108 +125,169 @@
             backdrop-filter: blur(2px);
         }
         .modal-content { 
-            background: white; 
+            background: white;
             max-width: 500px; 
             margin: auto; 
             padding: 20px; 
             border-radius: 20px; 
             position: relative; 
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-top: 50px;
         }
         .modal-close { 
-            position: absolute; top: 12px; right: 12px; 
+            position: absolute;
+            top: 12px; right: 12px; 
             background: #eee; border-radius: 50%; 
             width: 32px; height: 32px; 
             display: flex; align-items: center; justify-content: center; 
-            cursor: pointer; z-index: 10;
+            cursor: pointer;
+            z-index: 10;
         }
         
-        .chord-title { font-size: 1.8rem; font-weight: bold; color: var(--secondary); line-height: 1; margin-bottom: 5px; }
-        .notes-display { font-size: 1rem; color: var(--primary); font-weight: 500; }
+        .chord-title { font-size: 1.8rem;
+            font-weight: bold; color: var(--secondary); line-height: 1; margin-bottom: 5px; }
+        .notes-display { font-size: 1rem;
+            color: var(--primary); font-weight: 500; }
         
         .sheet-header-sticky { 
-            position: sticky; 
+            position: sticky;
             top: 48px; 
             background: white; 
             z-index: 90; 
-            padding-top: 10px; 
+            padding-top: 5px; 
             border-bottom: 1px solid #f1f3f5; 
-            margin-bottom: 15px; 
+            margin-bottom: 15px;
         }
-        .sheet-controls { 
-            background: #fdfafb; 
-            padding: 10px; 
-            border-radius: 10px; 
-            margin-bottom: 10px; 
-            display: flex; 
-            flex-direction: row; 
-            align-items: center; 
-            gap: 10px; 
-            border: 1px solid var(--primary-light); 
+        .sheet-info-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 10px;
+            background: var(--primary-light);
+            border-radius: 8px;
+            margin-bottom: 8px;
         }
-        .section-nav { display: flex; gap: 8px; overflow-x: auto; padding: 8px 0; white-space: nowrap; -webkit-overflow-scrolling: touch; }
-        .section-nav::-webkit-scrollbar { display: none; }
-        .section-nav-item { padding: 8px 14px; background: var(--primary-light); border-radius: 20px; font-size: 0.75rem; color: var(--primary); cursor: pointer; font-weight: bold; border: 1px solid var(--accent-soft); }
+        .current-song-title {
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: var(--secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 70%;
+        }
+        .btn-settings {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            padding: 5px;
+            color: var(--secondary);
+        }
+
+        .section-nav { display: flex;
+            gap: 8px; overflow-x: auto; padding: 8px 0;
+            white-space: nowrap; -webkit-overflow-scrolling: touch;
+        }
+        .section-nav::-webkit-scrollbar { display: none;
+        }
+        .section-nav-item { padding: 8px 14px; background: var(--primary-light); border-radius: 20px; font-size: 0.75rem;
+            color: var(--primary); cursor: pointer; font-weight: bold; border: 1px solid var(--accent-soft);
+        }
         
         select, .input-text { 
-            width: 100%; 
+            width: 100%;
             padding: 10px; 
             border-radius: 8px; 
             border: 1px solid #ddd; 
-            font-size: 16px; /* 16px以上にすることでiOSのフォーカス時ズームを防止 */
+            font-size: 16px;
             outline: none; 
             background-color: #fff;
         }
-        select:focus, .input-text:focus { border-color: var(--primary); }
-        
-        .section-block { border: 2px solid #fce4ec; border-radius: 12px; padding: 12px; margin-bottom: 30px; background: #fff; }
-        .section-header-container { margin-bottom: 15px; display: flex; align-items: center; gap: 6px; }
-        .section-header-input { border: none; background: var(--secondary); color: white; font-weight: bold; font-size: 0.8rem; padding: 10px 12px; border-radius: 6px; flex-grow: 1; }
-        
-        .measure-row { 
-            display: flex; flex-direction: column; background: #fff; 
-            border: 1px solid var(--border); margin-bottom: 12px; 
-            padding: 12px; border-radius: 10px; 
-            box-shadow: 0 2px 5px rgba(0,0,0,0.02); 
-            position: relative; 
+        select:focus, .input-text:focus { border-color: var(--primary);
         }
-        .measure-actions { display: flex; justify-content: flex-end; gap: 4px; margin-bottom: 10px; }
-        .btn-mini { padding: 6px 10px; font-size: 0.7rem; background: #f1f3f5; color: #666; border: none; border-radius: 4px; }
         
-        .measure-grid { display: flex; gap: 6px; width: 100%; }
+        .section-block { border: 2px solid #fce4ec;
+            border-radius: 12px; padding: 12px; margin-bottom: 30px; background: #fff; }
+        .section-header-container { margin-bottom: 15px;
+            display: flex; align-items: center; gap: 6px; }
+        .section-header-input { border: none; background: var(--secondary);
+            color: white; font-weight: bold; font-size: 0.8rem; padding: 10px 12px; border-radius: 6px; flex-grow: 1;
+        }
+        
+        /* 改修箇所: 小節のデザイン */
+        .measure-row { 
+            display: flex;
+            flex-direction: column; background: #fff; 
+            border: 1px solid var(--border); margin-bottom: 8px; 
+            padding: 8px; border-radius: 10px; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+            position: relative; 
+            transition: transform 0.2s, opacity 0.2s;
+            touch-action: pan-y; /* ドラッグ用に制御 */
+            cursor: grab;
+        }
+        .measure-row.dragging { opacity: 0.5; cursor: grabbing;
+        }
+        .measure-row.swiping { transition: none;
+        }
+        
+        .measure-grid { display: flex;
+            gap: 6px; width: 100%; }
         .beat-box { 
-            flex: 1; min-height: 70px; 
-            border: 1px solid #f1f3f5; padding: 4px; 
+            flex: 1;
+            min-height: 60px; /* 少し高さを抑える */
+            border: 1px solid #f1f3f5;
+            padding: 4px; 
             text-align: center; cursor: pointer; 
             border-radius: 8px; display: flex; flex-direction: column; 
-            justify-content: center; background: #fafafa; transition: 0.2s; 
+            justify-content: center;
+            background: #fafafa; transition: 0.2s;
         }
-        .beat-box.selected { border: 2px solid var(--primary); background: var(--primary-light); }
+        .beat-box.selected { border: 2px solid var(--primary); background: var(--primary-light);
+        }
         
-        .chord-display-area { width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; }
-        .beat-chord { font-weight: bold; font-size: 1rem; color: var(--secondary); display: block; min-height: 1.2em; word-break: break-all; }
-        .beat-notes { font-size: 0.6rem; color: #999; display: block; min-height: 1.2em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .chord-display-area { width: 100%;
+            height: 100%; display: flex; flex-direction: column; justify-content: center; }
+        .beat-chord { font-weight: bold;
+            font-size: 1rem; color: var(--secondary); display: block; min-height: 1.2em; word-break: break-all;
+        }
+        .beat-notes { font-size: 0.6rem; color: #999; display: block; min-height: 1.2em; overflow: hidden;
+            text-overflow: ellipsis; white-space: nowrap; }
         
-        .lyrics-input { width: 100%; margin-top: 12px; padding: 8px 4px; border: none; border-bottom: 2px solid #eee; outline: none; font-size: 0.9rem; background: transparent; }
-        .lyrics-input:focus { border-bottom-color: var(--primary); }
+        .lyrics-input { width: 100%;
+            margin-top: 8px; padding: 6px 4px; border: none; border-bottom: 2px solid #eee; outline: none; font-size: 0.85rem; background: transparent;
+        }
+        .lyrics-input:focus { border-bottom-color: var(--primary);
+        }
         
         .btn-main { 
-            background: var(--secondary); color: white; width: 100%; 
+            background: var(--secondary);
+            color: white; width: 100%; 
             margin-top: 10px; padding: 16px; 
-            font-weight: bold; border: none; border-radius: 10px; cursor: pointer; 
+            font-weight: bold; border: none; border-radius: 10px; cursor: pointer;
         }
-        .btn-add-measure { background: #eceff1; color: #455a64; margin-top: 5px; padding: 12px; font-size: 0.85rem; border: 1px dashed #cfd8dc; }
+        .btn-add-measure { background: #eceff1; color: #455a64; margin-top: 5px; padding: 12px; font-size: 0.85rem;
+            border: 1px dashed #cfd8dc; }
         
-        .save-list { margin-top: 20px; border-top: 2px dashed #eee; padding-top: 20px; }
-        .save-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; background: #fff; border: 1px solid #eee; border-radius: 12px; margin-bottom: 10px; }
-        .save-item-info { flex-grow: 1; cursor: pointer; margin-right: 10px; }
-        .btn-sm { padding: 8px 12px; font-size: 0.75rem; border: 1px solid #ddd; border-radius: 6px; background: #fff; cursor: pointer; }
-        .btn-del { border-color: #ffcdd2; color: #e57373; }
+        .save-list { margin-top: 20px;
+            border-top: 2px dashed #eee; padding-top: 20px; }
+        .save-item { display: flex; justify-content: space-between;
+            align-items: center; padding: 15px; background: #fff; border: 1px solid #eee; border-radius: 12px; margin-bottom: 10px;
+        }
+        .save-item-info { flex-grow: 1; cursor: pointer; margin-right: 10px;
+        }
+        .btn-sm { padding: 8px 12px; font-size: 0.75rem; border: 1px solid #ddd;
+            border-radius: 6px; background: #fff; cursor: pointer; }
+        .btn-del { border-color: #ffcdd2; color: #e57373;
+        }
         
-        .grid-2 { display: grid; grid-template-columns: 1fr; gap: 0; }
+        .grid-2 { display: grid;
+            grid-template-columns: 1fr; gap: 0; }
         @media (min-width: 600px) { 
-            .grid-2 { grid-template-columns: 1fr 1fr; gap: 15px; } 
-            .tab { font-size: 0.95rem; }
+            .grid-2 { grid-template-columns: 1fr 1fr;
+                gap: 15px; } 
+            .tab { font-size: 0.95rem;
+            }
         }
     </style>
 </head>
@@ -277,18 +354,9 @@
 
     <div id="sheet" class="content">
         <div class="sheet-header-sticky">
-            <div class="sheet-controls">
-                <div style="flex: 3;">
-                    <span class="label">TITLE</span>
-                    <input type="text" id="songTitle" class="input-text" placeholder="曲のタイトルを入力..." oninput="storageManager.requestAutoSave()">
-                </div>
-                <div style="flex: 1.5; min-width: 90px;">
-                    <span class="label">BEAT</span>
-                    <select id="timeSignature" onchange="sheetEditor.resetSheetByBeatChange()">
-                        <option value="4">4/4</option>
-                        <option value="3">3/4</option>
-                    </select>
-                </div>
+            <div class="sheet-info-bar">
+                <div class="current-song-title" id="displaySongTitle">無題の楽譜</div>
+                <button class="btn-settings" onclick="uiManager.openSettingsModal()">⚙️</button>
             </div>
             <div id="sectionNav" class="section-nav"></div>
         </div>
@@ -303,10 +371,29 @@
     </div>
 </div>
 
-<div id="chordModal">
+<div id="chordModal" class="modal">
     <div class="modal-content">
         <div class="modal-close" onclick="sheetEditor.closeChordModal()">×</div>
         <div id="modalInjectionPoint"></div>
+    </div>
+</div>
+
+<div id="settingsModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-close" onclick="uiManager.closeSettingsModal()">×</div>
+        <h2 style="font-size: 1.1rem;">楽曲設定</h2>
+        <div class="section">
+            <span class="label">TITLE</span>
+            <input type="text" id="songTitle" class="input-text" placeholder="曲のタイトルを入力..." oninput="uiManager.syncTitleDisplay(); storageManager.requestAutoSave();">
+        </div>
+        <div class="section">
+            <span class="label">BEAT</span>
+            <select id="timeSignature" onchange="sheetEditor.resetSheetByBeatChange()">
+                <option value="4">4/4</option>
+                <option value="3">3/4</option>
+            </select>
+        </div>
+        <button class="btn-main" onclick="uiManager.closeSettingsModal()">完了</button>
     </div>
 </div>
 
@@ -324,7 +411,8 @@ const MUSIC_CONSTANTS = {
     },
     NOTE_INDEX_MAP: { 
         "C": 0, "C#": 1, "Db": 1, "D": 2, "D#": 3, "Eb": 3, "E": 4, 
-        "F": 5, "F#": 6, "Gb": 6, "G": 7, "G#": 8, "Ab": 8, "A": 9, 
+        "F": 5, "F#": 6, "Gb": 6, "G": 7, "G#": 8, 
+        "Ab": 8, "A": 9, 
         "A#": 10, "Bb": 10, "B": 11 
     }
 };
@@ -342,7 +430,9 @@ let appState = {
     currentSongId: null,
     selectedBeatElement: null,
     autoSaveTimer: null,
-    db: null
+    db: null,
+    draggedMeasure: null, // ドラッグ用
+    swipeStartX: 0        // スワイプ用
 };
 
 /**
@@ -351,7 +441,6 @@ let appState = {
 const chordEngine = {
     getChordDetail(data) {
         if (!data || !data.r) return { name: "", notes: "" };
-        
         let intervals = [0]; 
         let displayType = "";
         
@@ -363,9 +452,12 @@ const chordEngine = {
             default: intervals.push(4, 7);
         }
 
-        if (data.s === "7") { intervals.push(10); displayType += "7"; }
-        else if (data.s === "M7") { intervals.push(11); displayType += "M7"; }
-        else if (data.s === "dim7") { intervals.push(9); displayType += "dim7"; }
+        if (data.s === "7") { intervals.push(10); displayType += "7";
+        }
+        else if (data.s === "M7") { intervals.push(11); displayType += "M7";
+        }
+        else if (data.s === "dim7") { intervals.push(9); displayType += "dim7";
+        }
 
         data.t.forEach(t => {
             if (t === "b5") { intervals = intervals.filter(i => i !== 7); intervals.push(6); displayType += "(b5)"; }
@@ -379,10 +471,8 @@ const chordEngine = {
         const uniqueIntervals = [...new Set(intervals.map(i => i % 12))].sort((a,b) => a-b);
         const useFlat = ["Eb", "Ab", "Bb", "F", "Db", "Gb"].includes(data.r);
         const sourceArray = useFlat ? MUSIC_CONSTANTS.NOTES_FLAT : MUSIC_CONSTANTS.NOTES_FULL;
-
         const resNotes = uniqueIntervals.map(i => sourceArray[(rootIdx + i) % 12]);
         const kanaNotes = resNotes.map(n => MUSIC_CONSTANTS.KANA_MAP[n] || n).join(" - ");
-        
         return { name: data.r + displayType, notes: kanaNotes };
     },
 
@@ -393,7 +483,6 @@ const chordEngine = {
             s: appState.currentChord.seventh,
             t: appState.currentChord.tensions
         });
-
         document.getElementById('chordName').innerText = detail.name;
         document.getElementById('notes').innerText = detail.notes;
 
@@ -421,7 +510,6 @@ const chordEngine = {
                 seventh: "none",
                 tensions: []
             };
-            
             sheetEditor.closeChordModal();
         }
     }
@@ -448,37 +536,41 @@ const sheetEditor = {
             <div class="measure-container"></div>
             <button class="btn-main btn-add-measure" onclick="sheetEditor.addMeasureToSection(this.closest('.section-block'))">+ 小節を追加</button>
         `;
-        
         master.appendChild(section);
         if(!isEmpty) this.addMeasureToSection(section);
         uiManager.updateSectionNav();
         storageManager.requestAutoSave();
     },
 
-    addMeasureToSection(sectionBlock, savedData = null, referenceNode = null) {
+    addMeasureToSection(sectionBlock, savedData = null) {
         const container = sectionBlock.querySelector('.measure-container');
         const beatsCount = savedData ? savedData.beats.length : parseInt(document.getElementById('timeSignature').value);
         
         const row = document.createElement('div');
         row.className = 'measure-row';
+        row.draggable = true;
+        // ドラッグ可能に設定
         row.innerHTML = `
-            <div class="measure-actions">
-                <button class="btn-mini" onclick="sheetEditor.moveMeasure(this.closest('.measure-row'), 'up')">▲</button>
-                <button class="btn-mini" onclick="sheetEditor.moveMeasure(this.closest('.measure-row'), 'down')">▼</button>
-                <button class="btn-mini" onclick="sheetEditor.addMeasureToSection(this.closest('.section-block'), null, this.closest('.measure-row'))">+ 挿入</button>
-                <button class="btn-mini btn-del" onclick="sheetEditor.deleteMeasure(this.closest('.measure-row'))">削除</button>
-            </div>
             <div class="measure-grid"></div>
             <input type="text" class="lyrics-input" placeholder="歌詞..." value="${savedData ? savedData.lyrics : ''}" oninput="storageManager.requestAutoSave()">
         `;
+        // イベントリスナー追加 (ドラッグ&ドロップ)
+        row.addEventListener('dragstart', (e) => this.handleDragStart(e));
+        row.addEventListener('dragover', (e) => this.handleDragOver(e));
+        row.addEventListener('drop', (e) => this.handleDrop(e));
+        row.addEventListener('dragend', (e) => this.handleDragEnd(e));
+        
+        // イベントリスナー追加 (横スワイプ削除)
+        row.addEventListener('touchstart', (e) => this.handleTouchStart(e), {passive: true});
+        row.addEventListener('touchmove', (e) => this.handleTouchMove(e), {passive: false});
+        row.addEventListener('touchend', (e) => this.handleTouchEnd(e));
 
         const grid = row.querySelector('.measure-grid');
         for (let i = 0; i < beatsCount; i++) {
             grid.appendChild(this.createBeatBox(savedData ? savedData.beats[i] : null));
         }
 
-        if (referenceNode) container.insertBefore(row, referenceNode);
-        else container.appendChild(row);
+        container.appendChild(row);
         storageManager.requestAutoSave();
     },
 
@@ -497,6 +589,62 @@ const sheetEditor = {
             </div>
         `;
         return beat;
+    },
+
+    /* ドラッグ&ドロップ処理 */
+    handleDragStart(e) {
+        appState.draggedMeasure = e.currentTarget;
+        e.currentTarget.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+    },
+    handleDragOver(e) {
+        e.preventDefault();
+        const row = e.currentTarget;
+        if (row !== appState.draggedMeasure && row.parentElement === appState.draggedMeasure.parentElement) {
+            const rect = row.getBoundingClientRect();
+            const mid = rect.top + rect.height / 2;
+            if (e.clientY < mid) row.parentElement.insertBefore(appState.draggedMeasure, row);
+            else row.parentElement.insertBefore(appState.draggedMeasure, row.nextElementSibling);
+        }
+    },
+    handleDrop(e) { e.preventDefault();
+    },
+    handleDragEnd(e) {
+        e.currentTarget.classList.remove('dragging');
+        appState.draggedMeasure = null;
+        storageManager.requestAutoSave();
+    },
+
+    /* 横スワイプ処理 */
+    handleTouchStart(e) {
+        appState.swipeStartX = e.touches[0].clientX;
+        e.currentTarget.classList.add('swiping');
+    },
+    handleTouchMove(e) {
+        const diff = e.touches[0].clientX - appState.swipeStartX;
+        if (diff < 0) { // 左スワイプのみ
+            e.preventDefault();
+            e.currentTarget.style.transform = `translateX(${diff}px)`;
+            e.currentTarget.style.opacity = 1 - Math.abs(diff/300);
+        }
+    },
+    handleTouchEnd(e) {
+        const row = e.currentTarget;
+        const diff = e.changedTouches[0].clientX - appState.swipeStartX;
+        row.classList.remove('swiping');
+        
+        if (diff < -100) { // 100px以上スワイプで削除
+            if (confirm('この小節を削除しますか？')) {
+                row.remove();
+                storageManager.requestAutoSave();
+            } else {
+                row.style.transform = '';
+                row.style.opacity = '';
+            }
+        } else {
+            row.style.transform = '';
+            row.style.opacity = '';
+        }
     },
 
     openChordModal(beatEl) {
@@ -535,15 +683,9 @@ const sheetEditor = {
         storageManager.requestAutoSave();
     },
 
-    moveMeasure(el, dir) {
-        const container = el.parentElement;
-        if(dir === 'up' && el.previousElementSibling) container.insertBefore(el, el.previousElementSibling);
-        if(dir === 'down' && el.nextElementSibling) container.insertBefore(el.nextElementSibling, el);
-        storageManager.requestAutoSave();
-    },
-
-    deleteSection(el) { if(confirm('セクション全体を削除しますか？')) { el.remove(); uiManager.updateSectionNav(); storageManager.requestAutoSave(); } },
-    deleteMeasure(el) { if(confirm('小節を削除しますか？')) { el.remove(); storageManager.requestAutoSave(); } },
+    deleteSection(el) { if(confirm('セクション全体を削除しますか？')) { el.remove(); uiManager.updateSectionNav(); storageManager.requestAutoSave();
+    } },
+    
     resetSheetByBeatChange() {
         if(!confirm('拍子を変更すると現在の内容がリセットされます。よろしいですか？')) return;
         document.getElementById('masterContainer').innerHTML = '';
@@ -559,12 +701,10 @@ const sheetEditor = {
 const uiManager = {
     switchTab(tabId, noScroll = false) {
         if (appState.autoSaveTimer) storageManager.executeActualSave();
-
         document.querySelectorAll('.tab, .content').forEach(el => el.classList.remove('active'));
         const targetTab = document.querySelector(`.tab[onclick*="${tabId}"]`);
         if(targetTab) targetTab.classList.add('active');
         document.getElementById(tabId).classList.add('active');
-        
         if (tabId === 'selector') {
             document.getElementById('selector').appendChild(document.getElementById('selectorInner'));
             document.getElementById('modalControls').style.display = 'none';
@@ -592,6 +732,21 @@ const uiManager = {
         document.querySelectorAll('#qualityGroup button').forEach(b => b.classList.toggle('active', b.getAttribute('data-val') === appState.currentChord.quality));
         document.querySelectorAll('#seventhGroup button').forEach(b => b.classList.toggle('active', b.getAttribute('data-val') === appState.currentChord.seventh));
         document.querySelectorAll('#tensionGroup button').forEach(b => b.classList.toggle('active', appState.currentChord.tensions.includes(b.getAttribute('data-val'))));
+    },
+
+    openSettingsModal() {
+        document.getElementById('settingsModal').style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    },
+
+    closeSettingsModal() {
+        document.getElementById('settingsModal').style.display = 'none';
+        document.body.style.overflow = 'auto';
+    },
+
+    syncTitleDisplay() {
+        const val = document.getElementById('songTitle').value.trim();
+        document.getElementById('displaySongTitle').innerText = val || "無題の楽譜";
     }
 };
 
@@ -631,11 +786,9 @@ const storageManager = {
 
     async executeActualSave() {
         if (!appState.currentSongId || !appState.db) return;
-
         const songTitle = document.getElementById('songTitle').value.trim() || "無題の楽譜";
         const timeSignature = document.getElementById('timeSignature').value;
         const lastModified = Date.now();
-
         const sectionsData = Array.from(document.querySelectorAll('.section-block')).map(sb => ({
             title: sb.querySelector('.section-header-input').value,
             measures: Array.from(sb.querySelectorAll('.measure-row')).map(mr => ({
@@ -645,14 +798,12 @@ const storageManager = {
                 lyrics: mr.querySelector('.lyrics-input').value
             }))
         }));
-
         const metaData = {
             id: appState.currentSongId,
             title: songTitle,
             timeSignature: timeSignature,
             lastModified: lastModified
         };
-
         const transaction = appState.db.transaction([this.STORES.SONGS, this.STORES.LIBRARY, this.STORES.APP_STATE], 'readwrite');
         transaction.objectStore(this.STORES.SONGS).put({ id: appState.currentSongId, data: sectionsData });
         transaction.objectStore(this.STORES.LIBRARY).put(metaData);
@@ -671,6 +822,7 @@ const storageManager = {
         if (confirmFirst && !confirm('新しい楽譜を作成しますか？')) return;
         appState.currentSongId = Date.now();
         document.getElementById('songTitle').value = "";
+        uiManager.syncTitleDisplay();
         document.getElementById('timeSignature').value = "4";
         document.getElementById('masterContainer').innerHTML = '';
         sheetEditor.addSectionBlock("Intro");
@@ -684,7 +836,6 @@ const storageManager = {
         const tx = appState.db.transaction([this.STORES.SONGS, this.STORES.LIBRARY], 'readonly');
         const metaReq = tx.objectStore(this.STORES.LIBRARY).get(id);
         const dataReq = tx.objectStore(this.STORES.SONGS).get(id);
-
         tx.oncomplete = () => {
             const meta = metaReq.result;
             const detail = dataReq.result;
@@ -698,6 +849,7 @@ const storageManager = {
     loadDataIntoUI(song) {
         appState.currentSongId = song.id;
         document.getElementById('songTitle').value = song.title || "";
+        uiManager.syncTitleDisplay();
         document.getElementById('timeSignature').value = song.timeSignature;
         const master = document.getElementById('masterContainer');
         master.innerHTML = '';
@@ -740,7 +892,6 @@ const storageManager = {
 
         const tx = appState.db.transaction([this.STORES.LIBRARY], 'readonly');
         const req = tx.objectStore(this.STORES.LIBRARY).getAll();
-
         req.onsuccess = () => {
             const libraryIndex = req.result;
             if(libraryIndex.length === 0) {
@@ -759,6 +910,7 @@ const storageManager = {
                     </div>
                     <button class="btn-sm btn-del" onclick="storageManager.deleteSheet(${song.id})">削除</button>
                 `;
+ 
                 container.appendChild(item);
             });
         };
@@ -769,6 +921,15 @@ const storageManager = {
  * INITIALIZATION
  */
 async function initApp() {
+    // Service Worker Registration for PWA
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('sw.js')
+                .then(reg => console.log('Service Worker registered', reg))
+                .catch(err => console.error('Service Worker registration failed', err));
+        });
+    }
+
     const roots = ["C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"];
     const rootGroup = document.getElementById('rootGroup');
     roots.forEach(n => {
@@ -785,7 +946,6 @@ async function initApp() {
         };
         rootGroup.appendChild(btn);
     });
-
     const setupGroup = (groupId, stateKey) => {
         document.querySelectorAll(`#${groupId} button`).forEach(btn => {
             btn.onclick = () => {
@@ -811,12 +971,10 @@ async function initApp() {
             chordEngine.calculateAndSync();
         };
     });
-
     try {
         await storageManager.initDB();
         const tx = appState.db.transaction([storageManager.STORES.APP_STATE], 'readonly');
         const req = tx.objectStore(storageManager.STORES.APP_STATE).get('currentEditing');
-        
         req.onsuccess = () => {
             if (req.result) storageManager.loadDataIntoUI(req.result);
             else storageManager.createNewSong(false);
