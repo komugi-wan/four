@@ -8,6 +8,7 @@
     <link rel="apple-touch-icon" href="icon-192.png">
     
     <title>Ultimate Chord & Sheet Music Editor</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <style>
         :root {
             --primary: #f48fb1;
@@ -40,7 +41,7 @@
         .tabs { 
             display: flex;
             gap: 5px; 
-            margin-bottom: 20px; 
+            margin-bottom: 15px; 
             background: #f1f3f5; 
             padding: 4px; 
             border-radius: 10px; 
@@ -50,7 +51,7 @@
         }
         .tab { 
             flex: 1;
-            padding: 12px 5px; 
+            padding: 10px 5px; 
             text-align: center; 
             cursor: pointer; 
             border-radius: 8px; 
@@ -69,25 +70,29 @@
         } }
         
         h2 { text-align: center;
-            color: var(--secondary); margin: 10px 0 20px; font-size: 1.25rem; }
-        .section { margin-bottom: 20px;
+            color: var(--secondary); margin: 5px 0 15px; font-size: 1.1rem; }
+        .section { margin-bottom: 12px;
         }
-        .label { font-weight: bold; margin-bottom: 10px; display: block; color: #90a4ae; font-size: 0.75rem;
+        .label { font-weight: bold; margin-bottom: 6px; display: block; color: #90a4ae; font-size: 0.7rem;
             letter-spacing: 0.05em; text-transform: uppercase; }
         
         .btn-group { display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 8px; }
-        #rootGroup { grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(auto-fill, minmax(65px, 1fr)); gap: 6px; }
+        
+        /* ルート音選択用の特別なグリッド: 12音を効率的に配置 */
+        #rootGroup { 
+            grid-template-columns: repeat(6, 1fr); 
+            gap: 4px;
         }
         
         button { 
-            padding: 14px 5px;
+            padding: 10px 2px;
             border: 1px solid var(--border); 
             background: #fff;
-            border-radius: 8px; 
+            border-radius: 6px; 
             cursor: pointer; 
             transition: all 0.1s; 
-            font-size: 0.9rem; 
+            font-size: 0.85rem; 
             font-weight: 500; 
             color: var(--text);
             display: flex;
@@ -100,12 +105,17 @@
             background: var(--primary);
             color: white; 
             border-color: var(--primary); 
-            box-shadow: 0 4px 10px rgba(244, 143, 177, 0.3);
+            box-shadow: 0 2px 6px rgba(244, 143, 177, 0.3);
         }
         
+        .btn-root {
+            font-size: 0.85rem;
+            min-height: 40px;
+        }
+
         #result-area { 
-            margin-top: 25px;
-            padding: 20px; 
+            margin-top: 15px;
+            padding: 12px; 
             background: var(--primary-light); 
             border-radius: 12px; 
             text-align: center; 
@@ -120,32 +130,33 @@
             background: rgba(0,0,0,0.6); 
             z-index: 1000; 
             overflow-y: auto; 
-            padding: 15px;
+            padding: 10px;
             backdrop-filter: blur(2px);
         }
         .modal-content { 
             background: white;
             max-width: 500px; 
             margin: auto; 
-            padding: 20px; 
-            border-radius: 20px; 
+            padding: 15px; 
+            border-radius: 15px; 
             position: relative; 
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            margin-top: 50px;
+            margin-top: 20px;
         }
         .modal-close { 
             position: absolute;
-            top: 12px; right: 12px; 
+            top: 10px; right: 10px; 
             background: #eee; border-radius: 50%; 
-            width: 32px; height: 32px; 
+            width: 28px; height: 28px; 
             display: flex; align-items: center; justify-content: center; 
             cursor: pointer;
             z-index: 10;
+            font-size: 18px;
         }
         
-        .chord-title { font-size: 1.8rem;
-            font-weight: bold; color: var(--secondary); line-height: 1; margin-bottom: 5px; }
-        .notes-display { font-size: 1rem;
+        .chord-title { font-size: 1.5rem;
+            font-weight: bold; color: var(--secondary); line-height: 1; margin-bottom: 4px; }
+        .notes-display { font-size: 0.85rem;
             color: var(--primary); font-weight: 500; }
         
         .sheet-header-sticky { 
@@ -186,8 +197,6 @@
         .section-nav { display: flex;
             gap: 8px; overflow-x: auto; padding: 8px 0;
             white-space: nowrap; -webkit-overflow-scrolling: touch;
-        }
-        .section-nav::-webkit-scrollbar { display: none;
         }
         .section-nav-item { padding: 8px 14px; background: var(--primary-light); border-radius: 20px; font-size: 0.75rem;
             color: var(--primary); cursor: pointer; font-weight: bold; border: 1px solid var(--accent-soft);
@@ -240,6 +249,7 @@
             border-radius: 8px; display: flex; flex-direction: column; 
             justify-content: center;
             background: #fafafa; transition: 0.2s;
+            user-select: none;
         }
         .beat-box.selected { border: 2px solid var(--primary); background: var(--primary-light);
         }
@@ -261,10 +271,11 @@
         .btn-main { 
             background: var(--secondary);
             color: white; width: 100%; 
-            margin-top: 10px; padding: 16px; 
+            margin-top: 8px; padding: 12px; 
             font-weight: bold; border: none; border-radius: 10px; cursor: pointer;
+            font-size: 0.9rem;
         }
-        .btn-add-measure { background: #eceff1; color: #455a64; margin-top: 5px; padding: 12px; font-size: 0.85rem;
+        .btn-add-measure { background: #eceff1; color: #455a64; margin-top: 5px; padding: 10px; font-size: 0.8rem;
             border: 1px dashed #cfd8dc; }
         
         .save-list { margin-top: 20px;
@@ -278,52 +289,6 @@
             border-radius: 6px; background: #fff; cursor: pointer; }
         .btn-del { border-color: #ffcdd2; color: #e57373;
         }
-
-        .chord-set-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            padding: 10px;
-            background: #f8f9fa;
-            border-radius: 10px;
-            border: 1px solid #eee;
-            margin-bottom: 15px;
-            min-height: 50px; /* 修正: 文字が見えやすくするため少し高さを確保 */
-        }
-        .chord-set-item {
-            padding: 8px 16px; /* 修正: 余白調整 */
-            background: white;
-            border: 2px solid var(--accent-soft);
-            border-radius: 6px;
-            font-weight: bold;
-            font-size: 0.95rem; /* 修正: 文字サイズ微増 */
-            color: var(--secondary);
-            position: relative;
-            cursor: pointer;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-width: 45px;
-        }
-        .btn-add-chord-set {
-            padding: 8px 12px;
-            background: var(--primary-light);
-            border: 1px dashed var(--primary);
-            color: var(--primary);
-            border-radius: 6px;
-            font-weight: bold;
-            font-size: 0.85rem;
-        }
-        .chord-set-item .del-mark {
-            position: absolute;
-            top: -8px; right: -8px;
-            background: #e57373; color: white;
-            width: 18px; height: 18px; border-radius: 50%;
-            font-size: 12px; display: flex; align-items: center; justify-content: center;
-            border: 1px solid white;
-            pointer-events: auto;
-        }
         
         .grid-2 { display: grid;
             grid-template-columns: 1fr; gap: 0; }
@@ -332,6 +297,21 @@
                 gap: 15px; } 
             .tab { font-size: 0.95rem;
             }
+        }
+
+        /* 追記: キー別コードセット用のスタイル */
+        .key-chord-group {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 4px;
+            margin-bottom: 10px;
+        }
+        .btn-key-chord {
+            background-color: #fff9fb;
+            border-color: #fce4ec;
+            font-size: 0.75rem;
+            color: var(--primary);
+            padding: 8px 2px;
         }
     </style>
 </head>
@@ -348,9 +328,9 @@
         <div id="selectorInner">
             <h2 id="selectorTitle">Chord Visualizer 🎹</h2>
             
-            <div class="section">
-                <span class="label">SONG CHORDS (TAP TO SELECT)</span>
-                <div id="chordSetArea" class="chord-set-container"></div>
+            <div id="keyChordSection" class="section" style="display: none;">
+                <span class="label">RECOMMENDED (FOR CURRENT KEY)</span>
+                <div id="keyChordGroup" class="key-chord-group"></div>
             </div>
 
             <div class="section">
@@ -393,15 +373,9 @@
                 <div class="chord-title" id="chordName">C</div>
                 <div class="notes-display" id="notes">ド - ミ - ソ</div>
                 
-                <div style="display: flex; justify-content: center; gap: 10px; margin-top: 10px;">
-                   <button class="btn-add-chord-set" onclick="chordSetManager.addCurrentToSet()">+ コードセットに追加</button>
-                </div>
-                
-                <p style="font-size: 0.7rem; color: #888; margin: 8px 0 0;">※選択中の拍に反映されます</p>
-                
-                <div id="modalControls" style="display:none; display: flex; gap: 10px; margin-top: 15px;">
-                    <button class="btn-main" style="background:#e0e0e0; color:#666;" onclick="chordEngine.clearChord()">削除</button>
-                    <button class="btn-main" onclick="sheetEditor.closeChordModal()">確定</button>
+                <div id="modalControls" style="display:none; display: flex; gap: 8px; margin-top: 10px;">
+                    <button class="btn-main" style="background:#cfd8dc; color:#455a64; margin-top:0;" onclick="chordEngine.clearChord()">削除</button>
+                    <button class="btn-main" style="background:var(--primary); margin-top:0;" onclick="sheetEditor.closeChordModal()">確定</button>
                 </div>
             </div>
         </div>
@@ -441,12 +415,31 @@
             <span class="label">TITLE</span>
             <input type="text" id="songTitle" class="input-text" placeholder="曲のタイトルを入力..." oninput="uiManager.syncTitleDisplay(); storageManager.requestAutoSave();">
         </div>
-        <div class="section">
-            <span class="label">BEAT</span>
-            <select id="timeSignature" onchange="sheetEditor.resetSheetByBeatChange()">
-                <option value="4">4/4</option>
-                <option value="3">3/4</option>
-            </select>
+        <div class="grid-2">
+            <div class="section">
+                <span class="label">KEY</span>
+                <select id="songKey" onchange="theoryEngine.updateRecommendedChords(); storageManager.requestAutoSave();">
+                    <option value="C">C Major / A minor</option>
+                    <option value="C#">C# Major / A# minor</option>
+                    <option value="D">D Major / B minor</option>
+                    <option value="Eb">Eb Major / C minor</option>
+                    <option value="E">E Major / C# minor</option>
+                    <option value="F">F Major / D minor</option>
+                    <option value="F#">F# Major / D# minor</option>
+                    <option value="G">G Major / E minor</option>
+                    <option value="Ab">Ab Major / F minor</option>
+                    <option value="A">A Major / F# minor</option>
+                    <option value="Bb">Bb Major / G minor</option>
+                    <option value="B">B Major / G# minor</option>
+                </select>
+            </div>
+            <div class="section">
+                <span class="label">BEAT</span>
+                <select id="timeSignature" onchange="sheetEditor.resetSheetByBeatChange()">
+                    <option value="4">4/4</option>
+                    <option value="3">3/4</option>
+                </select>
+            </div>
         </div>
         <button class="btn-main" onclick="uiManager.closeSettingsModal()">完了</button>
     </div>
@@ -457,19 +450,22 @@
  * GLOBAL CONSTANTS & MAPS
  */
 const MUSIC_CONSTANTS = {
-    NOTES_FULL: ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"],
-    NOTES_FLAT: ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"],
-    KANA_MAP: { 
-        "C": "ド", "C#": "ド#", "Db": "レb", "D": "レ", "D#": "レ#", "Eb": "ミb", 
-        "E": "ミ", "F": "ファ", "F#": "ファ#", "Gb": "ソb", "G": "ソ", "G#": "ソ#", 
-        "Ab": "ラb", "A": "ラ", "A#": "ラ#", "Bb": "シb", "B": "シ" 
-    },
+    // 内部計算用の12音インデックス
     NOTE_INDEX_MAP: { 
         "C": 0, "C#": 1, "Db": 1, "D": 2, "D#": 3, "Eb": 3, "E": 4, 
         "F": 5, "F#": 6, "Gb": 6, "G": 7, "G#": 8, 
         "Ab": 8, "A": 9, 
         "A#": 10, "Bb": 10, "B": 11 
-    }
+    },
+    // 表示用のカナマップ
+    KANA_MAP: { 
+        "C": "ド", "C#": "ド#", "Db": "レb", "D": "レ", "D#": "レ#", "Eb": "ミb", 
+        "E": "ミ", "F": "ファ", "F#": "ファ#", "Gb": "ソb", "G": "ソ", "G#": "ソ#", 
+        "Ab": "ラb", "A": "ラ", "A#": "ラ#", "Bb": "シb", "B": "シ" 
+    },
+    // 生成時に使用するデフォルト配列
+    NOTES_FULL: ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"],
+    NOTES_FLAT: ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"]
 };
 
 /**
@@ -488,40 +484,96 @@ let appState = {
     db: null,
     draggedMeasure: null,
     swipeStartX: 0,
-    currentChordSet: []
+    sampler: null,
+    longPressTimer: null,
+    isLongPress: false
 };
 
 /**
- * AUDIO ENGINE
+ * SOUND ENGINE (Tone.js)
  */
-const audioEngine = {
-    ctx: null,
+const soundEngine = {
     init() {
-        if (!this.ctx) {
-            this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-        }
-        if (this.ctx.state === 'suspended') {
-            this.ctx.resume();
-        }
+        this.sampler = new Tone.Sampler({
+            urls: {
+                A0: "A0.mp3", C1: "C1.mp3", "D#1": "Ds1.mp3", "F#1": "Fs1.mp3",
+                A1: "A1.mp3", C2: "C2.mp3", "D#2": "Ds2.mp3", "F#2": "Fs2.mp3",
+                A2: "A2.mp3", C3: "C3.mp3", "D#3": "Ds3.mp3", "F#3": "Fs3.mp3",
+                A3: "A3.mp3", C4: "C4.mp3", "D#4": "Ds4.mp3", "F#4": "Fs4.mp3",
+                A4: "A4.mp3", C5: "C5.mp3", "D#5": "Ds5.mp3", "F#5": "Fs5.mp3",
+                A5: "A5.mp3", C6: "C6.mp3", "D#6": "Ds6.mp3", "F#6": "Fs6.mp3",
+                A6: "A6.mp3", C7: "C7.mp3", "D#7": "Ds7.mp3", "F#7": "Fs7.mp3",
+                A7: "A7.mp3", C8: "C8.mp3"
+            },
+            release: 1,
+            baseUrl: "https://tonejs.github.io/audio/salamander/"
+        }).toDestination();
     },
-    playChord(intervals, rootNote) {
-        this.init();
-        const now = this.ctx.currentTime;
-        const rootIdx = MUSIC_CONSTANTS.NOTE_INDEX_MAP[rootNote];
-        const getFreq = (semi) => 440 * Math.pow(2, (semi - 69) / 12);
-        const rootMidi = 48 + rootIdx;
-        intervals.forEach((interval, i) => {
-            const osc = this.ctx.createOscillator();
-            const gain = this.ctx.createGain();
-            osc.type = i === 0 ? 'triangle' : 'sine';
-            osc.frequency.setValueAtTime(getFreq(rootMidi + interval), now);
-            gain.gain.setValueAtTime(0, now);
-            gain.gain.linearRampToValueAtTime(0.15, now + 0.02); 
-            gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2); 
-            osc.connect(gain);
-            gain.connect(this.ctx.destination);
-            osc.start(now);
-            osc.stop(now + 1.3);
+
+    playChord(notesArray) {
+        if (!this.sampler) this.init();
+        if (Tone.context.state !== 'running') {
+            Tone.start();
+        }
+        if (this.sampler.loaded) {
+            this.sampler.triggerAttackRelease(notesArray, "2n");
+        }
+    }
+};
+
+/**
+ * THEORY ENGINE (Added Functionality)
+ */
+const theoryEngine = {
+    // キーに応じたダイアトニックコード（Major scale基準）
+    getDiatonicChords(keyRoot) {
+        const rootIdx = MUSIC_CONSTANTS.NOTE_INDEX_MAP[keyRoot];
+        const intervals = [
+            { semi: 0, q: "maj", s: "M7" }, // I
+            { semi: 2, q: "m",   s: "7"  }, // ii
+            { semi: 4, q: "m",   s: "7"  }, // iii
+            { semi: 5, q: "maj", s: "M7" }, // IV
+            { semi: 7, q: "maj", s: "7"  }, // V
+            { semi: 9, q: "m",   s: "7"  }, // vi
+            { semi: 11, q: "dim", s: "dim7" } // vii(m7b5に近い代用)
+        ];
+
+        const useFlat = keyRoot.includes('b') || ["F", "Bb", "Eb", "Ab", "Db", "Gb"].includes(keyRoot);
+        const sourceArray = useFlat ? MUSIC_CONSTANTS.NOTES_FLAT : MUSIC_CONSTANTS.NOTES_FULL;
+
+        return intervals.map(inter => {
+            return {
+                root: sourceArray[(rootIdx + inter.semi) % 12],
+                quality: inter.q,
+                seventh: inter.s
+            };
+        });
+    },
+
+    updateRecommendedChords() {
+        const key = document.getElementById('songKey').value;
+        const container = document.getElementById('keyChordGroup');
+        const section = document.getElementById('keyChordSection');
+        container.innerHTML = '';
+        
+        if(!key) {
+            section.style.display = 'none';
+            return;
+        }
+        section.style.display = 'block';
+
+        const chords = this.getDiatonicChords(key);
+        chords.forEach(c => {
+            const btn = document.createElement('button');
+            btn.className = 'btn-key-chord';
+            const detail = chordEngine.getChordDetail({r: c.root, q: c.quality, s: "none", t: []});
+            btn.innerText = detail.name;
+            btn.onclick = () => {
+                appState.currentChord = { root: c.root, quality: c.quality, seventh: "none", tensions: [] };
+                uiManager.syncChordSelectorUI();
+                chordEngine.calculateAndSync();
+            };
+            container.appendChild(btn);
         });
     }
 };
@@ -531,7 +583,7 @@ const audioEngine = {
  */
 const chordEngine = {
     getChordDetail(data) {
-        if (!data || !data.r) return { name: "", notes: "", intervals: [] };
+        if (!data || !data.r) return { name: "", notes: "", scientific: [] };
         let intervals = [0]; 
         let displayType = "";
         
@@ -557,12 +609,22 @@ const chordEngine = {
 
         const rootIdx = MUSIC_CONSTANTS.NOTE_INDEX_MAP[data.r];
         const uniqueIntervals = [...new Set(intervals.map(i => i % 12))].sort((a,b) => a-b);
-        const useFlat = ["Eb", "Ab", "Bb", "F", "Db", "Gb"].includes(data.r);
+        
+        // ルート音自体がフラット系かどうかで表示を切り分ける
+        const useFlat = data.r.includes('b') || ["F", "Bb", "Eb", "Ab", "Db", "Gb"].includes(data.r);
         const sourceArray = useFlat ? MUSIC_CONSTANTS.NOTES_FLAT : MUSIC_CONSTANTS.NOTES_FULL;
+        
         const resNotes = uniqueIntervals.map(i => sourceArray[(rootIdx + i) % 12]);
         const kanaNotes = resNotes.map(n => MUSIC_CONSTANTS.KANA_MAP[n] || n).join(" - ");
-        
-        return { name: data.r + displayType, notes: kanaNotes, intervals: intervals };
+
+        const scientificNotes = intervals.map(inter => {
+            const absoluteIdx = rootIdx + inter;
+            const noteName = MUSIC_CONSTANTS.NOTES_FULL[absoluteIdx % 12];
+            const octave = 3 + Math.floor(absoluteIdx / 12);
+            return `${noteName}${octave}`;
+        });
+
+        return { name: data.r + displayType, notes: kanaNotes, scientific: scientificNotes };
     },
 
     calculateAndSync(shouldPlay = true) {
@@ -586,8 +648,8 @@ const chordEngine = {
             };
         }
 
-        if (shouldPlay && detail.intervals.length > 0) {
-            audioEngine.playChord(detail.intervals, appState.currentChord.root);
+        if (shouldPlay && detail.scientific.length > 0) {
+            soundEngine.playChord(detail.scientific);
         }
     },
 
@@ -596,73 +658,15 @@ const chordEngine = {
             appState.selectedBeatElement.querySelector('.beat-chord').innerText = "";
             appState.selectedBeatElement.querySelector('.beat-notes').innerText = "";
             appState.selectedBeatElement.chordData = null;
-            appState.currentChord = { root: "C", quality: "maj", seventh: "none", tensions: [] };
+            
+            appState.currentChord = {
+                root: "C",
+                quality: "maj",
+                seventh: "none",
+                tensions: []
+            };
             sheetEditor.closeChordModal();
         }
-    }
-};
-
-/**
- * CHORD SET MANAGER
- */
-const chordSetManager = {
-    addCurrentToSet() {
-        const chordStr = JSON.stringify(appState.currentChord);
-        if (appState.currentChordSet.some(c => JSON.stringify(c) === chordStr)) return;
-        appState.currentChordSet.push(JSON.parse(chordStr));
-        this.renderChordSet();
-        storageManager.requestAutoSave();
-    },
-
-    renderChordSet() {
-        const area = document.getElementById('chordSetArea');
-        area.innerHTML = '';
-        
-        if (appState.currentChordSet.length === 0) {
-            area.innerHTML = '<span style="font-size:0.75rem; color:#ccc; width:100%; text-align:center; padding:10px 0;">No chords saved.</span>';
-            return;
-        }
-
-        appState.currentChordSet.forEach((chord, index) => {
-            const detail = chordEngine.getChordDetail(chord);
-            const item = document.createElement('div');
-            item.className = 'chord-set-item';
-            
-            // 修正：内部にコード名を表示するspanを明示的に配置
-            const label = document.createElement('span');
-            label.innerText = detail.name;
-            item.appendChild(label);
-            
-            const delMark = document.createElement('div');
-            delMark.className = 'del-mark';
-            delMark.innerHTML = '×';
-            delMark.onclick = (e) => {
-                e.stopPropagation();
-                if(confirm(`Remove ${detail.name}?`)) {
-                    appState.currentChordSet.splice(index, 1);
-                    this.renderChordSet();
-                    storageManager.requestAutoSave();
-                }
-            };
-            item.appendChild(delMark);
-
-            item.onclick = () => {
-                appState.currentChord = JSON.parse(JSON.stringify(chord));
-                uiManager.syncChordSelectorUI();
-                chordEngine.calculateAndSync(true);
-            };
-
-            item.oncontextmenu = (e) => {
-                e.preventDefault();
-                if(confirm(`Remove ${detail.name}?`)) {
-                    appState.currentChordSet.splice(index, 1);
-                    this.renderChordSet();
-                    storageManager.requestAutoSave();
-                }
-            };
-            
-            area.appendChild(item);
-        });
     }
 };
 
@@ -708,6 +712,7 @@ const sheetEditor = {
         row.addEventListener('dragover', (e) => this.handleDragOver(e));
         row.addEventListener('drop', (e) => this.handleDrop(e));
         row.addEventListener('dragend', (e) => this.handleDragEnd(e));
+        
         row.addEventListener('touchstart', (e) => this.handleTouchStart(e), {passive: true});
         row.addEventListener('touchmove', (e) => this.handleTouchMove(e), {passive: false});
         row.addEventListener('touchend', (e) => this.handleTouchEnd(e));
@@ -716,6 +721,7 @@ const sheetEditor = {
         for (let i = 0; i < beatsCount; i++) {
             grid.appendChild(this.createBeatBox(savedData ? savedData.beats[i] : null));
         }
+
         container.appendChild(row);
         storageManager.requestAutoSave();
     },
@@ -723,18 +729,61 @@ const sheetEditor = {
     createBeatBox(data) {
         const beat = document.createElement('div');
         beat.className = 'beat-box';
-        const beatData = data || { chord: null, rhythm1: ["0","0","0","0"], rhythm2: ["0","0","0","0"] };
+        const beatData = data || { chord: null };
         beat.chordData = beatData.chord;
-        beat.rhythmData = { r1: beatData.rhythm1, r2: beatData.rhythm2 };
         
         const detail = chordEngine.getChordDetail(beatData.chord);
         beat.innerHTML = `
-            <div class="chord-display-area" onclick="sheetEditor.openChordModal(this.parentElement)">
+            <div class="chord-display-area">
                 <span class="beat-chord">${detail.name}</span>
                 <span class="beat-notes">${detail.notes}</span>
             </div>
         `;
+
+        beat.addEventListener('mousedown', (e) => this.startPress(e, beat));
+        beat.addEventListener('touchstart', (e) => this.startPress(e, beat), {passive: true});
+        beat.addEventListener('mouseup', (e) => this.endPress(e, beat));
+        beat.addEventListener('touchend', (e) => this.endPress(e, beat));
+        beat.addEventListener('mouseleave', () => this.cancelPress());
+        
         return beat;
+    },
+
+    startPress(e, beatEl) {
+        appState.isLongPress = false;
+        if (appState.longPressTimer) clearTimeout(appState.longPressTimer);
+        
+        appState.longPressTimer = setTimeout(() => {
+            appState.isLongPress = true;
+            this.handleBeatLongPress(beatEl);
+        }, 500);
+    },
+
+    endPress(e, beatEl) {
+        if (appState.longPressTimer) clearTimeout(appState.longPressTimer);
+        if (!appState.isLongPress) {
+            this.handleBeatTap(beatEl);
+        }
+        appState.isLongPress = false;
+    },
+
+    cancelPress() {
+        if (appState.longPressTimer) clearTimeout(appState.longPressTimer);
+    },
+
+    handleBeatTap(beatEl) {
+        if (beatEl.chordData) {
+            const detail = chordEngine.getChordDetail(beatEl.chordData);
+            if (detail.scientific.length > 0) {
+                soundEngine.playChord(detail.scientific);
+            }
+        } else {
+            this.openChordModal(beatEl);
+        }
+    },
+
+    handleBeatLongPress(beatEl) {
+        this.openChordModal(beatEl);
     },
 
     handleDragStart(e) {
@@ -752,7 +801,8 @@ const sheetEditor = {
             else row.parentElement.insertBefore(appState.draggedMeasure, row.nextElementSibling);
         }
     },
-    handleDrop(e) { e.preventDefault(); },
+    handleDrop(e) { e.preventDefault();
+    },
     handleDragEnd(e) {
         e.currentTarget.classList.remove('dragging');
         appState.draggedMeasure = null;
@@ -765,11 +815,10 @@ const sheetEditor = {
     },
     handleTouchMove(e) {
         const diff = e.touches[0].clientX - appState.swipeStartX;
-        if (diff < 0) { 
+        if (diff < 0) {
             e.preventDefault();
-            const row = e.currentTarget;
-            row.style.transform = `translateX(${diff}px)`;
-            row.style.opacity = 1 - Math.abs(diff/300);
+            e.currentTarget.style.transform = `translateX(${diff}px)`;
+            e.currentTarget.style.opacity = 1 - Math.abs(diff/300);
         }
     },
     handleTouchEnd(e) {
@@ -777,7 +826,7 @@ const sheetEditor = {
         const diff = e.changedTouches[0].clientX - appState.swipeStartX;
         row.classList.remove('swiping');
         
-        if (diff < -100) { 
+        if (diff < -100) {
             if (confirm('この小節を削除しますか？')) {
                 row.remove();
                 storageManager.requestAutoSave();
@@ -800,7 +849,7 @@ const sheetEditor = {
         appState.currentChord = { root: data.r, quality: data.q, seventh: data.s, tensions: [...data.t] };
 
         uiManager.syncChordSelectorUI();
-        chordSetManager.renderChordSet();
+        theoryEngine.updateRecommendedChords(); // 追記: モーダル開く際にも推奨コード更新
         
         const inner = document.getElementById('selectorInner');
         document.getElementById('selectorTitle').innerText = "コードを選択";
@@ -808,7 +857,7 @@ const sheetEditor = {
         document.getElementById('modalControls').style.display = 'flex';
         document.getElementById('chordModal').style.display = 'block';
         document.body.style.overflow = 'hidden';
-        chordEngine.calculateAndSync(true); 
+        chordEngine.calculateAndSync(false);
     },
 
     closeChordModal() {
@@ -828,7 +877,8 @@ const sheetEditor = {
         storageManager.requestAutoSave();
     },
 
-    deleteSection(el) { if(confirm('セクション全体を削除しますか？')) { el.remove(); uiManager.updateSectionNav(); storageManager.requestAutoSave(); } },
+    deleteSection(el) { if(confirm('セクション全体を削除しますか？')) { el.remove(); uiManager.updateSectionNav(); storageManager.requestAutoSave();
+    } },
     
     resetSheetByBeatChange() {
         if(!confirm('拍子を変更すると現在の内容がリセットされます。よろしいですか？')) return;
@@ -853,7 +903,7 @@ const uiManager = {
             document.getElementById('selector').appendChild(document.getElementById('selectorInner'));
             document.getElementById('modalControls').style.display = 'none';
             document.getElementById('selectorTitle').innerText = "Chord Visualizer 🎹";
-            chordSetManager.renderChordSet();
+            theoryEngine.updateRecommendedChords(); // 追記: タブ切り替え時も更新
         }
         if(!noScroll) window.scrollTo({ top: 0, behavior: 'smooth' });
     },
@@ -901,7 +951,11 @@ const uiManager = {
 const storageManager = {
     DB_NAME: 'ChordSheetDB',
     DB_VERSION: 1,
-    STORES: { SONGS: 'songs', LIBRARY: 'library', APP_STATE: 'state' },
+    STORES: {
+        SONGS: 'songs',
+        LIBRARY: 'library',
+        APP_STATE: 'state'
+    },
 
     initDB() {
         return new Promise((resolve, reject) => {
@@ -929,6 +983,7 @@ const storageManager = {
         if (!appState.currentSongId || !appState.db) return;
         const songTitle = document.getElementById('songTitle').value.trim() || "無題の楽譜";
         const timeSignature = document.getElementById('timeSignature').value;
+        const songKey = document.getElementById('songKey').value; // 追記
         const lastModified = Date.now();
         const sectionsData = Array.from(document.querySelectorAll('.section-block')).map(sb => ({
             title: sb.querySelector('.section-header-input').value,
@@ -943,8 +998,8 @@ const storageManager = {
             id: appState.currentSongId,
             title: songTitle,
             timeSignature: timeSignature,
-            lastModified: lastModified,
-            chordSet: appState.currentChordSet
+            songKey: songKey, // 追記
+            lastModified: lastModified
         };
         const transaction = appState.db.transaction([this.STORES.SONGS, this.STORES.LIBRARY, this.STORES.APP_STATE], 'readwrite');
         transaction.objectStore(this.STORES.SONGS).put({ id: appState.currentSongId, data: sectionsData });
@@ -963,14 +1018,13 @@ const storageManager = {
     async createNewSong(confirmFirst = true) {
         if (confirmFirst && !confirm('新しい楽譜を作成しますか？')) return;
         appState.currentSongId = Date.now();
-        appState.currentChordSet = [];
         document.getElementById('songTitle').value = "";
         uiManager.syncTitleDisplay();
         document.getElementById('timeSignature').value = "4";
+        document.getElementById('songKey').value = "C"; // 追記
         document.getElementById('masterContainer').innerHTML = '';
         sheetEditor.addSectionBlock("Intro");
         uiManager.updateSectionNav();
-        chordSetManager.renderChordSet();
         await this.executeActualSave();
         uiManager.switchTab('sheet');
     },
@@ -992,10 +1046,10 @@ const storageManager = {
 
     loadDataIntoUI(song) {
         appState.currentSongId = song.id;
-        appState.currentChordSet = song.chordSet || [];
         document.getElementById('songTitle').value = song.title || "";
         uiManager.syncTitleDisplay();
         document.getElementById('timeSignature').value = song.timeSignature;
+        document.getElementById('songKey').value = song.songKey || "C"; // 追記
         const master = document.getElementById('masterContainer');
         master.innerHTML = '';
         if(song.sections && song.sections.length > 0) {
@@ -1007,7 +1061,7 @@ const storageManager = {
             sheetEditor.addSectionBlock("Intro");
         }
         uiManager.updateSectionNav();
-        chordSetManager.renderChordSet();
+        theoryEngine.updateRecommendedChords(); // 追記
         
         if (appState.db) {
             const tx = appState.db.transaction([this.STORES.APP_STATE], 'readwrite');
@@ -1035,6 +1089,7 @@ const storageManager = {
     async renderSaveList() {
         const container = document.getElementById('saveListContainer');
         if (!appState.db) return;
+
         const tx = appState.db.transaction([this.STORES.LIBRARY], 'readonly');
         const req = tx.objectStore(this.STORES.LIBRARY).getAll();
         req.onsuccess = () => {
@@ -1043,6 +1098,7 @@ const storageManager = {
                 container.innerHTML = '<p style="text-align:center; color:#999; font-size:0.8rem;">保存された楽譜はありません</p>';
                 return;
             }
+            
             container.innerHTML = '';
             libraryIndex.sort((a,b) => b.lastModified - a.lastModified).forEach(song => {
                 const item = document.createElement('div');
@@ -1050,7 +1106,7 @@ const storageManager = {
                 item.innerHTML = `
                     <div class="save-item-info" onclick="storageManager.loadSheet(${song.id})">
                         <div style="font-weight:bold; color:var(--secondary);">${song.title || '無題'}</div>
-                        <div style="font-size:0.7rem; color:#999;">${song.timeSignature}/4拍子 | ${new Date(song.lastModified).toLocaleString()}</div>
+                        <div style="font-size:0.7rem; color:#999;">${song.songKey || 'C'} | ${song.timeSignature}/4拍子 | ${new Date(song.lastModified).toLocaleString()}</div>
                     </div>
                     <button class="btn-sm btn-del" onclick="storageManager.deleteSheet(${song.id})">削除</button>
                 `;
@@ -1064,30 +1120,35 @@ const storageManager = {
  * INITIALIZATION
  */
 async function initApp() {
+    soundEngine.init();
+
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('sw.js')
-                .then(reg => console.log('Service Worker registered', reg))
-                .catch(err => console.error('Service Worker registration failed', err));
+            navigator.serviceWorker.register('sw.js').catch(err => console.error(err));
         });
     }
 
-    const roots = ["C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"];
+    // ルート音ボタン生成のロジック（12音をグリッドに敷き詰める）
+    const allNotes = ["C", "C#", "Db", "D", "D#", "Eb", "E", "F", "F#", "Gb", "G", "G#", "Ab", "A", "A#", "Bb", "B"];
     const rootGroup = document.getElementById('rootGroup');
-    roots.forEach(n => {
+    
+    allNotes.forEach(note => {
         const btn = document.createElement('button');
-        btn.innerText = n;
-        if(n === "C") btn.className = "active";
-        btn.onclick = () => {
-            document.querySelectorAll(`#rootGroup button`).forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            appState.currentChord.root = n;
-            appState.currentChord.tensions = [];
-            uiManager.syncChordSelectorUI();
-            chordEngine.calculateAndSync(true); 
-        };
+        btn.innerText = note;
+        btn.className = "btn-root";
+        btn.onclick = () => selectRoot(note, btn);
         rootGroup.appendChild(btn);
     });
+
+    function selectRoot(n, btn) {
+        document.querySelectorAll(`#rootGroup button`).forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        appState.currentChord.root = n;
+        appState.currentChord.tensions = [];
+        uiManager.syncChordSelectorUI();
+        chordEngine.calculateAndSync();
+    }
+
     const setupGroup = (groupId, stateKey) => {
         document.querySelectorAll(`#${groupId} button`).forEach(btn => {
             btn.onclick = () => {
@@ -1096,7 +1157,7 @@ async function initApp() {
                 appState.currentChord[stateKey] = btn.getAttribute('data-val');
                 appState.currentChord.tensions = [];
                 uiManager.syncChordSelectorUI();
-                chordEngine.calculateAndSync(true); 
+                chordEngine.calculateAndSync();
             };
         });
     };
@@ -1110,12 +1171,9 @@ async function initApp() {
             if(idx > -1) appState.currentChord.tensions.splice(idx, 1);
             else appState.currentChord.tensions.push(val);
             btn.classList.toggle('active');
-            chordEngine.calculateAndSync(true); 
+            chordEngine.calculateAndSync();
         };
     });
-
-    document.body.addEventListener('touchstart', () => audioEngine.init(), {once: true});
-    document.body.addEventListener('mousedown', () => audioEngine.init(), {once: true});
 
     try {
         await storageManager.initDB();
