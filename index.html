@@ -26,7 +26,6 @@
             margin: 0;
             line-height: 1.5; 
             overflow-x: hidden;
-            /* スワイプ削除時のハミ出し防止 */
         }
         .container { 
             max-width: 800px;
@@ -214,7 +213,6 @@
             color: white; font-weight: bold; font-size: 0.8rem; padding: 10px 12px; border-radius: 6px; flex-grow: 1;
         }
         
-        /* 改修箇所: 小節のデザイン */
         .measure-row { 
             display: flex;
             flex-direction: column; background: #fff; 
@@ -223,7 +221,7 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.02);
             position: relative; 
             transition: transform 0.2s, opacity 0.2s;
-            touch-action: pan-y; /* ドラッグ用に制御 */
+            touch-action: pan-y;
             cursor: grab;
         }
         .measure-row.dragging { opacity: 0.5; cursor: grabbing;
@@ -235,7 +233,7 @@
             gap: 6px; width: 100%; }
         .beat-box { 
             flex: 1;
-            min-height: 60px; /* 少し高さを抑える */
+            min-height: 60px;
             border: 1px solid #f1f3f5;
             padding: 4px; 
             text-align: center; cursor: pointer; 
@@ -280,6 +278,52 @@
             border-radius: 6px; background: #fff; cursor: pointer; }
         .btn-del { border-color: #ffcdd2; color: #e57373;
         }
+
+        .chord-set-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border: 1px solid #eee;
+            margin-bottom: 15px;
+            min-height: 50px; /* 修正: 文字が見えやすくするため少し高さを確保 */
+        }
+        .chord-set-item {
+            padding: 8px 16px; /* 修正: 余白調整 */
+            background: white;
+            border: 2px solid var(--accent-soft);
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 0.95rem; /* 修正: 文字サイズ微増 */
+            color: var(--secondary);
+            position: relative;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 45px;
+        }
+        .btn-add-chord-set {
+            padding: 8px 12px;
+            background: var(--primary-light);
+            border: 1px dashed var(--primary);
+            color: var(--primary);
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 0.85rem;
+        }
+        .chord-set-item .del-mark {
+            position: absolute;
+            top: -8px; right: -8px;
+            background: #e57373; color: white;
+            width: 18px; height: 18px; border-radius: 50%;
+            font-size: 12px; display: flex; align-items: center; justify-content: center;
+            border: 1px solid white;
+            pointer-events: auto;
+        }
         
         .grid-2 { display: grid;
             grid-template-columns: 1fr; gap: 0; }
@@ -295,14 +339,20 @@
 
 <div class="container">
     <div class="tabs">
-        <div class="tab active" onclick="uiManager.switchTab('selector')">コード確認</div>
-        <div class="tab" onclick="uiManager.switchTab('sheet')">楽譜作成</div>
+        <div class="tab" onclick="uiManager.switchTab('selector')">コード確認</div>
+        <div class="tab active" onclick="uiManager.switchTab('sheet')">楽譜作成</div>
         <div class="tab" onclick="uiManager.switchTab('library')">保存リスト</div>
     </div>
 
-    <div id="selector" class="content active">
+    <div id="selector" class="content">
         <div id="selectorInner">
             <h2 id="selectorTitle">Chord Visualizer 🎹</h2>
+            
+            <div class="section">
+                <span class="label">SONG CHORDS (TAP TO SELECT)</span>
+                <div id="chordSetArea" class="chord-set-container"></div>
+            </div>
+
             <div class="section">
                 <span class="label">ROOT</span>
                 <div class="btn-group" id="rootGroup"></div>
@@ -342,6 +392,11 @@
             <div id="result-area">
                 <div class="chord-title" id="chordName">C</div>
                 <div class="notes-display" id="notes">ド - ミ - ソ</div>
+                
+                <div style="display: flex; justify-content: center; gap: 10px; margin-top: 10px;">
+                   <button class="btn-add-chord-set" onclick="chordSetManager.addCurrentToSet()">+ コードセットに追加</button>
+                </div>
+                
                 <p style="font-size: 0.7rem; color: #888; margin: 8px 0 0;">※選択中の拍に反映されます</p>
                 
                 <div id="modalControls" style="display:none; display: flex; gap: 10px; margin-top: 15px;">
@@ -352,7 +407,7 @@
         </div>
     </div>
 
-    <div id="sheet" class="content">
+    <div id="sheet" class="content active">
         <div class="sheet-header-sticky">
             <div class="sheet-info-bar">
                 <div class="current-song-title" id="displaySongTitle">無題の楽譜</div>
@@ -431,8 +486,44 @@ let appState = {
     selectedBeatElement: null,
     autoSaveTimer: null,
     db: null,
-    draggedMeasure: null, // ドラッグ用
-    swipeStartX: 0        // スワイプ用
+    draggedMeasure: null,
+    swipeStartX: 0,
+    currentChordSet: []
+};
+
+/**
+ * AUDIO ENGINE
+ */
+const audioEngine = {
+    ctx: null,
+    init() {
+        if (!this.ctx) {
+            this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (this.ctx.state === 'suspended') {
+            this.ctx.resume();
+        }
+    },
+    playChord(intervals, rootNote) {
+        this.init();
+        const now = this.ctx.currentTime;
+        const rootIdx = MUSIC_CONSTANTS.NOTE_INDEX_MAP[rootNote];
+        const getFreq = (semi) => 440 * Math.pow(2, (semi - 69) / 12);
+        const rootMidi = 48 + rootIdx;
+        intervals.forEach((interval, i) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = i === 0 ? 'triangle' : 'sine';
+            osc.frequency.setValueAtTime(getFreq(rootMidi + interval), now);
+            gain.gain.setValueAtTime(0, now);
+            gain.gain.linearRampToValueAtTime(0.15, now + 0.02); 
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2); 
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now);
+            osc.stop(now + 1.3);
+        });
+    }
 };
 
 /**
@@ -440,7 +531,7 @@ let appState = {
  */
 const chordEngine = {
     getChordDetail(data) {
-        if (!data || !data.r) return { name: "", notes: "" };
+        if (!data || !data.r) return { name: "", notes: "", intervals: [] };
         let intervals = [0]; 
         let displayType = "";
         
@@ -452,12 +543,9 @@ const chordEngine = {
             default: intervals.push(4, 7);
         }
 
-        if (data.s === "7") { intervals.push(10); displayType += "7";
-        }
-        else if (data.s === "M7") { intervals.push(11); displayType += "M7";
-        }
-        else if (data.s === "dim7") { intervals.push(9); displayType += "dim7";
-        }
+        if (data.s === "7") { intervals.push(10); displayType += "7"; }
+        else if (data.s === "M7") { intervals.push(11); displayType += "M7"; }
+        else if (data.s === "dim7") { intervals.push(9); displayType += "dim7"; }
 
         data.t.forEach(t => {
             if (t === "b5") { intervals = intervals.filter(i => i !== 7); intervals.push(6); displayType += "(b5)"; }
@@ -473,10 +561,11 @@ const chordEngine = {
         const sourceArray = useFlat ? MUSIC_CONSTANTS.NOTES_FLAT : MUSIC_CONSTANTS.NOTES_FULL;
         const resNotes = uniqueIntervals.map(i => sourceArray[(rootIdx + i) % 12]);
         const kanaNotes = resNotes.map(n => MUSIC_CONSTANTS.KANA_MAP[n] || n).join(" - ");
-        return { name: data.r + displayType, notes: kanaNotes };
+        
+        return { name: data.r + displayType, notes: kanaNotes, intervals: intervals };
     },
 
-    calculateAndSync() {
+    calculateAndSync(shouldPlay = true) {
         const detail = this.getChordDetail({
             r: appState.currentChord.root,
             q: appState.currentChord.quality,
@@ -496,6 +585,10 @@ const chordEngine = {
                 t: [...appState.currentChord.tensions]
             };
         }
+
+        if (shouldPlay && detail.intervals.length > 0) {
+            audioEngine.playChord(detail.intervals, appState.currentChord.root);
+        }
     },
 
     clearChord() {
@@ -503,15 +596,73 @@ const chordEngine = {
             appState.selectedBeatElement.querySelector('.beat-chord').innerText = "";
             appState.selectedBeatElement.querySelector('.beat-notes').innerText = "";
             appState.selectedBeatElement.chordData = null;
-            
-            appState.currentChord = {
-                root: "C",
-                quality: "maj",
-                seventh: "none",
-                tensions: []
-            };
+            appState.currentChord = { root: "C", quality: "maj", seventh: "none", tensions: [] };
             sheetEditor.closeChordModal();
         }
+    }
+};
+
+/**
+ * CHORD SET MANAGER
+ */
+const chordSetManager = {
+    addCurrentToSet() {
+        const chordStr = JSON.stringify(appState.currentChord);
+        if (appState.currentChordSet.some(c => JSON.stringify(c) === chordStr)) return;
+        appState.currentChordSet.push(JSON.parse(chordStr));
+        this.renderChordSet();
+        storageManager.requestAutoSave();
+    },
+
+    renderChordSet() {
+        const area = document.getElementById('chordSetArea');
+        area.innerHTML = '';
+        
+        if (appState.currentChordSet.length === 0) {
+            area.innerHTML = '<span style="font-size:0.75rem; color:#ccc; width:100%; text-align:center; padding:10px 0;">No chords saved.</span>';
+            return;
+        }
+
+        appState.currentChordSet.forEach((chord, index) => {
+            const detail = chordEngine.getChordDetail(chord);
+            const item = document.createElement('div');
+            item.className = 'chord-set-item';
+            
+            // 修正：内部にコード名を表示するspanを明示的に配置
+            const label = document.createElement('span');
+            label.innerText = detail.name;
+            item.appendChild(label);
+            
+            const delMark = document.createElement('div');
+            delMark.className = 'del-mark';
+            delMark.innerHTML = '×';
+            delMark.onclick = (e) => {
+                e.stopPropagation();
+                if(confirm(`Remove ${detail.name}?`)) {
+                    appState.currentChordSet.splice(index, 1);
+                    this.renderChordSet();
+                    storageManager.requestAutoSave();
+                }
+            };
+            item.appendChild(delMark);
+
+            item.onclick = () => {
+                appState.currentChord = JSON.parse(JSON.stringify(chord));
+                uiManager.syncChordSelectorUI();
+                chordEngine.calculateAndSync(true);
+            };
+
+            item.oncontextmenu = (e) => {
+                e.preventDefault();
+                if(confirm(`Remove ${detail.name}?`)) {
+                    appState.currentChordSet.splice(index, 1);
+                    this.renderChordSet();
+                    storageManager.requestAutoSave();
+                }
+            };
+            
+            area.appendChild(item);
+        });
     }
 };
 
@@ -549,18 +700,14 @@ const sheetEditor = {
         const row = document.createElement('div');
         row.className = 'measure-row';
         row.draggable = true;
-        // ドラッグ可能に設定
         row.innerHTML = `
             <div class="measure-grid"></div>
             <input type="text" class="lyrics-input" placeholder="歌詞..." value="${savedData ? savedData.lyrics : ''}" oninput="storageManager.requestAutoSave()">
         `;
-        // イベントリスナー追加 (ドラッグ&ドロップ)
         row.addEventListener('dragstart', (e) => this.handleDragStart(e));
         row.addEventListener('dragover', (e) => this.handleDragOver(e));
         row.addEventListener('drop', (e) => this.handleDrop(e));
         row.addEventListener('dragend', (e) => this.handleDragEnd(e));
-        
-        // イベントリスナー追加 (横スワイプ削除)
         row.addEventListener('touchstart', (e) => this.handleTouchStart(e), {passive: true});
         row.addEventListener('touchmove', (e) => this.handleTouchMove(e), {passive: false});
         row.addEventListener('touchend', (e) => this.handleTouchEnd(e));
@@ -569,7 +716,6 @@ const sheetEditor = {
         for (let i = 0; i < beatsCount; i++) {
             grid.appendChild(this.createBeatBox(savedData ? savedData.beats[i] : null));
         }
-
         container.appendChild(row);
         storageManager.requestAutoSave();
     },
@@ -591,7 +737,6 @@ const sheetEditor = {
         return beat;
     },
 
-    /* ドラッグ&ドロップ処理 */
     handleDragStart(e) {
         appState.draggedMeasure = e.currentTarget;
         e.currentTarget.classList.add('dragging');
@@ -607,25 +752,24 @@ const sheetEditor = {
             else row.parentElement.insertBefore(appState.draggedMeasure, row.nextElementSibling);
         }
     },
-    handleDrop(e) { e.preventDefault();
-    },
+    handleDrop(e) { e.preventDefault(); },
     handleDragEnd(e) {
         e.currentTarget.classList.remove('dragging');
         appState.draggedMeasure = null;
         storageManager.requestAutoSave();
     },
 
-    /* 横スワイプ処理 */
     handleTouchStart(e) {
         appState.swipeStartX = e.touches[0].clientX;
         e.currentTarget.classList.add('swiping');
     },
     handleTouchMove(e) {
         const diff = e.touches[0].clientX - appState.swipeStartX;
-        if (diff < 0) { // 左スワイプのみ
+        if (diff < 0) { 
             e.preventDefault();
-            e.currentTarget.style.transform = `translateX(${diff}px)`;
-            e.currentTarget.style.opacity = 1 - Math.abs(diff/300);
+            const row = e.currentTarget;
+            row.style.transform = `translateX(${diff}px)`;
+            row.style.opacity = 1 - Math.abs(diff/300);
         }
     },
     handleTouchEnd(e) {
@@ -633,7 +777,7 @@ const sheetEditor = {
         const diff = e.changedTouches[0].clientX - appState.swipeStartX;
         row.classList.remove('swiping');
         
-        if (diff < -100) { // 100px以上スワイプで削除
+        if (diff < -100) { 
             if (confirm('この小節を削除しますか？')) {
                 row.remove();
                 storageManager.requestAutoSave();
@@ -656,6 +800,7 @@ const sheetEditor = {
         appState.currentChord = { root: data.r, quality: data.q, seventh: data.s, tensions: [...data.t] };
 
         uiManager.syncChordSelectorUI();
+        chordSetManager.renderChordSet();
         
         const inner = document.getElementById('selectorInner');
         document.getElementById('selectorTitle').innerText = "コードを選択";
@@ -663,7 +808,7 @@ const sheetEditor = {
         document.getElementById('modalControls').style.display = 'flex';
         document.getElementById('chordModal').style.display = 'block';
         document.body.style.overflow = 'hidden';
-        chordEngine.calculateAndSync();
+        chordEngine.calculateAndSync(true); 
     },
 
     closeChordModal() {
@@ -683,8 +828,7 @@ const sheetEditor = {
         storageManager.requestAutoSave();
     },
 
-    deleteSection(el) { if(confirm('セクション全体を削除しますか？')) { el.remove(); uiManager.updateSectionNav(); storageManager.requestAutoSave();
-    } },
+    deleteSection(el) { if(confirm('セクション全体を削除しますか？')) { el.remove(); uiManager.updateSectionNav(); storageManager.requestAutoSave(); } },
     
     resetSheetByBeatChange() {
         if(!confirm('拍子を変更すると現在の内容がリセットされます。よろしいですか？')) return;
@@ -709,6 +853,7 @@ const uiManager = {
             document.getElementById('selector').appendChild(document.getElementById('selectorInner'));
             document.getElementById('modalControls').style.display = 'none';
             document.getElementById('selectorTitle').innerText = "Chord Visualizer 🎹";
+            chordSetManager.renderChordSet();
         }
         if(!noScroll) window.scrollTo({ top: 0, behavior: 'smooth' });
     },
@@ -756,11 +901,7 @@ const uiManager = {
 const storageManager = {
     DB_NAME: 'ChordSheetDB',
     DB_VERSION: 1,
-    STORES: {
-        SONGS: 'songs',
-        LIBRARY: 'library',
-        APP_STATE: 'state'
-    },
+    STORES: { SONGS: 'songs', LIBRARY: 'library', APP_STATE: 'state' },
 
     initDB() {
         return new Promise((resolve, reject) => {
@@ -802,7 +943,8 @@ const storageManager = {
             id: appState.currentSongId,
             title: songTitle,
             timeSignature: timeSignature,
-            lastModified: lastModified
+            lastModified: lastModified,
+            chordSet: appState.currentChordSet
         };
         const transaction = appState.db.transaction([this.STORES.SONGS, this.STORES.LIBRARY, this.STORES.APP_STATE], 'readwrite');
         transaction.objectStore(this.STORES.SONGS).put({ id: appState.currentSongId, data: sectionsData });
@@ -821,12 +963,14 @@ const storageManager = {
     async createNewSong(confirmFirst = true) {
         if (confirmFirst && !confirm('新しい楽譜を作成しますか？')) return;
         appState.currentSongId = Date.now();
+        appState.currentChordSet = [];
         document.getElementById('songTitle').value = "";
         uiManager.syncTitleDisplay();
         document.getElementById('timeSignature').value = "4";
         document.getElementById('masterContainer').innerHTML = '';
         sheetEditor.addSectionBlock("Intro");
         uiManager.updateSectionNav();
+        chordSetManager.renderChordSet();
         await this.executeActualSave();
         uiManager.switchTab('sheet');
     },
@@ -848,6 +992,7 @@ const storageManager = {
 
     loadDataIntoUI(song) {
         appState.currentSongId = song.id;
+        appState.currentChordSet = song.chordSet || [];
         document.getElementById('songTitle').value = song.title || "";
         uiManager.syncTitleDisplay();
         document.getElementById('timeSignature').value = song.timeSignature;
@@ -862,6 +1007,7 @@ const storageManager = {
             sheetEditor.addSectionBlock("Intro");
         }
         uiManager.updateSectionNav();
+        chordSetManager.renderChordSet();
         
         if (appState.db) {
             const tx = appState.db.transaction([this.STORES.APP_STATE], 'readwrite');
@@ -889,7 +1035,6 @@ const storageManager = {
     async renderSaveList() {
         const container = document.getElementById('saveListContainer');
         if (!appState.db) return;
-
         const tx = appState.db.transaction([this.STORES.LIBRARY], 'readonly');
         const req = tx.objectStore(this.STORES.LIBRARY).getAll();
         req.onsuccess = () => {
@@ -898,7 +1043,6 @@ const storageManager = {
                 container.innerHTML = '<p style="text-align:center; color:#999; font-size:0.8rem;">保存された楽譜はありません</p>';
                 return;
             }
-            
             container.innerHTML = '';
             libraryIndex.sort((a,b) => b.lastModified - a.lastModified).forEach(song => {
                 const item = document.createElement('div');
@@ -910,7 +1054,6 @@ const storageManager = {
                     </div>
                     <button class="btn-sm btn-del" onclick="storageManager.deleteSheet(${song.id})">削除</button>
                 `;
- 
                 container.appendChild(item);
             });
         };
@@ -921,7 +1064,6 @@ const storageManager = {
  * INITIALIZATION
  */
 async function initApp() {
-    // Service Worker Registration for PWA
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('sw.js')
@@ -942,7 +1084,7 @@ async function initApp() {
             appState.currentChord.root = n;
             appState.currentChord.tensions = [];
             uiManager.syncChordSelectorUI();
-            chordEngine.calculateAndSync();
+            chordEngine.calculateAndSync(true); 
         };
         rootGroup.appendChild(btn);
     });
@@ -954,7 +1096,7 @@ async function initApp() {
                 appState.currentChord[stateKey] = btn.getAttribute('data-val');
                 appState.currentChord.tensions = [];
                 uiManager.syncChordSelectorUI();
-                chordEngine.calculateAndSync();
+                chordEngine.calculateAndSync(true); 
             };
         });
     };
@@ -968,9 +1110,13 @@ async function initApp() {
             if(idx > -1) appState.currentChord.tensions.splice(idx, 1);
             else appState.currentChord.tensions.push(val);
             btn.classList.toggle('active');
-            chordEngine.calculateAndSync();
+            chordEngine.calculateAndSync(true); 
         };
     });
+
+    document.body.addEventListener('touchstart', () => audioEngine.init(), {once: true});
+    document.body.addEventListener('mousedown', () => audioEngine.init(), {once: true});
+
     try {
         await storageManager.initDB();
         const tx = appState.db.transaction([storageManager.STORES.APP_STATE], 'readonly');
@@ -979,9 +1125,11 @@ async function initApp() {
             if (req.result) storageManager.loadDataIntoUI(req.result);
             else storageManager.createNewSong(false);
             storageManager.renderSaveList();
+            uiManager.switchTab('sheet', true);
         };
     } catch (e) {
         storageManager.createNewSong(false);
+        uiManager.switchTab('sheet', true);
     }
 }
 
