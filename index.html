@@ -486,7 +486,10 @@ let appState = {
     swipeStartX: 0,
     sampler: null,
     longPressTimer: null,
-    isLongPress: false
+    isLongPress: false,
+    touchStartX: 0,
+    touchStartY: 0,
+    isScrolling: false
 };
 
 /**
@@ -740,10 +743,35 @@ const sheetEditor = {
             </div>
         `;
 
+        // 誤爆防止のため、座標チェックを伴うイベントリスナーに変更
+        beat.addEventListener('touchstart', (e) => {
+            const touch = e.touches[0];
+            appState.touchStartX = touch.clientX;
+            appState.touchStartY = touch.clientY;
+            appState.isScrolling = false;
+            this.startPress(e, beat);
+        }, {passive: true});
+
+        beat.addEventListener('touchmove', (e) => {
+            const touch = e.touches[0];
+            const moveX = Math.abs(touch.clientX - appState.touchStartX);
+            const moveY = Math.abs(touch.clientY - appState.touchStartY);
+            // 10px以上動いたらスクロールとみなす
+            if (moveX > 10 || moveY > 10) {
+                appState.isScrolling = true;
+                this.cancelPress();
+            }
+        }, {passive: true});
+
+        beat.addEventListener('touchend', (e) => {
+            if (!appState.isScrolling) {
+                this.endPress(e, beat);
+            }
+        });
+
+        // PCブラウザ用
         beat.addEventListener('mousedown', (e) => this.startPress(e, beat));
-        beat.addEventListener('touchstart', (e) => this.startPress(e, beat), {passive: true});
         beat.addEventListener('mouseup', (e) => this.endPress(e, beat));
-        beat.addEventListener('touchend', (e) => this.endPress(e, beat));
         beat.addEventListener('mouseleave', () => this.cancelPress());
         
         return beat;
@@ -754,6 +782,8 @@ const sheetEditor = {
         if (appState.longPressTimer) clearTimeout(appState.longPressTimer);
         
         appState.longPressTimer = setTimeout(() => {
+            // スクロール中であればロングプレスを発動させない
+            if (appState.isScrolling) return;
             appState.isLongPress = true;
             this.handleBeatLongPress(beatEl);
         }, 500);
@@ -761,7 +791,7 @@ const sheetEditor = {
 
     endPress(e, beatEl) {
         if (appState.longPressTimer) clearTimeout(appState.longPressTimer);
-        if (!appState.isLongPress) {
+        if (!appState.isLongPress && !appState.isScrolling) {
             this.handleBeatTap(beatEl);
         }
         appState.isLongPress = false;
@@ -815,6 +845,7 @@ const sheetEditor = {
     },
     handleTouchMove(e) {
         const diff = e.touches[0].clientX - appState.swipeStartX;
+        // 小節自体のスワイプ（削除）処理：水平移動が大きい時のみ
         if (diff < 0) {
             e.preventDefault();
             e.currentTarget.style.transform = `translateX(${diff}px)`;
@@ -849,7 +880,7 @@ const sheetEditor = {
         appState.currentChord = { root: data.r, quality: data.q, seventh: data.s, tensions: [...data.t] };
 
         uiManager.syncChordSelectorUI();
-        theoryEngine.updateRecommendedChords(); // 追記: モーダル開く際にも推奨コード更新
+        theoryEngine.updateRecommendedChords();
         
         const inner = document.getElementById('selectorInner');
         document.getElementById('selectorTitle').innerText = "コードを選択";
@@ -903,7 +934,7 @@ const uiManager = {
             document.getElementById('selector').appendChild(document.getElementById('selectorInner'));
             document.getElementById('modalControls').style.display = 'none';
             document.getElementById('selectorTitle').innerText = "Chord Visualizer 🎹";
-            theoryEngine.updateRecommendedChords(); // 追記: タブ切り替え時も更新
+            theoryEngine.updateRecommendedChords();
         }
         if(!noScroll) window.scrollTo({ top: 0, behavior: 'smooth' });
     },
@@ -983,7 +1014,7 @@ const storageManager = {
         if (!appState.currentSongId || !appState.db) return;
         const songTitle = document.getElementById('songTitle').value.trim() || "無題の楽譜";
         const timeSignature = document.getElementById('timeSignature').value;
-        const songKey = document.getElementById('songKey').value; // 追記
+        const songKey = document.getElementById('songKey').value;
         const lastModified = Date.now();
         const sectionsData = Array.from(document.querySelectorAll('.section-block')).map(sb => ({
             title: sb.querySelector('.section-header-input').value,
@@ -998,7 +1029,7 @@ const storageManager = {
             id: appState.currentSongId,
             title: songTitle,
             timeSignature: timeSignature,
-            songKey: songKey, // 追記
+            songKey: songKey,
             lastModified: lastModified
         };
         const transaction = appState.db.transaction([this.STORES.SONGS, this.STORES.LIBRARY, this.STORES.APP_STATE], 'readwrite');
@@ -1021,7 +1052,7 @@ const storageManager = {
         document.getElementById('songTitle').value = "";
         uiManager.syncTitleDisplay();
         document.getElementById('timeSignature').value = "4";
-        document.getElementById('songKey').value = "C"; // 追記
+        document.getElementById('songKey').value = "C";
         document.getElementById('masterContainer').innerHTML = '';
         sheetEditor.addSectionBlock("Intro");
         uiManager.updateSectionNav();
@@ -1049,7 +1080,7 @@ const storageManager = {
         document.getElementById('songTitle').value = song.title || "";
         uiManager.syncTitleDisplay();
         document.getElementById('timeSignature').value = song.timeSignature;
-        document.getElementById('songKey').value = song.songKey || "C"; // 追記
+        document.getElementById('songKey').value = song.songKey || "C";
         const master = document.getElementById('masterContainer');
         master.innerHTML = '';
         if(song.sections && song.sections.length > 0) {
@@ -1061,7 +1092,7 @@ const storageManager = {
             sheetEditor.addSectionBlock("Intro");
         }
         uiManager.updateSectionNav();
-        theoryEngine.updateRecommendedChords(); // 追記
+        theoryEngine.updateRecommendedChords();
         
         if (appState.db) {
             const tx = appState.db.transaction([this.STORES.APP_STATE], 'readwrite');
