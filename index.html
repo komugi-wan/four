@@ -493,10 +493,16 @@ let appState = {
 };
 
 /**
- * SOUND ENGINE (Tone.js)
+ * SOUND ENGINE (Tone.js) - 改善版
  */
 const soundEngine = {
     init() {
+        // 出力全体の音量を下げて音割れを防止 (-6dB〜-10dB程度)
+        this.mainGain = new Tone.Gain(0.4).toDestination();
+        
+        // 音の濁りを抑えるためのリミッターを追加
+        this.limiter = new Tone.Limiter(-1).connect(this.mainGain);
+
         this.sampler = new Tone.Sampler({
             urls: {
                 A0: "A0.mp3", C1: "C1.mp3", "D#1": "Ds1.mp3", "F#1": "Fs1.mp3",
@@ -508,18 +514,24 @@ const soundEngine = {
                 A6: "A6.mp3", C7: "C7.mp3", "D#7": "Ds7.mp3", "F#7": "Fs7.mp3",
                 A7: "A7.mp3", C8: "C8.mp3"
             },
-            release: 1,
+            // リリースタイム（余韻）を少し長めに設定してクリックノイズを防ぐ
+            release: 1.5,
             baseUrl: "https://tonejs.github.io/audio/salamander/"
-        }).toDestination();
+        }).connect(this.limiter);
     },
 
     playChord(notesArray) {
         if (!this.sampler) this.init();
+        
         if (Tone.context.state !== 'running') {
             Tone.start();
         }
+
         if (this.sampler.loaded) {
-            this.sampler.triggerAttackRelease(notesArray, "2n");
+            // 現在鳴っている音をすべて、0.1秒かけてフェードアウトさせて停止
+            this.sampler.releaseAll(0.1);
+            // 新しい音を鳴らす
+            this.sampler.triggerAttackRelease(notesArray, "2n", "+0.05");
         }
     }
 };
